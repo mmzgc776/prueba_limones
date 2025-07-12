@@ -47,7 +47,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  DeliveryState? repartoGuardado;
+  bool _repartoStarted = false;
+  bool _repartoPaused = false;
+  int _repartoElapsedSeconds = 0;
+  List<bool> _repartoClientesContactados = [];
+  int? _repartoSelectedClienteIndex;
 
   void _incrementCounter() {
     setState(() {
@@ -59,15 +63,16 @@ class _MyHomePageState extends State<MyHomePage> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            SectionDeliveryPage(initialState: repartoGuardado),
+        builder: (context) => SectionDeliveryPage(
+          started: _repartoStarted,
+          paused: _repartoPaused,
+          elapsedSeconds: _repartoElapsedSeconds,
+          clientesContactados: _repartoClientesContactados,
+          selectedClienteIndex: _repartoSelectedClienteIndex,
+        ),
       ),
     );
-    if (result is DeliveryState) {
-      setState(() {
-        repartoGuardado = result;
-      });
-    }
+    // Since SectionDeliveryPage no longer returns a state object, we don't update state here
   }
 
   @override
