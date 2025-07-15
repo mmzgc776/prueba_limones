@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import '../widgets/venta_form.dart';
 
 class Section2Page extends StatelessWidget {
-  const Section2Page({super.key});
+  final int? deliveryNumber;
+
+  const Section2Page({super.key, this.deliveryNumber});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Ventas')),
       body: Stack(
         children: [
-          Padding(padding: const EdgeInsets.all(16.0), child: VentaForm()),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: VentaForm(deliveryNumber: deliveryNumber),
+          ),
           Positioned(
             top: 8,
             right: 16,
@@ -19,9 +24,9 @@ class Section2Page extends StatelessWidget {
                 color: Colors.deepPurple,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                '( XX )',
-                style: TextStyle(
+              child: Text(
+                deliveryNumber != null ? '( #$deliveryNumber )' : '( XX )',
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),

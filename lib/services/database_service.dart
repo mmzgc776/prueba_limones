@@ -37,6 +37,7 @@ class DatabaseService {
   }
 
   Future<int> insertSale({
+    int? id,
     required DateTime date,
     required int clientId,
     required double quantity,
@@ -48,6 +49,7 @@ class DatabaseService {
     if (!_isInitialized || _db == null)
       throw Exception('Database not initialized');
     return await _db!.insertSale(
+      id: id,
       date: date,
       clientId: clientId,
       quantity: quantity,
@@ -741,8 +743,9 @@ class DatabaseService {
             print('Sheets Date: $sheetDate');
             print('Local Date: $localDate');
             if (sheetDate.isAfter(localDate)) {
-              // Sheets data is more recent, update local
+              // Sheets data is more recent, update local with the same ID
               await insertSale(
+                id: sheetId,
                 date: sheetDate,
                 clientId: sheetRow.length > 2
                     ? int.tryParse(sheetRow[2].toString()) ?? 0
@@ -781,8 +784,9 @@ class DatabaseService {
           // Keep the row as is for now, will be updated in the next step if local is more recent
           updatedData.add(sheetRow);
         } else {
-          // New sale from Sheets, insert into local database
+          // New sale from Sheets, insert into local database with the same ID
           await insertSale(
+            id: sheetId,
             date: sheetDate ?? DateTime.now(),
             clientId: sheetRow.length > 2
                 ? int.tryParse(sheetRow[2].toString()) ?? 0

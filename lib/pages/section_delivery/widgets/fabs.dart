@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../nuevo_cliente_page.dart';
+import '../../../data/delivery_state.dart';
+import '../../section2_page.dart';
 
 class FABs extends StatelessWidget {
   final bool started;
@@ -41,13 +43,7 @@ class FABs extends StatelessWidget {
                 if (paused) onResumeDelivery();
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => NuevoClientePage(
-                      started: started,
-                      paused: paused,
-                      elapsedSeconds: elapsedSeconds,
-                      clientesContactados: List<bool>.from(clientesContactados),
-                      selectedClienteIndex: selectedClienteIndex,
-                    ),
+                    builder: (context) => const NuevoClientePage(),
                   ),
                 );
               },
@@ -57,6 +53,35 @@ class FABs extends StatelessWidget {
               mini: true,
               tooltip: 'Nuevo cliente',
               child: const Icon(Icons.add, size: 32, color: Colors.white),
+            ),
+          ),
+        if (started)
+          Positioned(
+            right: 24,
+            bottom: 14,
+            child: FloatingActionButton(
+              heroTag: 'registrar_venta',
+              onPressed: () {
+                if (paused) onResumeDelivery();
+                // Navigate to sales form with current delivery number
+                final deliveryNumber = DeliveryStateManager()
+                    .getCurrentDeliveryNumber();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        Section2Page(deliveryNumber: deliveryNumber),
+                  ),
+                );
+              },
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: const CircleBorder(),
+              mini: true,
+              tooltip: 'Registrar venta',
+              child: const Text(
+                '\$',
+                style: TextStyle(fontSize: 24, color: Colors.white),
+              ),
             ),
           ),
         Align(

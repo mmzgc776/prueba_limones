@@ -7,22 +7,12 @@ import '../../data/database.dart';
 class NuevoClientePage extends StatefulWidget {
   final String? nombreCliente;
   final Cliente? cliente;
-  final bool started;
-  final bool paused;
-  final int elapsedSeconds;
-  final List<bool> clientesContactados;
-  final int? selectedClienteIndex;
   final bool focusOnNotas;
 
   const NuevoClientePage({
     super.key,
     this.nombreCliente,
     this.cliente,
-    required this.started,
-    required this.paused,
-    required this.elapsedSeconds,
-    required this.clientesContactados,
-    required this.selectedClienteIndex,
     this.focusOnNotas = false,
   });
 

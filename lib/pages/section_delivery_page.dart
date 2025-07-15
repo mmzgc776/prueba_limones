@@ -11,20 +11,7 @@ import 'section_delivery/widgets/contacto_options_sheet.dart';
 import '../widgets/venta_form.dart';
 
 class SectionDeliveryPage extends StatefulWidget {
-  final bool started;
-  final bool paused;
-  final int elapsedSeconds;
-  final List<bool> clientesContactados;
-  final int? selectedClienteIndex;
-
-  const SectionDeliveryPage({
-    Key? key,
-    this.started = false,
-    this.paused = false,
-    this.elapsedSeconds = 0,
-    this.clientesContactados = const [],
-    this.selectedClienteIndex,
-  }) : super(key: key);
+  const SectionDeliveryPage({Key? key}) : super(key: key);
 
   @override
   State<SectionDeliveryPage> createState() => _SectionDeliveryPageState();
@@ -39,13 +26,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
   @override
   void initState() {
     super.initState();
-    _controller = DeliveryController(
-      started: widget.started,
-      paused: widget.paused,
-      elapsedSeconds: widget.elapsedSeconds,
-      clientesContactados: widget.clientesContactados,
-      selectedClienteIndex: widget.selectedClienteIndex,
-    );
+    _controller = DeliveryController();
     _deliveryService = DeliveryService();
     // Load data
     _loadData();
@@ -105,17 +86,8 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => NuevoClientePage(
-            cliente: _clientes[index],
-            started: _controller.started,
-            paused: _controller.paused,
-            elapsedSeconds: _controller.elapsedSeconds,
-            clientesContactados: List<bool>.from(
-              _controller.clientesContactados,
-            ),
-            selectedClienteIndex: _controller.selectedClienteIndex,
-            focusOnNotas: true,
-          ),
+          builder: (context) =>
+              NuevoClientePage(cliente: _clientes[index], focusOnNotas: true),
         ),
       );
     }
@@ -134,8 +106,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                 if (_controller.started && !_controller.paused) {
                   _controller.pauseDelivery();
                 }
-                Navigator.of(context).pop();
-                return false;
+                return true;
               },
               child: Scaffold(
                 appBar: AppBar(title: const Text('Iniciar Reparto')),
@@ -145,7 +116,9 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                         paused: _controller.paused,
                         formattedTime: _controller.formattedTime,
                         clientes: _clientes,
-                        clientesContactados: _controller.clientesContactados,
+                        clientesContactados: List<bool>.from(
+                          _controller.clientesContactados,
+                        ),
                         clientesEstado: _controller.clientesEstado,
                         selectedClienteIndex: _controller.selectedClienteIndex,
                         onClienteSelected: _controller.selectCliente,
@@ -162,7 +135,9 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                   started: _controller.started,
                   paused: _controller.paused,
                   elapsedSeconds: _controller.elapsedSeconds,
-                  clientesContactados: _controller.clientesContactados,
+                  clientesContactados: List<bool>.from(
+                    _controller.clientesContactados,
+                  ),
                   selectedClienteIndex: _controller.selectedClienteIndex,
                   onStartDelivery: () {
                     _controller.startDelivery(

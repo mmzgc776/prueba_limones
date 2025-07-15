@@ -14,12 +14,8 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, Sale> {
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
   );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
@@ -523,7 +519,6 @@ class $DeliveriesTable extends Deliveries
     false,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    $customConstraints: 'PRIMARY KEY',
   );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override

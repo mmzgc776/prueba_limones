@@ -39,11 +39,29 @@ class DeliveryController with ChangeNotifier {
     List<bool> clientesContactados = const [],
     int? selectedClienteIndex,
   }) {
-    _started = started;
-    _paused = paused;
-    _elapsedSeconds = elapsedSeconds;
-    _clientesContactados = List<bool>.from(clientesContactados);
-    _selectedClienteIndex = selectedClienteIndex;
+    // Load state from DeliveryStateManager if available
+    final stateManager = DeliveryStateManager();
+    _started = stateManager.isDeliveryActive
+        ? stateManager.isDeliveryActive
+        : started;
+    _paused = stateManager.isDeliveryActive
+        ? stateManager.isDeliveryPaused
+        : paused;
+    _elapsedSeconds = stateManager.isDeliveryActive
+        ? stateManager.elapsedSeconds
+        : elapsedSeconds;
+    _clientesContactados =
+        stateManager.isDeliveryActive &&
+            stateManager.clientesContactados.isNotEmpty
+        ? List<bool>.from(stateManager.clientesContactados)
+        : List<bool>.from(clientesContactados);
+    _clientesEstado =
+        stateManager.isDeliveryActive && stateManager.clientesEstado.isNotEmpty
+        ? List<String>.from(stateManager.clientesEstado)
+        : [];
+    _selectedClienteIndex = stateManager.isDeliveryActive
+        ? stateManager.selectedClienteIndex
+        : selectedClienteIndex;
     if (_started && !_paused) {
       _startTimer();
     }
@@ -52,6 +70,7 @@ class DeliveryController with ChangeNotifier {
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _elapsedSeconds++;
+      DeliveryStateManager().updateElapsedSeconds(_elapsedSeconds);
       notifyListeners();
     });
   }
@@ -61,21 +80,29 @@ class DeliveryController with ChangeNotifier {
     _started = true;
     _paused = false;
     _elapsedSeconds = 0;
-    DeliveryStateManager().startDelivery(deliveryNumber);
+    final stateManager = DeliveryStateManager();
+    stateManager.startDelivery(deliveryNumber);
+    stateManager.updateClientesContactados(_clientesContactados);
+    stateManager.updateClientesEstado(_clientesEstado);
+    stateManager.updateSelectedClienteIndex(_selectedClienteIndex);
     _startTimer();
     notifyListeners();
   }
 
   void pauseDelivery() {
     _paused = true;
-    DeliveryStateManager().pauseDelivery();
+    final stateManager = DeliveryStateManager();
+    stateManager.pauseDelivery();
+    stateManager.updateElapsedSeconds(_elapsedSeconds);
     _timer?.cancel();
     notifyListeners();
   }
 
   void resumeDelivery() {
     _paused = false;
-    DeliveryStateManager().resumeDelivery();
+    final stateManager = DeliveryStateManager();
+    stateManager.resumeDelivery();
+    stateManager.updateElapsedSeconds(_elapsedSeconds);
     _startTimer();
     notifyListeners();
   }
@@ -83,9 +110,10 @@ class DeliveryController with ChangeNotifier {
   void endDelivery(List<Cliente> clientes) {
     _started = false;
     _paused = false;
+    final stateManager = DeliveryStateManager();
     final record = DeliveryRecord(
       deliveryNumber:
-          DeliveryStateManager().getCurrentDeliveryNumber() ??
+          stateManager.getCurrentDeliveryNumber() ??
           (_deliveryRecords.length + 1),
       date: DateTime.now(),
       duration: Duration(seconds: _elapsedSeconds),
@@ -108,7 +136,7 @@ class DeliveryController with ChangeNotifier {
     _clientesContactados = List.generate(clientes.length, (_) => false);
     _clientesEstado = List.generate(clientes.length, (_) => '');
     _selectedClienteIndex = null;
-    DeliveryStateManager().endDelivery();
+    stateManager.endDelivery();
     _timer?.cancel();
     notifyListeners();
   }
@@ -116,12 +144,16 @@ class DeliveryController with ChangeNotifier {
   // Client interaction methods
   void selectCliente(int index) {
     _selectedClienteIndex = index;
+    DeliveryStateManager().updateSelectedClienteIndex(index);
     notifyListeners();
   }
 
   void updateContactoStatus(int index, bool contactado, String estado) {
     _clientesContactados[index] = contactado;
     _clientesEstado[index] = estado;
+    final stateManager = DeliveryStateManager();
+    stateManager.updateClientesContactados(_clientesContactados);
+    stateManager.updateClientesEstado(_clientesEstado);
     debugPrint(
       'Estado actualizado para cliente $index: $estado, Contactado: $contactado',
     );
@@ -130,8 +162,21 @@ class DeliveryController with ChangeNotifier {
 
   // Initialize client lists based on loaded clients
   void initializeClients(int length) {
-    _clientesContactados = List.generate(length, (_) => false);
-    _clientesEstado = List.generate(length, (_) => '');
+    final stateManager = DeliveryStateManager();
+    if (stateManager.clientesContactados.isEmpty ||
+        stateManager.clientesContactados.length != length) {
+      _clientesContactados = List.generate(length, (_) => false);
+      stateManager.updateClientesContactados(_clientesContactados);
+    } else {
+      _clientesContactados = List<bool>.from(stateManager.clientesContactados);
+    }
+    if (stateManager.clientesEstado.isEmpty ||
+        stateManager.clientesEstado.length != length) {
+      _clientesEstado = List.generate(length, (_) => '');
+      stateManager.updateClientesEstado(_clientesEstado);
+    } else {
+      _clientesEstado = List<String>.from(stateManager.clientesEstado);
+    }
     notifyListeners();
   }
 

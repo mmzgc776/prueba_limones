@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.prueba_limones"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "29.0.13599879" // Using a stable NDK version
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

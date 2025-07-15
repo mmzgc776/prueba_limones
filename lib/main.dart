@@ -4,6 +4,7 @@ import 'pages/section2_page.dart';
 import 'pages/section_delivery_page.dart';
 import 'pages/nuevo_cliente_page.dart';
 import 'pages/synchronization_page.dart';
+import 'data/delivery_state.dart';
 
 void main() {
   runApp(const MyApp());
@@ -24,13 +25,7 @@ class MyApp extends StatelessWidget {
         '/section1': (context) => const Section1Page(),
         '/section2': (context) => const Section2Page(),
         '/section_delivery': (context) => const SectionDeliveryPage(),
-        '/nuevo_cliente': (context) => const NuevoClientePage(
-          started: false,
-          paused: false,
-          elapsedSeconds: 0,
-          clientesContactados: [],
-          selectedClienteIndex: null,
-        ),
+        '/nuevo_cliente': (context) => const NuevoClientePage(),
         '/synchronization': (context) => const SynchronizationPage(),
       },
     );
@@ -62,23 +57,36 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _goToReparto(BuildContext context) async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => SectionDeliveryPage(
-          started: _repartoStarted,
-          paused: _repartoPaused,
-          elapsedSeconds: _repartoElapsedSeconds,
-          clientesContactados: _repartoClientesContactados,
-          selectedClienteIndex: _repartoSelectedClienteIndex,
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const SectionDeliveryPage()),
     );
     // Since SectionDeliveryPage no longer returns a state object, we don't update state here
+  }
+
+  final TextEditingController _precioSugeridoController = TextEditingController(
+    text: "0.00",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _precioSugeridoController.addListener(() {
+      setState(() {
+        // Update the value when the text changes
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _precioSugeridoController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     double mediaNacional = 0.0; // Valor dinámico, puedes actualizarlo
-    double precioSugerido = 0.0; // Valor dinámico, puedes actualizarlo
+    double precioSugerido =
+        double.tryParse(_precioSugeridoController.text) ?? 0.0;
     final buttonColor = Colors.deepPurple;
     final buttonTextStyle = const TextStyle(
       fontSize: 14,
@@ -119,14 +127,22 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
-              Text(
-                '4${precioSugerido.toStringAsFixed(2)}',
+              TextField(
+                controller: _precioSugeridoController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: '0.00',
+                ),
+                onSubmitted: (value) {
+                  FocusScope.of(context).unfocus();
+                },
               ),
               const SizedBox(height: 8),
               Center(
@@ -134,12 +150,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: 160,
                   child: ElevatedButton(
                     onPressed: () {
+                      setState(() {
+                        DeliveryStateManager().setCurrentPrice(precioSugerido);
+                      });
                       showDialog(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Agregar precio'),
-                          content: const Text(
-                            'Aquí puedes implementar la lógica para agregar precio.',
+                          title: const Text('Precio agregado'),
+                          content: Text(
+                            'Precio sugerido de ${precioSugerido.toStringAsFixed(2)} ha sido guardado.',
                           ),
                           actions: [
                             TextButton(

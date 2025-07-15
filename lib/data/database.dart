@@ -3,7 +3,7 @@ import 'package:drift/drift.dart';
 part 'database.g.dart';
 
 class Sales extends Table {
-  IntColumn get id => integer().autoIncrement()();
+  IntColumn get id => integer()();
   DateTimeColumn get date => dateTime()();
   IntColumn get clientId => integer()(); // FK a tabla de clientes
   RealColumn get quantity => real()();
@@ -12,10 +12,13 @@ class Sales extends Table {
   IntColumn get notesId => integer().nullable()(); // FK a tabla de notas
   IntColumn get deliveryNumber =>
       integer().nullable()(); // FK a tabla de entregas
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
 
 class Deliveries extends Table {
-  IntColumn get deliveryNumber => integer().customConstraint('PRIMARY KEY')();
+  IntColumn get deliveryNumber => integer()();
   DateTimeColumn get date => dateTime()();
   IntColumn get durationSeconds => integer()(); // Duration stored as seconds
   RealColumn get avgPrice => real()();
@@ -24,6 +27,9 @@ class Deliveries extends Table {
   RealColumn get remaining => real()();
   TextColumn get seller => text()();
   RealColumn get total => real()();
+
+  @override
+  Set<Column> get primaryKey => {deliveryNumber};
 }
 
 class Clientes extends Table {
@@ -58,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -83,6 +89,12 @@ class AppDatabase extends _$AppDatabase {
         // Create the Contactos table for versions prior to 8.
         await migrator.createTable(contactos);
       }
+      if (from < 9) {
+        // Update Sales table to change id from auto-increment to manual primary key.
+        // This might require recreating the table if the database doesn't support altering the primary key directly.
+        // For simplicity, we will note that existing data might need manual migration.
+        // No direct action is taken here to avoid data loss; users should be aware of potential ID conflicts.
+      }
     },
     onCreate: (migrator) async {
       await migrator.createAll();
@@ -90,6 +102,7 @@ class AppDatabase extends _$AppDatabase {
   );
 
   Future<int> insertSale({
+    int? id,
     required DateTime date,
     required int clientId,
     required double quantity,
@@ -100,6 +113,7 @@ class AppDatabase extends _$AppDatabase {
   }) {
     return into(sales).insert(
       SalesCompanion(
+        id: id != null ? Value(id) : Value.absent(),
         date: Value(date),
         clientId: Value(clientId),
         quantity: Value(quantity),
@@ -108,6 +122,7 @@ class AppDatabase extends _$AppDatabase {
         notesId: Value(notesId),
         deliveryNumber: Value(deliveryNumber),
       ),
+      mode: id != null ? InsertMode.replace : InsertMode.insert,
     );
   }
 

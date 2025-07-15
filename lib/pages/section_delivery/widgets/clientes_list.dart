@@ -92,17 +92,8 @@ class ClientesList extends StatelessWidget {
                               if (paused) onResumeDelivery();
                               await Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (context) => NuevoClientePage(
-                                    cliente: cliente,
-                                    started: started,
-                                    paused: paused,
-                                    elapsedSeconds:
-                                        0, // Placeholder, will be updated by parent
-                                    clientesContactados: List<bool>.from(
-                                      clientesContactados,
-                                    ),
-                                    selectedClienteIndex: selectedClienteIndex,
-                                  ),
+                                  builder: (context) =>
+                                      NuevoClientePage(cliente: cliente),
                                 ),
                               );
                             },
