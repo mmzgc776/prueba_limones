@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../delivery_record.dart';
+import 'delivery_detail_view.dart';
 
 class DeliveryRecordsTable extends StatelessWidget {
   final List<DeliveryRecord> deliveryRecords;
@@ -77,6 +78,18 @@ class DeliveryRecordsTable extends StatelessWidget {
                       ],
                       rows: deliveryRecords.map((record) {
                         return DataRow(
+                          onSelectChanged: (selected) {
+                            if (selected == true) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DeliveryDetailView(
+                                    deliveryRecord: record,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
                           cells: [
                             DataCell(Text(record.deliveryNumber.toString())),
                             DataCell(

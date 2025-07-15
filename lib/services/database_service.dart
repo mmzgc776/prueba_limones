@@ -104,6 +104,33 @@ class DatabaseService {
     await _db!.delete(_db!.sales).go();
   }
 
+  Future<void> deleteSale(int id) async {
+    if (!_isInitialized || _db == null)
+      throw Exception('Database not initialized');
+    await (_db!.delete(_db!.sales)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<int> updateSale({
+    required int id,
+    required double quantity,
+    required double price,
+    required double total,
+    required DateTime date,
+  }) async {
+    if (!_isInitialized || _db == null)
+      throw Exception('Database not initialized');
+    return await (_db!.update(
+      _db!.sales,
+    )..where((tbl) => tbl.id.equals(id))).write(
+      SalesCompanion(
+        quantity: Value(quantity),
+        price: Value(price),
+        total: Value(total),
+        date: Value(date),
+      ),
+    );
+  }
+
   Future<void> deleteAllDeliveries() async {
     if (!_isInitialized || _db == null)
       throw Exception('Database not initialized');

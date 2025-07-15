@@ -94,134 +94,143 @@ class _MyHomePageState extends State<MyHomePage> {
       color: Colors.white,
     );
     final buttonSize = MediaQuery.of(context).size.width * 0.418;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const Text(
-                'Media nacional:',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '4${mediaNacional.toStringAsFixed(2)}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: Text(widget.title),
+        ),
+        body: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const Text(
+                  'Media nacional:',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Precio sugerido:',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _precioSugeridoController,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                const SizedBox(height: 8),
+                Text(
+                  '4${mediaNacional.toStringAsFixed(2)}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.deepPurple,
+                  ),
                 ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: '0.00',
+                const SizedBox(height: 24),
+                const Text(
+                  'Precio sugerido:',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                onSubmitted: (value) {
-                  FocusScope.of(context).unfocus();
-                },
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: SizedBox(
-                  width: 160,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        DeliveryStateManager().setCurrentPrice(precioSugerido);
-                      });
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Precio agregado'),
-                          content: Text(
-                            'Precio sugerido de ${precioSugerido.toStringAsFixed(2)} ha sido guardado.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cerrar'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _precioSugeridoController,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: '0.00',
+                  ),
+                  onSubmitted: (value) {
+                    FocusScope.of(context).unfocus();
+                  },
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: SizedBox(
+                    width: 160,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          DeliveryStateManager().setCurrentPrice(
+                            precioSugerido,
+                          );
+                        });
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Precio agregado'),
+                            content: Text(
+                              'Precio sugerido de ${precioSugerido.toStringAsFixed(2)} ha sido guardado.',
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: buttonColor,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Cerrar'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: buttonColor,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text('Agregar precio', style: buttonTextStyle),
                     ),
-                    child: Text('Agregar precio', style: buttonTextStyle),
                   ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 16,
-                runSpacing: 16,
-                children: [
-                  _HomeSquareButton(
-                    label: 'Reparto',
-                    icon: Icons.local_shipping,
-                    color: buttonColor,
-                    size: buttonSize,
-                    onTap: () => _goToReparto(context),
-                  ),
-                  _HomeSquareButton(
-                    label: 'Registrar venta',
-                    icon: Icons.point_of_sale,
-                    color: buttonColor,
-                    size: buttonSize,
-                    onTap: () => Navigator.pushNamed(context, '/section2'),
-                  ),
-                  _HomeSquareButton(
-                    label: 'Nuevo cliente',
-                    icon: Icons.person_add,
-                    color: buttonColor,
-                    size: buttonSize,
-                    onTap: () => Navigator.pushNamed(context, '/nuevo_cliente'),
-                  ),
-                  _HomeSquareButton(
-                    label: 'Registrar gastos',
-                    icon: Icons.attach_money,
-                    color: buttonColor,
-                    size: buttonSize,
-                    onTap: () {},
-                  ),
-                  _HomeSquareButton(
-                    label: 'Sincronización',
-                    icon: Icons.sync,
-                    color: buttonColor,
-                    size: buttonSize,
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/synchronization'),
-                  ),
-                ],
-              ),
-            ],
+                const SizedBox(height: 32),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    _HomeSquareButton(
+                      label: 'Reparto',
+                      icon: Icons.local_shipping,
+                      color: buttonColor,
+                      size: buttonSize,
+                      onTap: () => _goToReparto(context),
+                    ),
+                    _HomeSquareButton(
+                      label: 'Registrar venta',
+                      icon: Icons.point_of_sale,
+                      color: buttonColor,
+                      size: buttonSize,
+                      onTap: () => Navigator.pushNamed(context, '/section2'),
+                    ),
+                    _HomeSquareButton(
+                      label: 'Nuevo cliente',
+                      icon: Icons.person_add,
+                      color: buttonColor,
+                      size: buttonSize,
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/nuevo_cliente'),
+                    ),
+                    _HomeSquareButton(
+                      label: 'Registrar gastos',
+                      icon: Icons.attach_money,
+                      color: buttonColor,
+                      size: buttonSize,
+                      onTap: () {},
+                    ),
+                    _HomeSquareButton(
+                      label: 'Sincronización',
+                      icon: Icons.sync,
+                      color: buttonColor,
+                      size: buttonSize,
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/synchronization'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
