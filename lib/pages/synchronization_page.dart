@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
+import 'logs_page.dart';
 
 class SynchronizationPage extends StatelessWidget {
   const SynchronizationPage({super.key});
@@ -70,15 +71,11 @@ class SynchronizationPage extends StatelessWidget {
                                   range: 'Repartos!A1:I300',
                                 )
                                 .then((result) {
-                                  print(
-                                    'Sincronización unificada de repartos completada.',
-                                  );
-                                  return result;
+                                appLog('Sincronización unificada completada.');
+                                return result;
                                 })
                                 .catchError((error) {
-                                  print(
-                                    'Error durante sincronización unificada de repartos: $error',
-                                  );
+                                  appLog('Error durante sincronización unificada de repartos: $error');
                                   throw error;
                                 });
 
@@ -280,13 +277,13 @@ class SynchronizationPage extends StatelessWidget {
                                   range: 'Ventas!A1:H300',
                                 )
                                 .then((result) {
-                                  print(
+                                  appLog(
                                     'Sincronización unificada de ventas completada.',
                                   );
                                   return result;
                                 })
                                 .catchError((error) {
-                                  print(
+                                  appLog(
                                     'Error durante sincronización unificada de ventas: $error',
                                   );
                                   throw error;
@@ -488,11 +485,11 @@ class SynchronizationPage extends StatelessWidget {
                                   range: 'Clientes!A1:N300',
                                 )
                                 .then((result) {
-                                  print('Sincronización unificada completada.');
+                                  appLog('Sincronización unificada completada.');
                                   return result;
                                 })
                                 .catchError((error) {
-                                  print(
+                                  appLog(
                                     'Error durante sincronización unificada: $error',
                                   );
                                   throw error;

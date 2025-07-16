@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../data/database.dart';
 import 'google_sheets_service.dart';
+import '../pages/logs_page.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -259,7 +260,7 @@ class DatabaseService {
     );
 
     if (clientData != null && clientData.isNotEmpty) {
-      print('Processing client data from Google Sheets: $clientData');
+      appLog('Processing client data from Google Sheets: $clientData');
       // Get local clients for comparison
       final localClientes = await getAllClientes();
       final localClientMap = <int, Cliente>{};
@@ -270,7 +271,7 @@ class DatabaseService {
       // Assuming the first row is headers, skip it
       for (var i = 1; i < clientData.length; i++) {
         final row = clientData[i];
-        print('Processing row $i: $row');
+        appLog('Processing row $i: $row');
         // Map the data from Google Sheets to Cliente fields
         try {
           final sheetId = row.length > 0 && row[0].toString().isNotEmpty
@@ -313,17 +314,17 @@ class DatabaseService {
                       : 0,
                   dias: row.length > 13 ? row[13].toString() : 'Sin Días',
                 );
-                print(
+                appLog(
                   'Updated local client ID $sheetId from Sheets (more recent).',
                 );
               } else if (localUltimoContacto.isAfter(sheetUltimoContacto)) {
                 // Local data is more recent, do nothing in this direction
-                print(
+                appLog(
                   'Local client ID $sheetId is more recent, no update from Sheets.',
                 );
               } else {
                 // Dates are equal, no update needed
-                print(
+                appLog(
                   'Client ID $sheetId has equal Ultimo contacto, no update needed.',
                 );
               }
@@ -356,10 +357,10 @@ class DatabaseService {
                   : null,
               dias: row.length > 13 ? row[13].toString() : 'Sin Días',
             );
-            print('Inserted new client ID $sheetId from Sheets.');
+            appLog('Inserted new client ID $sheetId from Sheets.');
           }
         } catch (e) {
-          print('Error processing client from row $i: $e');
+          appLog('Error processing client from row $i: $e');
         }
       }
     }
@@ -419,9 +420,7 @@ class DatabaseService {
             localUltimoContacto.isAfter(sheetUltimoContacto)) {
           // Local data is newer, update Sheets with local data
           updatedData.add(_clienteToRow(localCliente));
-          print(
-            'Updating Sheets with local client ID $sheetId (local more recent).',
-          );
+          appLog('Updating Sheets with local client ID, $sheetId (local more recent).');
         } else if (sheetUltimoContacto != null &&
             sheetUltimoContacto.isAfter(localUltimoContacto)) {
           // Sheet data is newer, update local database
@@ -457,13 +456,13 @@ class DatabaseService {
             dias: sheetRow.length > 13 ? sheetRow[13].toString() : 'Sin Días',
           );
           updatedData.add(sheetRow);
-          print(
+          appLog(
             'Updated local client ID $sheetId from Sheets (Sheets more recent).',
           );
         } else {
           // Same timestamp, no update needed
           updatedData.add(sheetRow);
-          print(
+          appLog(
             'Client ID $sheetId has equal Ultimo contacto, no update needed.',
           );
         }
@@ -480,7 +479,7 @@ class DatabaseService {
             row.length > 0 && int.tryParse(row[0].toString()) == cliente.id,
       )) {
         updatedData.add(_clienteToRow(cliente));
-        print('Added new local client ID ${cliente.id} to Sheets.');
+        appLog('Added new local client ID ${cliente.id} to Sheets.');
       }
     }
 
@@ -556,9 +555,9 @@ class DatabaseService {
           final localDate = localDelivery.date;
 
           if (sheetDate != null) {
-            print('Comparing Date for delivery number $sheetDeliveryNumber:');
-            print('Sheets Date: $sheetDate');
-            print('Local Date: $localDate');
+            appLog('Comparing Date for delivery number $sheetDeliveryNumber:');
+            appLog('Sheets Date: $sheetDate');
+            appLog('Local Date: $localDate');
             if (sheetDate.isAfter(localDate)) {
               // Sheets data is more recent, update local
               // Insert updated delivery record from Sheets
@@ -587,16 +586,16 @@ class DatabaseService {
                     ? double.tryParse(sheetRow[8].toString()) ?? 0.0
                     : 0.0,
               );
-              print(
+              appLog(
                 'Updated local delivery number $sheetDeliveryNumber from Sheets (Sheets more recent: $sheetDate vs $localDate).',
               );
             } else {
-              print(
+              appLog(
                 'No update to local delivery number $sheetDeliveryNumber (Local not older: $localDate vs $sheetDate).',
               );
             }
           } else {
-            print(
+            appLog(
               'Sheets Date is null for delivery number $sheetDeliveryNumber, skipping comparison.',
             );
           }
@@ -629,7 +628,7 @@ class DatabaseService {
                 ? double.tryParse(sheetRow[8].toString()) ?? 0.0
                 : 0.0,
           );
-          print(
+          appLog(
             'Inserted new delivery number $sheetDeliveryNumber from Sheets.',
           );
           updatedData.add(sheetRow);
@@ -659,21 +658,21 @@ class DatabaseService {
                 : null;
             if (rowDeliveryNumber == delivery.deliveryNumber) {
               updatedData[i] = _deliveryToRow(delivery);
-              print(
+              appLog(
                 'Updated Sheets with local delivery number ${delivery.deliveryNumber} (local more recent: $localDate vs $sheetDate).',
               );
               break;
             }
           }
         } else {
-          print(
+          appLog(
             'No update to Sheets for delivery number ${delivery.deliveryNumber} (Sheets not older: ${sheetDate ?? "null"} vs $localDate).',
           );
         }
       } else {
         // New local delivery, add to Sheets
         updatedData.add(_deliveryToRow(delivery));
-        print(
+        appLog(
           'Added new local delivery number ${delivery.deliveryNumber} to Sheets.',
         );
       }
@@ -766,9 +765,9 @@ class DatabaseService {
           final localDate = localSale.date;
 
           if (sheetDate != null) {
-            print('Comparing Date for sale ID $sheetId:');
-            print('Sheets Date: $sheetDate');
-            print('Local Date: $localDate');
+            appLog('Comparing Date for sale ID $sheetId:');
+            appLog('Sheets Date: $sheetDate');
+            appLog('Local Date: $localDate');
             if (sheetDate.isAfter(localDate)) {
               // Sheets data is more recent, update local with the same ID
               await insertSale(
@@ -795,16 +794,16 @@ class DatabaseService {
                     ? int.tryParse(sheetRow[7].toString())
                     : null,
               );
-              print(
+              appLog(
                 'Updated local sale ID $sheetId from Sheets (Sheets more recent: $sheetDate vs $localDate).',
               );
             } else {
-              print(
+              appLog(
                 'No update to local sale ID $sheetId (Local not older: $localDate vs $sheetDate).',
               );
             }
           } else {
-            print(
+            appLog(
               'Sheets Date is null for sale ID $sheetId, skipping comparison.',
             );
           }
@@ -835,7 +834,7 @@ class DatabaseService {
                 ? int.tryParse(sheetRow[7].toString())
                 : null,
           );
-          print('Inserted new sale ID $sheetId from Sheets.');
+          appLog('Inserted new sale ID $sheetId from Sheets.');
           updatedData.add(sheetRow);
         }
       } else {
@@ -862,21 +861,21 @@ class DatabaseService {
                 : null;
             if (rowId == sale.id) {
               updatedData[i] = _saleToRow(sale);
-              print(
+              appLog(
                 'Updated Sheets with local sale ID ${sale.id} (local more recent: $localDate vs $sheetDate).',
               );
               break;
             }
           }
         } else {
-          print(
+          appLog(
             'No update to Sheets for sale ID ${sale.id} (Sheets not older: ${sheetDate ?? "null"} vs $localDate).',
           );
         }
       } else {
         // New local sale, add to Sheets
         updatedData.add(_saleToRow(sale));
-        print('Added new local sale ID ${sale.id} to Sheets.');
+        appLog('Added new local sale ID ${sale.id} to Sheets.');
       }
     }
 
@@ -966,9 +965,9 @@ class DatabaseService {
           final localUltimoContacto = localCliente.ultimoContacto;
 
           if (sheetUltimoContacto != null) {
-            print('Comparing Ultimo contacto for client ID $sheetId:');
-            print('Sheets Ultimo contacto: $sheetUltimoContacto');
-            print('Local Ultimo contacto: $localUltimoContacto');
+            appLog('Comparing Ultimo contacto for client ID $sheetId:');
+            appLog('Sheets Ultimo contacto: $sheetUltimoContacto');
+            appLog('Local Ultimo contacto: $localUltimoContacto');
             if (sheetUltimoContacto.isAfter(localUltimoContacto)) {
               // Sheets data is more recent, update local
               await updateCliente(
@@ -1008,16 +1007,16 @@ class DatabaseService {
                     ? sheetRow[13].toString()
                     : 'Sin Días',
               );
-              print(
+              appLog(
                 'Updated local client ID $sheetId from Sheets (Sheets more recent: $sheetUltimoContacto vs $localUltimoContacto).',
               );
             } else {
-              print(
+              appLog(
                 'No update to local client ID $sheetId (Local not older: $localUltimoContacto vs $sheetUltimoContacto).',
               );
             }
           } else {
-            print(
+            appLog(
               'Sheets Ultimo contacto is null for client ID $sheetId, skipping comparison.',
             );
           }
@@ -1061,7 +1060,7 @@ class DatabaseService {
                 : null,
             dias: sheetRow.length > 13 ? sheetRow[13].toString() : 'Sin Días',
           );
-          print('Inserted new client ID $sheetId from Sheets.');
+          appLog('Inserted new client ID $sheetId from Sheets.');
           updatedData.add(sheetRow);
         }
       } else {
@@ -1091,21 +1090,21 @@ class DatabaseService {
                   : null;
               if (rowId == cliente.id) {
                 updatedData[i] = _clienteToRow(cliente);
-                print(
+                appLog(
                   'Updated Sheets with local client ID ${cliente.id} (local more recent: $localUltimoContacto vs $sheetUltimoContacto).',
                 );
                 break;
               }
             }
           } else {
-            print(
+            appLog(
               'No update to Sheets for client ID ${cliente.id} (Sheets not older: ${sheetUltimoContacto ?? "null"} vs $localUltimoContacto).',
             );
           }
         } else {
           // New local client, add to Sheets
           updatedData.add(_clienteToRow(cliente));
-          print('Added new local client ID ${cliente.id} to Sheets.');
+          appLog('Added new local client ID ${cliente.id} to Sheets.');
         }
       }
     }

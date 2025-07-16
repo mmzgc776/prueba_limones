@@ -4,9 +4,14 @@ import 'pages/section2_page.dart';
 import 'pages/section_delivery_page.dart';
 import 'pages/nuevo_cliente_page.dart';
 import 'pages/synchronization_page.dart';
+import 'pages/editar_clientes_page.dart';
+import 'pages/logs_page.dart';
 import 'data/delivery_state.dart';
 
+import 'package:prueba_limones/pages/logs_page.dart';
+
 void main() {
+  appLog('Application started');
   runApp(const MyApp());
 }
 
@@ -27,6 +32,8 @@ class MyApp extends StatelessWidget {
         '/section_delivery': (context) => const SectionDeliveryPage(),
         '/nuevo_cliente': (context) => const NuevoClientePage(),
         '/synchronization': (context) => const SynchronizationPage(),
+        '/editar_clientes': (context) => const EditarClientesPage(),
+        '/logs': (context) => const LogsPage(),
       },
     );
   }
@@ -47,6 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int _repartoElapsedSeconds = 0;
   List<bool> _repartoClientesContactados = [];
   int? _repartoSelectedClienteIndex;
+  bool _clientesExpanded = false;
 
   void _incrementCounter() {
     setState(() {
@@ -204,14 +212,92 @@ class _MyHomePageState extends State<MyHomePage> {
                       size: buttonSize,
                       onTap: () => Navigator.pushNamed(context, '/section2'),
                     ),
-                    _HomeSquareButton(
-                      label: 'Nuevo cliente',
-                      icon: Icons.person_add,
-                      color: buttonColor,
-                      size: buttonSize,
-                      onTap: () =>
-                          Navigator.pushNamed(context, '/nuevo_cliente'),
-                    ),
+                    _clientesExpanded
+                        ? SizedBox(
+                            width: buttonSize,
+                            height: buttonSize,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/nuevo_cliente',
+                                      );
+                                      setState(() {
+                                        _clientesExpanded = false;
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: buttonColor,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(16),
+                                          bottomLeft: Radius.circular(16),
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    child: SizedBox(
+                                      height: buttonSize,
+                                      child: Icon(
+                                        Icons.add,
+                                        color: Colors.white,
+                                        size: 32,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 8,
+                                ), // Small separation between buttons
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/editar_clientes',
+                                      );
+                                      setState(() {
+                                        _clientesExpanded = false;
+                                      });
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: buttonColor,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.only(
+                                          topRight: Radius.circular(16),
+                                          bottomRight: Radius.circular(16),
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    child: SizedBox(
+                                      height: buttonSize,
+                                      child: Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                        size: 32,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _HomeSquareButton(
+                            label: 'Clientes',
+                            icon: Icons.people,
+                            color: buttonColor,
+                            size: buttonSize,
+                            onTap: () {
+                              setState(() {
+                                _clientesExpanded = true;
+                              });
+                            },
+                          ),
                     _HomeSquareButton(
                       label: 'Registrar gastos',
                       icon: Icons.attach_money,
@@ -226,6 +312,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       size: buttonSize,
                       onTap: () =>
                           Navigator.pushNamed(context, '/synchronization'),
+                    ),
+                    _HomeSquareButton(
+                      label: 'Logs',
+                      icon: Icons.assessment,
+                      color: buttonColor,
+                      size: buttonSize,
+                      onTap: () => Navigator.pushNamed(context, '/logs'),
                     ),
                   ],
                 ),

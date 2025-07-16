@@ -3,6 +3,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import '../services/database_service.dart';
 import '../data/database.dart';
 import '../data/delivery_state.dart';
+import '../pages/logs_page.dart';
 
 class VentaForm extends StatefulWidget {
   final Cliente? cliente;
@@ -162,6 +163,14 @@ class _VentaFormState extends State<VentaForm> {
         ) ??
         0.0;
     final total = double.tryParse(totalController.text) ?? 0.0;
+
+    // Registrar la venta en los logs antes de guardar
+    final clientName = selectedClient?.nombre ?? 'Cliente ID $clientId';
+    final deliveryNum = DeliveryStateManager().getCurrentDeliveryNumber();
+    appLog(
+      'Registrando venta - Cliente: $clientName, Cantidad: $cantidad, Precio: \$$precio, Total: \$$total, Fecha: $selectedDate, Reparto: $deliveryNum',
+    );
+
     await _dbService.insertSale(
       date: selectedDate,
       clientId: clientId,
@@ -169,8 +178,14 @@ class _VentaFormState extends State<VentaForm> {
       price: precio,
       total: total,
       notesId: null,
-      deliveryNumber: DeliveryStateManager().getCurrentDeliveryNumber(),
+      deliveryNumber: deliveryNum,
     );
+
+    // Confirmar que la venta fue guardada
+    appLog(
+      'Venta guardada exitosamente - ID: ${DateTime.now().millisecondsSinceEpoch}',
+    );
+
     // Store the price in global state
     DeliveryStateManager().setCurrentPrice(precio);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -451,11 +466,21 @@ class _VentaFormState extends State<VentaForm> {
             onPressed: () async {
               final ventas = await _dbService.getAllSales();
               debugPrint('Ventas en la base de datos:');
+              appLog('=== INICIO DE LISTADO DE VENTAS ===');
+              appLog('Total de ventas encontradas: ${ventas.length}');
+
               for (final v in ventas) {
                 debugPrint(v.toString());
+                appLog(
+                  'Venta ID: ${v.id}, Cliente ID: ${v.clientId}, Cantidad: ${v.quantity}, Precio: \$${v.price}, Total: \$${v.total}, Fecha: ${v.date}, Reparto: ${v.deliveryNumber ?? "N/A"}',
+                );
               }
+
+              appLog('=== FIN DE LISTADO DE VENTAS ===');
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Ventas impresas en consola')),
+                const SnackBar(
+                  content: Text('Ventas impresas en consola y logs'),
+                ),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey),

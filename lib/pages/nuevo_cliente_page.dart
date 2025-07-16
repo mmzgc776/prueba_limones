@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../services/database_service.dart';
 import '../../data/database.dart';
+import 'logs_page.dart';
 
 class NuevoClientePage extends StatefulWidget {
   final String? nombreCliente;
@@ -255,10 +256,10 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
       final databaseService = DatabaseService();
       await databaseService.init();
       final clientes = await databaseService.getAllClientes();
-      print('Tabla de Clientes (Primeros 15):');
+      appLog('Tabla de Clientes (Primeros 15):');
       for (var i = 0; i < clientes.length && i < 15; i++) {
         final cliente = clientes[i];
-        print(
+        appLog(
           'ID: ${cliente.id}, Nombre: ${cliente.nombre}, Contacto: ${cliente.contacto}, '
           'Tipo Negocio: ${cliente.tipoNegocio}, Ciudad: ${cliente.ciudad}, '
           'Domicilio: ${cliente.domicilio}, Ubicación: ${cliente.ubicacion}, '
@@ -268,7 +269,7 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
         );
       }
       if (clientes.length > 15) {
-        print('... y ${clientes.length - 15} clientes más.');
+        appLog('... y ${clientes.length - 15} clientes más.');
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
