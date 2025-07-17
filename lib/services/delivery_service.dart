@@ -127,6 +127,17 @@ class DeliveryService {
     }
   }
 
+  // Get sales by delivery number
+  Future<List<Sale>> getSalesByDeliveryNumber(int deliveryNumber) async {
+    try {
+      await init();
+      return await _dbService.getSalesByDeliveryNumber(deliveryNumber);
+    } catch (e) {
+      debugPrint('Error fetching sales by delivery number: $e');
+      throw Exception('Error al obtener las ventas del reparto');
+    }
+  }
+
   // Get current location with permission handling
   Future<Position> getCurrentLocation() async {
     try {

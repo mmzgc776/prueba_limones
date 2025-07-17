@@ -101,6 +101,45 @@ class DatabaseService {
     )..where((tbl) => tbl.deliveryNumber.isNull())).get();
   }
 
+  Future<List<Sale>> getSalesByDeliveryNumber(int deliveryNumber) async {
+    if (!_isInitialized || _db == null)
+      throw Exception('Database not initialized');
+    return await (_db!.select(
+      _db!.sales,
+    )..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber))).get();
+  }
+
+  Future<void> recalculateDeliveryStats(int deliveryNumber) async {
+    if (!_isInitialized || _db == null)
+      throw Exception('Database not initialized');
+
+    final sales = await getSalesByDeliveryNumber(deliveryNumber);
+    
+    double totalKilograms = 0.0;
+    double totalAmount = 0.0;
+    
+    for (var sale in sales) {
+      totalKilograms += sale.quantity;
+      totalAmount += sale.total;
+    }
+    
+    double avgPricePerKilo = 0.0;
+    if (totalKilograms > 0) {
+      avgPricePerKilo = totalAmount / totalKilograms;
+    }
+    
+    // Update the delivery record with new statistics
+    await (_db!.update(_db!.deliveries)
+          ..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber)))
+        .write(
+      DeliveriesCompanion(
+        kilograms: Value(totalKilograms),
+        total: Value(totalAmount),
+        avgPrice: Value(avgPricePerKilo),
+      ),
+    );
+  }
+
   Future<int> assignSalesToDelivery({
     required List<int> saleIds,
     required int deliveryNumber,
@@ -114,6 +153,10 @@ class DatabaseService {
           await (_db!.update(_db!.sales)..where((tbl) => tbl.id.equals(saleId)))
               .write(SalesCompanion(deliveryNumber: Value(deliveryNumber)));
     }
+    
+    // Recalculate delivery statistics after assigning sales
+    await recalculateDeliveryStats(deliveryNumber);
+    
     return updatedCount;
   }
 
@@ -132,7 +175,17 @@ class DatabaseService {
   Future<void> deleteSale(int id) async {
     if (!_isInitialized || _db == null)
       throw Exception('Database not initialized');
+    
+    // Get the sale to check if it belongs to a delivery
+    final sale = await (_db!.select(_db!.sales)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+    
+    // Delete the sale
     await (_db!.delete(_db!.sales)..where((tbl) => tbl.id.equals(id))).go();
+    
+    // If the sale was assigned to a delivery, recalculate statistics
+    if (sale != null && sale.deliveryNumber != null) {
+      await recalculateDeliveryStats(sale.deliveryNumber!);
+    }
   }
 
   Future<int> updateSale({
@@ -144,7 +197,12 @@ class DatabaseService {
   }) async {
     if (!_isInitialized || _db == null)
       throw Exception('Database not initialized');
-    return await (_db!.update(
+    
+    // Get the sale to check if it belongs to a delivery
+    final sale = await (_db!.select(_db!.sales)..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+    
+    // Update the sale
+    final result = await (_db!.update(
       _db!.sales,
     )..where((tbl) => tbl.id.equals(id))).write(
       SalesCompanion(
@@ -154,6 +212,13 @@ class DatabaseService {
         date: Value(date),
       ),
     );
+    
+    // If the sale was assigned to a delivery, recalculate statistics
+    if (sale != null && sale.deliveryNumber != null) {
+      await recalculateDeliveryStats(sale.deliveryNumber!);
+    }
+    
+    return result;
   }
 
   Future<void> deleteAllDeliveries() async {
@@ -444,7 +509,9 @@ class DatabaseService {
             localUltimoContacto.isAfter(sheetUltimoContacto)) {
           // Local data is newer, update Sheets with local data
           updatedData.add(_clienteToRow(localCliente));
-          appLog('Updating Sheets with local client ID, $sheetId (local more recent).');
+          appLog(
+            'Updating Sheets with local client ID, $sheetId (local more recent).',
+          );
         } else if (sheetUltimoContacto != null &&
             sheetUltimoContacto.isAfter(localUltimoContacto)) {
           // Sheet data is newer, update local database

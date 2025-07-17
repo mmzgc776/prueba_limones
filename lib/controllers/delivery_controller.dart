@@ -107,31 +107,79 @@ class DeliveryController with ChangeNotifier {
     notifyListeners();
   }
 
-  void endDelivery(List<Cliente> clientes) {
+  void endDelivery(List<Cliente> clientes) async {
     _started = false;
     _paused = false;
     final stateManager = DeliveryStateManager();
-    final record = DeliveryRecord(
-      deliveryNumber:
-          stateManager.getCurrentDeliveryNumber() ??
-          (_deliveryRecords.length + 1),
-      date: DateTime.now(),
-      duration: Duration(seconds: _elapsedSeconds),
-      avgPrice: 0.0, // Placeholder
-      kilograms: 0.0, // Placeholder
-      boxes: 0, // Placeholder
-      remaining: 0.0, // Placeholder
-      seller: "Default Seller", // Placeholder
-      total: 0.0, // Placeholder
-    );
-    _deliveryRecords.add(record);
-    _deliveryService.saveDeliveryToDatabase(record);
-    _deliveryService.saveContactResultsToDatabase(
-      record.deliveryNumber,
-      clientes,
-      _clientesContactados,
-      _clientesEstado,
-    );
+    
+    // Get delivery number
+    final deliveryNumber = stateManager.getCurrentDeliveryNumber() ?? 
+        (_deliveryRecords.length + 1);
+    
+    // Calculate statistics from sales associated with this delivery
+    double totalKilograms = 0.0;
+    double totalAmount = 0.0;
+    
+    try {
+      final sales = await _deliveryService.getSalesByDeliveryNumber(deliveryNumber);
+      
+      for (var sale in sales) {
+        totalKilograms += sale.quantity;
+        totalAmount += sale.total;
+      }
+      
+      // Calculate average price per kilo
+      double avgPricePerKilo = 0.0;
+      if (totalKilograms > 0) {
+        avgPricePerKilo = totalAmount / totalKilograms;
+      }
+      
+      final record = DeliveryRecord(
+        deliveryNumber: deliveryNumber,
+        date: DateTime.now(),
+        duration: Duration(seconds: _elapsedSeconds),
+        avgPrice: avgPricePerKilo,
+        kilograms: totalKilograms,
+        boxes: 0, // Placeholder - can be calculated if needed
+        remaining: 0.0, // Placeholder - can be calculated if needed
+        seller: "Default Seller", // Placeholder - can be set based on user
+        total: totalAmount,
+      );
+      
+      _deliveryRecords.add(record);
+      await _deliveryService.saveDeliveryToDatabase(record);
+      await _deliveryService.saveContactResultsToDatabase(
+        record.deliveryNumber,
+        clientes,
+        _clientesContactados,
+        _clientesEstado,
+      );
+    } catch (e) {
+      debugPrint('Error calculating delivery statistics: $e');
+      
+      // Fallback to empty record if there's an error
+      final record = DeliveryRecord(
+        deliveryNumber: deliveryNumber,
+        date: DateTime.now(),
+        duration: Duration(seconds: _elapsedSeconds),
+        avgPrice: 0.0,
+        kilograms: 0.0,
+        boxes: 0,
+        remaining: 0.0,
+        seller: "Default Seller",
+        total: 0.0,
+      );
+      
+      _deliveryRecords.add(record);
+      await _deliveryService.saveDeliveryToDatabase(record);
+      await _deliveryService.saveContactResultsToDatabase(
+        record.deliveryNumber,
+        clientes,
+        _clientesContactados,
+        _clientesEstado,
+      );
+    }
+    
     _elapsedSeconds = 0;
     _clientesContactados = List.generate(clientes.length, (_) => false);
     _clientesEstado = List.generate(clientes.length, (_) => '');
