@@ -93,6 +93,30 @@ class DatabaseService {
     return await _db!.select(_db!.sales).get();
   }
 
+  Future<List<Sale>> getUnassignedSales() async {
+    if (!_isInitialized || _db == null)
+      throw Exception('Database not initialized');
+    return await (_db!.select(
+      _db!.sales,
+    )..where((tbl) => tbl.deliveryNumber.isNull())).get();
+  }
+
+  Future<int> assignSalesToDelivery({
+    required List<int> saleIds,
+    required int deliveryNumber,
+  }) async {
+    if (!_isInitialized || _db == null)
+      throw Exception('Database not initialized');
+
+    int updatedCount = 0;
+    for (int saleId in saleIds) {
+      updatedCount +=
+          await (_db!.update(_db!.sales)..where((tbl) => tbl.id.equals(saleId)))
+              .write(SalesCompanion(deliveryNumber: Value(deliveryNumber)));
+    }
+    return updatedCount;
+  }
+
   Future<List<Delivery>> getAllDeliveries() async {
     if (!_isInitialized || _db == null)
       throw Exception('Database not initialized');
