@@ -1212,6 +1212,110 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _eventosMeta = const VerificationMeta(
+    'eventos',
+  );
+  @override
+  late final GeneratedColumn<int> eventos = GeneratedColumn<int>(
+    'eventos',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _kgTotalMeta = const VerificationMeta(
+    'kgTotal',
+  );
+  @override
+  late final GeneratedColumn<double> kgTotal = GeneratedColumn<double>(
+    'kg_total',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _modaMeta = const VerificationMeta('moda');
+  @override
+  late final GeneratedColumn<double> moda = GeneratedColumn<double>(
+    'moda',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _maximoMeta = const VerificationMeta('maximo');
+  @override
+  late final GeneratedColumn<double> maximo = GeneratedColumn<double>(
+    'maximo',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _ultimas10Meta = const VerificationMeta(
+    'ultimas10',
+  );
+  @override
+  late final GeneratedColumn<String> ultimas10 = GeneratedColumn<String>(
+    'ultimas10',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _kgEventoMeta = const VerificationMeta(
+    'kgEvento',
+  );
+  @override
+  late final GeneratedColumn<double> kgEvento = GeneratedColumn<double>(
+    'kg_evento',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _kgSemanaMeta = const VerificationMeta(
+    'kgSemana',
+  );
+  @override
+  late final GeneratedColumn<double> kgSemana = GeneratedColumn<double>(
+    'kg_semana',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _ventasVueltaMeta = const VerificationMeta(
+    'ventasVuelta',
+  );
+  @override
+  late final GeneratedColumn<int> ventasVuelta = GeneratedColumn<int>(
+    'ventas_vuelta',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _puntuacionMeta = const VerificationMeta(
+    'puntuacion',
+  );
+  @override
+  late final GeneratedColumn<double> puntuacion = GeneratedColumn<double>(
+    'puntuacion',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1228,6 +1332,15 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     horaCierre,
     notasId,
     dias,
+    eventos,
+    kgTotal,
+    moda,
+    maximo,
+    ultimas10,
+    kgEvento,
+    kgSemana,
+    ventasVuelta,
+    puntuacion,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1352,6 +1465,63 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     } else if (isInserting) {
       context.missing(_diasMeta);
     }
+    if (data.containsKey('eventos')) {
+      context.handle(
+        _eventosMeta,
+        eventos.isAcceptableOrUnknown(data['eventos']!, _eventosMeta),
+      );
+    }
+    if (data.containsKey('kg_total')) {
+      context.handle(
+        _kgTotalMeta,
+        kgTotal.isAcceptableOrUnknown(data['kg_total']!, _kgTotalMeta),
+      );
+    }
+    if (data.containsKey('moda')) {
+      context.handle(
+        _modaMeta,
+        moda.isAcceptableOrUnknown(data['moda']!, _modaMeta),
+      );
+    }
+    if (data.containsKey('maximo')) {
+      context.handle(
+        _maximoMeta,
+        maximo.isAcceptableOrUnknown(data['maximo']!, _maximoMeta),
+      );
+    }
+    if (data.containsKey('ultimas10')) {
+      context.handle(
+        _ultimas10Meta,
+        ultimas10.isAcceptableOrUnknown(data['ultimas10']!, _ultimas10Meta),
+      );
+    }
+    if (data.containsKey('kg_evento')) {
+      context.handle(
+        _kgEventoMeta,
+        kgEvento.isAcceptableOrUnknown(data['kg_evento']!, _kgEventoMeta),
+      );
+    }
+    if (data.containsKey('kg_semana')) {
+      context.handle(
+        _kgSemanaMeta,
+        kgSemana.isAcceptableOrUnknown(data['kg_semana']!, _kgSemanaMeta),
+      );
+    }
+    if (data.containsKey('ventas_vuelta')) {
+      context.handle(
+        _ventasVueltaMeta,
+        ventasVuelta.isAcceptableOrUnknown(
+          data['ventas_vuelta']!,
+          _ventasVueltaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('puntuacion')) {
+      context.handle(
+        _puntuacionMeta,
+        puntuacion.isAcceptableOrUnknown(data['puntuacion']!, _puntuacionMeta),
+      );
+    }
     return context;
   }
 
@@ -1417,6 +1587,42 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
         DriftSqlType.string,
         data['${effectivePrefix}dias'],
       )!,
+      eventos: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}eventos'],
+      )!,
+      kgTotal: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}kg_total'],
+      )!,
+      moda: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}moda'],
+      )!,
+      maximo: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}maximo'],
+      )!,
+      ultimas10: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ultimas10'],
+      )!,
+      kgEvento: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}kg_evento'],
+      )!,
+      kgSemana: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}kg_semana'],
+      )!,
+      ventasVuelta: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ventas_vuelta'],
+      )!,
+      puntuacion: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}puntuacion'],
+      )!,
     );
   }
 
@@ -1441,6 +1647,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
   final int horaCierre;
   final int? notasId;
   final String dias;
+  final int eventos;
+  final double kgTotal;
+  final double moda;
+  final double maximo;
+  final String ultimas10;
+  final double kgEvento;
+  final double kgSemana;
+  final int ventasVuelta;
+  final double puntuacion;
   const Cliente({
     required this.id,
     required this.nombre,
@@ -1456,6 +1671,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     required this.horaCierre,
     this.notasId,
     required this.dias,
+    required this.eventos,
+    required this.kgTotal,
+    required this.moda,
+    required this.maximo,
+    required this.ultimas10,
+    required this.kgEvento,
+    required this.kgSemana,
+    required this.ventasVuelta,
+    required this.puntuacion,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1476,6 +1700,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       map['notas_id'] = Variable<int>(notasId);
     }
     map['dias'] = Variable<String>(dias);
+    map['eventos'] = Variable<int>(eventos);
+    map['kg_total'] = Variable<double>(kgTotal);
+    map['moda'] = Variable<double>(moda);
+    map['maximo'] = Variable<double>(maximo);
+    map['ultimas10'] = Variable<String>(ultimas10);
+    map['kg_evento'] = Variable<double>(kgEvento);
+    map['kg_semana'] = Variable<double>(kgSemana);
+    map['ventas_vuelta'] = Variable<int>(ventasVuelta);
+    map['puntuacion'] = Variable<double>(puntuacion);
     return map;
   }
 
@@ -1497,6 +1730,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
           ? const Value.absent()
           : Value(notasId),
       dias: Value(dias),
+      eventos: Value(eventos),
+      kgTotal: Value(kgTotal),
+      moda: Value(moda),
+      maximo: Value(maximo),
+      ultimas10: Value(ultimas10),
+      kgEvento: Value(kgEvento),
+      kgSemana: Value(kgSemana),
+      ventasVuelta: Value(ventasVuelta),
+      puntuacion: Value(puntuacion),
     );
   }
 
@@ -1520,6 +1762,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       horaCierre: serializer.fromJson<int>(json['horaCierre']),
       notasId: serializer.fromJson<int?>(json['notasId']),
       dias: serializer.fromJson<String>(json['dias']),
+      eventos: serializer.fromJson<int>(json['eventos']),
+      kgTotal: serializer.fromJson<double>(json['kgTotal']),
+      moda: serializer.fromJson<double>(json['moda']),
+      maximo: serializer.fromJson<double>(json['maximo']),
+      ultimas10: serializer.fromJson<String>(json['ultimas10']),
+      kgEvento: serializer.fromJson<double>(json['kgEvento']),
+      kgSemana: serializer.fromJson<double>(json['kgSemana']),
+      ventasVuelta: serializer.fromJson<int>(json['ventasVuelta']),
+      puntuacion: serializer.fromJson<double>(json['puntuacion']),
     );
   }
   @override
@@ -1540,6 +1791,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       'horaCierre': serializer.toJson<int>(horaCierre),
       'notasId': serializer.toJson<int?>(notasId),
       'dias': serializer.toJson<String>(dias),
+      'eventos': serializer.toJson<int>(eventos),
+      'kgTotal': serializer.toJson<double>(kgTotal),
+      'moda': serializer.toJson<double>(moda),
+      'maximo': serializer.toJson<double>(maximo),
+      'ultimas10': serializer.toJson<String>(ultimas10),
+      'kgEvento': serializer.toJson<double>(kgEvento),
+      'kgSemana': serializer.toJson<double>(kgSemana),
+      'ventasVuelta': serializer.toJson<int>(ventasVuelta),
+      'puntuacion': serializer.toJson<double>(puntuacion),
     };
   }
 
@@ -1558,6 +1818,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     int? horaCierre,
     Value<int?> notasId = const Value.absent(),
     String? dias,
+    int? eventos,
+    double? kgTotal,
+    double? moda,
+    double? maximo,
+    String? ultimas10,
+    double? kgEvento,
+    double? kgSemana,
+    int? ventasVuelta,
+    double? puntuacion,
   }) => Cliente(
     id: id ?? this.id,
     nombre: nombre ?? this.nombre,
@@ -1573,6 +1842,15 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     horaCierre: horaCierre ?? this.horaCierre,
     notasId: notasId.present ? notasId.value : this.notasId,
     dias: dias ?? this.dias,
+    eventos: eventos ?? this.eventos,
+    kgTotal: kgTotal ?? this.kgTotal,
+    moda: moda ?? this.moda,
+    maximo: maximo ?? this.maximo,
+    ultimas10: ultimas10 ?? this.ultimas10,
+    kgEvento: kgEvento ?? this.kgEvento,
+    kgSemana: kgSemana ?? this.kgSemana,
+    ventasVuelta: ventasVuelta ?? this.ventasVuelta,
+    puntuacion: puntuacion ?? this.puntuacion,
   );
   Cliente copyWithCompanion(ClientesCompanion data) {
     return Cliente(
@@ -1598,6 +1876,19 @@ class Cliente extends DataClass implements Insertable<Cliente> {
           : this.horaCierre,
       notasId: data.notasId.present ? data.notasId.value : this.notasId,
       dias: data.dias.present ? data.dias.value : this.dias,
+      eventos: data.eventos.present ? data.eventos.value : this.eventos,
+      kgTotal: data.kgTotal.present ? data.kgTotal.value : this.kgTotal,
+      moda: data.moda.present ? data.moda.value : this.moda,
+      maximo: data.maximo.present ? data.maximo.value : this.maximo,
+      ultimas10: data.ultimas10.present ? data.ultimas10.value : this.ultimas10,
+      kgEvento: data.kgEvento.present ? data.kgEvento.value : this.kgEvento,
+      kgSemana: data.kgSemana.present ? data.kgSemana.value : this.kgSemana,
+      ventasVuelta: data.ventasVuelta.present
+          ? data.ventasVuelta.value
+          : this.ventasVuelta,
+      puntuacion: data.puntuacion.present
+          ? data.puntuacion.value
+          : this.puntuacion,
     );
   }
 
@@ -1617,13 +1908,22 @@ class Cliente extends DataClass implements Insertable<Cliente> {
           ..write('horaInicio: $horaInicio, ')
           ..write('horaCierre: $horaCierre, ')
           ..write('notasId: $notasId, ')
-          ..write('dias: $dias')
+          ..write('dias: $dias, ')
+          ..write('eventos: $eventos, ')
+          ..write('kgTotal: $kgTotal, ')
+          ..write('moda: $moda, ')
+          ..write('maximo: $maximo, ')
+          ..write('ultimas10: $ultimas10, ')
+          ..write('kgEvento: $kgEvento, ')
+          ..write('kgSemana: $kgSemana, ')
+          ..write('ventasVuelta: $ventasVuelta, ')
+          ..write('puntuacion: $puntuacion')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     nombre,
     contacto,
@@ -1638,7 +1938,16 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     horaCierre,
     notasId,
     dias,
-  );
+    eventos,
+    kgTotal,
+    moda,
+    maximo,
+    ultimas10,
+    kgEvento,
+    kgSemana,
+    ventasVuelta,
+    puntuacion,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1656,7 +1965,16 @@ class Cliente extends DataClass implements Insertable<Cliente> {
           other.horaInicio == this.horaInicio &&
           other.horaCierre == this.horaCierre &&
           other.notasId == this.notasId &&
-          other.dias == this.dias);
+          other.dias == this.dias &&
+          other.eventos == this.eventos &&
+          other.kgTotal == this.kgTotal &&
+          other.moda == this.moda &&
+          other.maximo == this.maximo &&
+          other.ultimas10 == this.ultimas10 &&
+          other.kgEvento == this.kgEvento &&
+          other.kgSemana == this.kgSemana &&
+          other.ventasVuelta == this.ventasVuelta &&
+          other.puntuacion == this.puntuacion);
 }
 
 class ClientesCompanion extends UpdateCompanion<Cliente> {
@@ -1674,6 +1992,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
   final Value<int> horaCierre;
   final Value<int?> notasId;
   final Value<String> dias;
+  final Value<int> eventos;
+  final Value<double> kgTotal;
+  final Value<double> moda;
+  final Value<double> maximo;
+  final Value<String> ultimas10;
+  final Value<double> kgEvento;
+  final Value<double> kgSemana;
+  final Value<int> ventasVuelta;
+  final Value<double> puntuacion;
   const ClientesCompanion({
     this.id = const Value.absent(),
     this.nombre = const Value.absent(),
@@ -1689,6 +2016,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     this.horaCierre = const Value.absent(),
     this.notasId = const Value.absent(),
     this.dias = const Value.absent(),
+    this.eventos = const Value.absent(),
+    this.kgTotal = const Value.absent(),
+    this.moda = const Value.absent(),
+    this.maximo = const Value.absent(),
+    this.ultimas10 = const Value.absent(),
+    this.kgEvento = const Value.absent(),
+    this.kgSemana = const Value.absent(),
+    this.ventasVuelta = const Value.absent(),
+    this.puntuacion = const Value.absent(),
   });
   ClientesCompanion.insert({
     this.id = const Value.absent(),
@@ -1705,6 +2041,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     required int horaCierre,
     this.notasId = const Value.absent(),
     required String dias,
+    this.eventos = const Value.absent(),
+    this.kgTotal = const Value.absent(),
+    this.moda = const Value.absent(),
+    this.maximo = const Value.absent(),
+    this.ultimas10 = const Value.absent(),
+    this.kgEvento = const Value.absent(),
+    this.kgSemana = const Value.absent(),
+    this.ventasVuelta = const Value.absent(),
+    this.puntuacion = const Value.absent(),
   }) : nombre = Value(nombre),
        contacto = Value(contacto),
        tipoNegocio = Value(tipoNegocio),
@@ -1732,6 +2077,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     Expression<int>? horaCierre,
     Expression<int>? notasId,
     Expression<String>? dias,
+    Expression<int>? eventos,
+    Expression<double>? kgTotal,
+    Expression<double>? moda,
+    Expression<double>? maximo,
+    Expression<String>? ultimas10,
+    Expression<double>? kgEvento,
+    Expression<double>? kgSemana,
+    Expression<int>? ventasVuelta,
+    Expression<double>? puntuacion,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1748,6 +2102,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
       if (horaCierre != null) 'hora_cierre': horaCierre,
       if (notasId != null) 'notas_id': notasId,
       if (dias != null) 'dias': dias,
+      if (eventos != null) 'eventos': eventos,
+      if (kgTotal != null) 'kg_total': kgTotal,
+      if (moda != null) 'moda': moda,
+      if (maximo != null) 'maximo': maximo,
+      if (ultimas10 != null) 'ultimas10': ultimas10,
+      if (kgEvento != null) 'kg_evento': kgEvento,
+      if (kgSemana != null) 'kg_semana': kgSemana,
+      if (ventasVuelta != null) 'ventas_vuelta': ventasVuelta,
+      if (puntuacion != null) 'puntuacion': puntuacion,
     });
   }
 
@@ -1766,6 +2129,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     Value<int>? horaCierre,
     Value<int?>? notasId,
     Value<String>? dias,
+    Value<int>? eventos,
+    Value<double>? kgTotal,
+    Value<double>? moda,
+    Value<double>? maximo,
+    Value<String>? ultimas10,
+    Value<double>? kgEvento,
+    Value<double>? kgSemana,
+    Value<int>? ventasVuelta,
+    Value<double>? puntuacion,
   }) {
     return ClientesCompanion(
       id: id ?? this.id,
@@ -1782,6 +2154,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
       horaCierre: horaCierre ?? this.horaCierre,
       notasId: notasId ?? this.notasId,
       dias: dias ?? this.dias,
+      eventos: eventos ?? this.eventos,
+      kgTotal: kgTotal ?? this.kgTotal,
+      moda: moda ?? this.moda,
+      maximo: maximo ?? this.maximo,
+      ultimas10: ultimas10 ?? this.ultimas10,
+      kgEvento: kgEvento ?? this.kgEvento,
+      kgSemana: kgSemana ?? this.kgSemana,
+      ventasVuelta: ventasVuelta ?? this.ventasVuelta,
+      puntuacion: puntuacion ?? this.puntuacion,
     );
   }
 
@@ -1830,6 +2211,33 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     if (dias.present) {
       map['dias'] = Variable<String>(dias.value);
     }
+    if (eventos.present) {
+      map['eventos'] = Variable<int>(eventos.value);
+    }
+    if (kgTotal.present) {
+      map['kg_total'] = Variable<double>(kgTotal.value);
+    }
+    if (moda.present) {
+      map['moda'] = Variable<double>(moda.value);
+    }
+    if (maximo.present) {
+      map['maximo'] = Variable<double>(maximo.value);
+    }
+    if (ultimas10.present) {
+      map['ultimas10'] = Variable<String>(ultimas10.value);
+    }
+    if (kgEvento.present) {
+      map['kg_evento'] = Variable<double>(kgEvento.value);
+    }
+    if (kgSemana.present) {
+      map['kg_semana'] = Variable<double>(kgSemana.value);
+    }
+    if (ventasVuelta.present) {
+      map['ventas_vuelta'] = Variable<int>(ventasVuelta.value);
+    }
+    if (puntuacion.present) {
+      map['puntuacion'] = Variable<double>(puntuacion.value);
+    }
     return map;
   }
 
@@ -1849,7 +2257,16 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
           ..write('horaInicio: $horaInicio, ')
           ..write('horaCierre: $horaCierre, ')
           ..write('notasId: $notasId, ')
-          ..write('dias: $dias')
+          ..write('dias: $dias, ')
+          ..write('eventos: $eventos, ')
+          ..write('kgTotal: $kgTotal, ')
+          ..write('moda: $moda, ')
+          ..write('maximo: $maximo, ')
+          ..write('ultimas10: $ultimas10, ')
+          ..write('kgEvento: $kgEvento, ')
+          ..write('kgSemana: $kgSemana, ')
+          ..write('ventasVuelta: $ventasVuelta, ')
+          ..write('puntuacion: $puntuacion')
           ..write(')'))
         .toString();
   }
@@ -2704,6 +3121,15 @@ typedef $$ClientesTableCreateCompanionBuilder =
       required int horaCierre,
       Value<int?> notasId,
       required String dias,
+      Value<int> eventos,
+      Value<double> kgTotal,
+      Value<double> moda,
+      Value<double> maximo,
+      Value<String> ultimas10,
+      Value<double> kgEvento,
+      Value<double> kgSemana,
+      Value<int> ventasVuelta,
+      Value<double> puntuacion,
     });
 typedef $$ClientesTableUpdateCompanionBuilder =
     ClientesCompanion Function({
@@ -2721,6 +3147,15 @@ typedef $$ClientesTableUpdateCompanionBuilder =
       Value<int> horaCierre,
       Value<int?> notasId,
       Value<String> dias,
+      Value<int> eventos,
+      Value<double> kgTotal,
+      Value<double> moda,
+      Value<double> maximo,
+      Value<String> ultimas10,
+      Value<double> kgEvento,
+      Value<double> kgSemana,
+      Value<int> ventasVuelta,
+      Value<double> puntuacion,
     });
 
 class $$ClientesTableFilterComposer
@@ -2799,6 +3234,51 @@ class $$ClientesTableFilterComposer
 
   ColumnFilters<String> get dias => $composableBuilder(
     column: $table.dias,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get eventos => $composableBuilder(
+    column: $table.eventos,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get kgTotal => $composableBuilder(
+    column: $table.kgTotal,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get moda => $composableBuilder(
+    column: $table.moda,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get maximo => $composableBuilder(
+    column: $table.maximo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ultimas10 => $composableBuilder(
+    column: $table.ultimas10,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get kgEvento => $composableBuilder(
+    column: $table.kgEvento,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get kgSemana => $composableBuilder(
+    column: $table.kgSemana,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ventasVuelta => $composableBuilder(
+    column: $table.ventasVuelta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get puntuacion => $composableBuilder(
+    column: $table.puntuacion,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2881,6 +3361,51 @@ class $$ClientesTableOrderingComposer
     column: $table.dias,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get eventos => $composableBuilder(
+    column: $table.eventos,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get kgTotal => $composableBuilder(
+    column: $table.kgTotal,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get moda => $composableBuilder(
+    column: $table.moda,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get maximo => $composableBuilder(
+    column: $table.maximo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ultimas10 => $composableBuilder(
+    column: $table.ultimas10,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get kgEvento => $composableBuilder(
+    column: $table.kgEvento,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get kgSemana => $composableBuilder(
+    column: $table.kgSemana,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ventasVuelta => $composableBuilder(
+    column: $table.ventasVuelta,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get puntuacion => $composableBuilder(
+    column: $table.puntuacion,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientesTableAnnotationComposer
@@ -2941,6 +3466,37 @@ class $$ClientesTableAnnotationComposer
 
   GeneratedColumn<String> get dias =>
       $composableBuilder(column: $table.dias, builder: (column) => column);
+
+  GeneratedColumn<int> get eventos =>
+      $composableBuilder(column: $table.eventos, builder: (column) => column);
+
+  GeneratedColumn<double> get kgTotal =>
+      $composableBuilder(column: $table.kgTotal, builder: (column) => column);
+
+  GeneratedColumn<double> get moda =>
+      $composableBuilder(column: $table.moda, builder: (column) => column);
+
+  GeneratedColumn<double> get maximo =>
+      $composableBuilder(column: $table.maximo, builder: (column) => column);
+
+  GeneratedColumn<String> get ultimas10 =>
+      $composableBuilder(column: $table.ultimas10, builder: (column) => column);
+
+  GeneratedColumn<double> get kgEvento =>
+      $composableBuilder(column: $table.kgEvento, builder: (column) => column);
+
+  GeneratedColumn<double> get kgSemana =>
+      $composableBuilder(column: $table.kgSemana, builder: (column) => column);
+
+  GeneratedColumn<int> get ventasVuelta => $composableBuilder(
+    column: $table.ventasVuelta,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get puntuacion => $composableBuilder(
+    column: $table.puntuacion,
+    builder: (column) => column,
+  );
 }
 
 class $$ClientesTableTableManager
@@ -2985,6 +3541,15 @@ class $$ClientesTableTableManager
                 Value<int> horaCierre = const Value.absent(),
                 Value<int?> notasId = const Value.absent(),
                 Value<String> dias = const Value.absent(),
+                Value<int> eventos = const Value.absent(),
+                Value<double> kgTotal = const Value.absent(),
+                Value<double> moda = const Value.absent(),
+                Value<double> maximo = const Value.absent(),
+                Value<String> ultimas10 = const Value.absent(),
+                Value<double> kgEvento = const Value.absent(),
+                Value<double> kgSemana = const Value.absent(),
+                Value<int> ventasVuelta = const Value.absent(),
+                Value<double> puntuacion = const Value.absent(),
               }) => ClientesCompanion(
                 id: id,
                 nombre: nombre,
@@ -3000,6 +3565,15 @@ class $$ClientesTableTableManager
                 horaCierre: horaCierre,
                 notasId: notasId,
                 dias: dias,
+                eventos: eventos,
+                kgTotal: kgTotal,
+                moda: moda,
+                maximo: maximo,
+                ultimas10: ultimas10,
+                kgEvento: kgEvento,
+                kgSemana: kgSemana,
+                ventasVuelta: ventasVuelta,
+                puntuacion: puntuacion,
               ),
           createCompanionCallback:
               ({
@@ -3017,6 +3591,15 @@ class $$ClientesTableTableManager
                 required int horaCierre,
                 Value<int?> notasId = const Value.absent(),
                 required String dias,
+                Value<int> eventos = const Value.absent(),
+                Value<double> kgTotal = const Value.absent(),
+                Value<double> moda = const Value.absent(),
+                Value<double> maximo = const Value.absent(),
+                Value<String> ultimas10 = const Value.absent(),
+                Value<double> kgEvento = const Value.absent(),
+                Value<double> kgSemana = const Value.absent(),
+                Value<int> ventasVuelta = const Value.absent(),
+                Value<double> puntuacion = const Value.absent(),
               }) => ClientesCompanion.insert(
                 id: id,
                 nombre: nombre,
@@ -3032,6 +3615,15 @@ class $$ClientesTableTableManager
                 horaCierre: horaCierre,
                 notasId: notasId,
                 dias: dias,
+                eventos: eventos,
+                kgTotal: kgTotal,
+                moda: moda,
+                maximo: maximo,
+                ultimas10: ultimas10,
+                kgEvento: kgEvento,
+                kgSemana: kgSemana,
+                ventasVuelta: ventasVuelta,
+                puntuacion: puntuacion,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

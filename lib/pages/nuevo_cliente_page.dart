@@ -265,7 +265,12 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
           'Domicilio: ${cliente.domicilio}, Ubicación: ${cliente.ubicacion}, '
           'Teléfono: ${cliente.telefono}, Consumo: ${cliente.consumo}, '
           'Último Contacto: ${cliente.ultimoContacto}, Hora Inicio: ${cliente.horaInicio}, '
-          'Hora Cierre: ${cliente.horaCierre}, Días: ${cliente.dias}',
+          'Hora Cierre: ${cliente.horaCierre}, Días: ${cliente.dias}, '
+          'Eventos: ${cliente.eventos}, Kg Total: ${cliente.kgTotal}, '
+          'Moda: ${cliente.moda}, Máximo: ${cliente.maximo}, '
+          'Últimas 10: ${cliente.ultimas10}, Kg Evento: ${cliente.kgEvento}, '
+          'Kg Semana: ${cliente.kgSemana}, Ventas Vuelta: ${cliente.ventasVuelta}, '
+          'Puntuación: ${cliente.puntuacion}',
         );
       }
       if (clientes.length > 15) {

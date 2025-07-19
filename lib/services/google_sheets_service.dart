@@ -34,7 +34,8 @@ class GoogleSheetsService {
     }
   }
 
-  Future<List<List<Object?>>?> fetchClientData(
+  /// Método genérico para obtener datos de una hoja
+  Future<List<List<Object?>>> getSheetData(
     String spreadsheetId,
     String range,
   ) async {
@@ -48,14 +49,15 @@ class GoogleSheetsService {
         range,
       );
       print('Raw data from Google Sheets: ${response.values}');
-      return response.values;
+      return response.values ?? [];
     } catch (e) {
       print('Error fetching data from Google Sheets: $e');
-      return null;
+      return [];
     }
   }
 
-  Future<void> updateClientData(
+  /// Método genérico para actualizar datos en una hoja
+  Future<void> updateSheetData(
     String spreadsheetId,
     String range,
     List<List<Object?>> data,
@@ -79,93 +81,54 @@ class GoogleSheetsService {
     }
   }
 
+  /// Obtiene datos de clientes (mantenido por compatibilidad)
+  Future<List<List<Object?>>?> fetchClientData(
+    String spreadsheetId,
+    String range,
+  ) async {
+    return await getSheetData(spreadsheetId, range);
+  }
+
+  /// Actualiza datos de clientes (mantenido por compatibilidad)
+  Future<void> updateClientData(
+    String spreadsheetId,
+    String range,
+    List<List<Object?>> data,
+  ) async {
+    await updateSheetData(spreadsheetId, range, data);
+  }
+
+  /// Obtiene datos de repartos (mantenido por compatibilidad)
   Future<List<List<Object?>>?> fetchDeliveryData(
     String spreadsheetId,
     String range,
   ) async {
-    if (!_isInitialized || _sheetsApi == null) {
-      throw Exception('Google Sheets API not initialized');
-    }
-
-    try {
-      final response = await _sheetsApi!.spreadsheets.values.get(
-        spreadsheetId,
-        range,
-      );
-      print('Raw delivery data from Google Sheets: ${response.values}');
-      return response.values;
-    } catch (e) {
-      print('Error fetching delivery data from Google Sheets: $e');
-      return null;
-    }
+    return await getSheetData(spreadsheetId, range);
   }
 
+  /// Actualiza datos de repartos (mantenido por compatibilidad)
   Future<void> updateDeliveryData(
     String spreadsheetId,
     String range,
     List<List<Object?>> data,
   ) async {
-    if (!_isInitialized || _sheetsApi == null) {
-      throw Exception('Google Sheets API not initialized');
-    }
-
-    try {
-      final valueRange = ValueRange(values: data);
-      await _sheetsApi!.spreadsheets.values.update(
-        valueRange,
-        spreadsheetId,
-        range,
-        valueInputOption: 'USER_ENTERED',
-      );
-      print('Delivery data updated in Google Sheets: $data');
-    } catch (e) {
-      print('Error updating delivery data to Google Sheets: $e');
-      throw Exception('Failed to update delivery data to Google Sheets: $e');
-    }
+    await updateSheetData(spreadsheetId, range, data);
   }
 
+  /// Obtiene datos de ventas (mantenido por compatibilidad)
   Future<List<List<Object?>>?> fetchSalesData(
     String spreadsheetId,
     String range,
   ) async {
-    if (!_isInitialized || _sheetsApi == null) {
-      throw Exception('Google Sheets API not initialized');
-    }
-
-    try {
-      final response = await _sheetsApi!.spreadsheets.values.get(
-        spreadsheetId,
-        range,
-      );
-      print('Raw sales data from Google Sheets: ${response.values}');
-      return response.values;
-    } catch (e) {
-      print('Error fetching sales data from Google Sheets: $e');
-      return null;
-    }
+    return await getSheetData(spreadsheetId, range);
   }
 
+  /// Actualiza datos de ventas (mantenido por compatibilidad)
   Future<void> updateSalesData(
     String spreadsheetId,
     String range,
     List<List<Object?>> data,
   ) async {
-    if (!_isInitialized || _sheetsApi == null) {
-      throw Exception('Google Sheets API not initialized');
-    }
-
-    try {
-      final valueRange = ValueRange(values: data);
-      await _sheetsApi!.spreadsheets.values.update(
-        valueRange,
-        spreadsheetId,
-        range,
-        valueInputOption: 'USER_ENTERED',
-      );
-      print('Sales data updated in Google Sheets: $data');
-    } catch (e) {
-      print('Error updating sales data to Google Sheets: $e');
-      throw Exception('Failed to update sales data to Google Sheets: $e');
-    }
+    await updateSheetData(spreadsheetId, range, data);
   }
 }

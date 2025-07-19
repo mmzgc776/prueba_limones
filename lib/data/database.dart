@@ -47,6 +47,17 @@ class Clientes extends Table {
   IntColumn get horaCierre => integer()(); // 0-24 hour range
   IntColumn get notasId => integer().nullable()(); // FK to notas table
   TextColumn get dias => text()(); // DLMIJVS as string e.g., "0,1,2,3,4,5,6"
+  
+  // Nuevas columnas agregadas
+  IntColumn get eventos => integer().withDefault(const Constant(0))();
+  RealColumn get kgTotal => real().withDefault(const Constant(0.0))();
+  RealColumn get moda => real().withDefault(const Constant(0.0))();
+  RealColumn get maximo => real().withDefault(const Constant(0.0))();
+  TextColumn get ultimas10 => text().withDefault(const Constant(''))();
+  RealColumn get kgEvento => real().withDefault(const Constant(0.0))();
+  RealColumn get kgSemana => real().withDefault(const Constant(0.0))();
+  IntColumn get ventasVuelta => integer().withDefault(const Constant(0))();
+  RealColumn get puntuacion => real().withDefault(const Constant(0.0))();
 }
 
 class Contactos extends Table {
@@ -64,7 +75,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -94,6 +105,18 @@ class AppDatabase extends _$AppDatabase {
         // This might require recreating the table if the database doesn't support altering the primary key directly.
         // For simplicity, we will note that existing data might need manual migration.
         // No direct action is taken here to avoid data loss; users should be aware of potential ID conflicts.
+      }
+      if (from < 10) {
+        // Agregar nuevas columnas para análisis de clientes
+        await migrator.addColumn(clientes, clientes.eventos);
+        await migrator.addColumn(clientes, clientes.kgTotal);
+        await migrator.addColumn(clientes, clientes.moda);
+        await migrator.addColumn(clientes, clientes.maximo);
+        await migrator.addColumn(clientes, clientes.ultimas10);
+        await migrator.addColumn(clientes, clientes.kgEvento);
+        await migrator.addColumn(clientes, clientes.kgSemana);
+        await migrator.addColumn(clientes, clientes.ventasVuelta);
+        await migrator.addColumn(clientes, clientes.puntuacion);
       }
     },
     onCreate: (migrator) async {
@@ -167,6 +190,15 @@ class AppDatabase extends _$AppDatabase {
     required int horaCierre,
     int? notasId,
     required String dias,
+    int? eventos,
+    double? kgTotal,
+    double? moda,
+    double? maximo,
+    String? ultimas10,
+    double? kgEvento,
+    double? kgSemana,
+    int? ventasVuelta,
+    double? puntuacion,
   }) {
     return into(clientes).insert(
       ClientesCompanion(
@@ -184,6 +216,15 @@ class AppDatabase extends _$AppDatabase {
         horaCierre: Value(horaCierre),
         notasId: Value(notasId),
         dias: Value(dias),
+        eventos: eventos != null ? Value(eventos) : Value.absent(),
+        kgTotal: kgTotal != null ? Value(kgTotal) : Value.absent(),
+        moda: moda != null ? Value(moda) : Value.absent(),
+        maximo: maximo != null ? Value(maximo) : Value.absent(),
+        ultimas10: ultimas10 != null ? Value(ultimas10) : Value.absent(),
+        kgEvento: kgEvento != null ? Value(kgEvento) : Value.absent(),
+        kgSemana: kgSemana != null ? Value(kgSemana) : Value.absent(),
+        ventasVuelta: ventasVuelta != null ? Value(ventasVuelta) : Value.absent(),
+        puntuacion: puntuacion != null ? Value(puntuacion) : Value.absent(),
       ),
     );
   }
@@ -202,6 +243,15 @@ class AppDatabase extends _$AppDatabase {
     required int horaInicio,
     required int horaCierre,
     required String dias,
+    int? eventos,
+    double? kgTotal,
+    double? moda,
+    double? maximo,
+    String? ultimas10,
+    double? kgEvento,
+    double? kgSemana,
+    int? ventasVuelta,
+    double? puntuacion,
   }) {
     return (update(clientes)..where((tbl) => tbl.id.equals(id))).write(
       ClientesCompanion(
@@ -217,6 +267,15 @@ class AppDatabase extends _$AppDatabase {
         horaInicio: Value(horaInicio),
         horaCierre: Value(horaCierre),
         dias: Value(dias),
+        eventos: eventos != null ? Value(eventos) : Value.absent(),
+        kgTotal: kgTotal != null ? Value(kgTotal) : Value.absent(),
+        moda: moda != null ? Value(moda) : Value.absent(),
+        maximo: maximo != null ? Value(maximo) : Value.absent(),
+        ultimas10: ultimas10 != null ? Value(ultimas10) : Value.absent(),
+        kgEvento: kgEvento != null ? Value(kgEvento) : Value.absent(),
+        kgSemana: kgSemana != null ? Value(kgSemana) : Value.absent(),
+        ventasVuelta: ventasVuelta != null ? Value(ventasVuelta) : Value.absent(),
+        puntuacion: puntuacion != null ? Value(puntuacion) : Value.absent(),
       ),
     );
   }
