@@ -47,16 +47,16 @@ class Clientes extends Table {
   IntColumn get horaCierre => integer()(); // 0-24 hour range
   IntColumn get notasId => integer().nullable()(); // FK to notas table
   TextColumn get dias => text()(); // DLMIJVS as string e.g., "0,1,2,3,4,5,6"
-  
+
   // Nuevas columnas agregadas
   IntColumn get eventos => integer().withDefault(const Constant(0))();
   RealColumn get kgTotal => real().withDefault(const Constant(0.0))();
   RealColumn get moda => real().withDefault(const Constant(0.0))();
   RealColumn get maximo => real().withDefault(const Constant(0.0))();
-  TextColumn get ultimas10 => text().withDefault(const Constant(''))();
+  RealColumn get ultimas10 => real().withDefault(const Constant(0.0))();
   RealColumn get kgEvento => real().withDefault(const Constant(0.0))();
   RealColumn get kgSemana => real().withDefault(const Constant(0.0))();
-  IntColumn get ventasVuelta => integer().withDefault(const Constant(0))();
+  RealColumn get ventasVuelta => real().withDefault(const Constant(0.0))();
   RealColumn get puntuacion => real().withDefault(const Constant(0.0))();
 }
 
@@ -68,55 +68,33 @@ class Contactos extends Table {
   IntColumn get deliveryId => integer()(); // FK a tabla de entregas
 }
 
-// Aquí puedes agregar la tabla de notas después
-
 @DriftDatabase(tables: [Sales, Deliveries, Clientes, Contactos])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
-      if (from == 1) {
-        await migrator.addColumn(sales, sales.deliveryNumber);
+      if (from < 11) {
+        // For simplicity, we'll just create everything if coming from an old version.
+        await migrator.createAll();
+        return;
       }
-      if (from < 5) {
-        // Note: After making changes to the database schema, run `flutter pub run build_runner build` to regenerate the Drift code.
-        // Create the Deliveries table if not exists for any version prior to 5.
-        await migrator.createTable(deliveries);
-      }
-      if (from < 6) {
-        // Create the Clientes table for versions prior to 6.
+
+      if (from == 11) {
+        // Migration from v11 to v12: change `ventasVuelta` from INTEGER to REAL.
+        await migrator.issueCustomQuery(
+          'ALTER TABLE clientes RENAME TO _clientes_old_v11;',
+        );
         await migrator.createTable(clientes);
-      }
-      if (from < 7) {
-        // Instead of dropping the id column, we have set deliveryNumber as the primary key in the schema.
-        // No action needed for existing id column; it will be ignored if it exists.
-      }
-      if (from < 8) {
-        // Create the Contactos table for versions prior to 8.
-        await migrator.createTable(contactos);
-      }
-      if (from < 9) {
-        // Update Sales table to change id from auto-increment to manual primary key.
-        // This might require recreating the table if the database doesn't support altering the primary key directly.
-        // For simplicity, we will note that existing data might need manual migration.
-        // No direct action is taken here to avoid data loss; users should be aware of potential ID conflicts.
-      }
-      if (from < 10) {
-        // Agregar nuevas columnas para análisis de clientes
-        await migrator.addColumn(clientes, clientes.eventos);
-        await migrator.addColumn(clientes, clientes.kgTotal);
-        await migrator.addColumn(clientes, clientes.moda);
-        await migrator.addColumn(clientes, clientes.maximo);
-        await migrator.addColumn(clientes, clientes.ultimas10);
-        await migrator.addColumn(clientes, clientes.kgEvento);
-        await migrator.addColumn(clientes, clientes.kgSemana);
-        await migrator.addColumn(clientes, clientes.ventasVuelta);
-        await migrator.addColumn(clientes, clientes.puntuacion);
+        await migrator.issueCustomQuery(
+          'INSERT INTO clientes (id, nombre, contacto, tipo_negocio, ciudad, domicilio, ubicacion, telefono, consumo, ultimo_contacto, hora_inicio, hora_cierre, notas_id, dias, eventos, kg_total, moda, maximo, ultimas10, kg_evento, kg_semana, puntuacion) '
+          'SELECT id, nombre, contacto, tipo_negocio, ciudad, domicilio, ubicacion, telefono, consumo, ultimo_contacto, hora_inicio, hora_cierre, notas_id, dias, eventos, kg_total, moda, maximo, ultimas10, kg_evento, kg_semana, puntuacion FROM _clientes_old_v11;',
+        );
+        await migrator.issueCustomQuery('DROP TABLE _clientes_old_v11;');
       }
     },
     onCreate: (migrator) async {
@@ -194,10 +172,10 @@ class AppDatabase extends _$AppDatabase {
     double? kgTotal,
     double? moda,
     double? maximo,
-    String? ultimas10,
+    double? ultimas10,
     double? kgEvento,
     double? kgSemana,
-    int? ventasVuelta,
+    double? ventasVuelta,
     double? puntuacion,
   }) {
     return into(clientes).insert(
@@ -223,7 +201,9 @@ class AppDatabase extends _$AppDatabase {
         ultimas10: ultimas10 != null ? Value(ultimas10) : Value.absent(),
         kgEvento: kgEvento != null ? Value(kgEvento) : Value.absent(),
         kgSemana: kgSemana != null ? Value(kgSemana) : Value.absent(),
-        ventasVuelta: ventasVuelta != null ? Value(ventasVuelta) : Value.absent(),
+        ventasVuelta: ventasVuelta != null
+            ? Value(ventasVuelta)
+            : Value.absent(),
         puntuacion: puntuacion != null ? Value(puntuacion) : Value.absent(),
       ),
     );
@@ -247,10 +227,10 @@ class AppDatabase extends _$AppDatabase {
     double? kgTotal,
     double? moda,
     double? maximo,
-    String? ultimas10,
+    double? ultimas10,
     double? kgEvento,
     double? kgSemana,
-    int? ventasVuelta,
+    double? ventasVuelta,
     double? puntuacion,
   }) {
     return (update(clientes)..where((tbl) => tbl.id.equals(id))).write(
@@ -274,7 +254,9 @@ class AppDatabase extends _$AppDatabase {
         ultimas10: ultimas10 != null ? Value(ultimas10) : Value.absent(),
         kgEvento: kgEvento != null ? Value(kgEvento) : Value.absent(),
         kgSemana: kgSemana != null ? Value(kgSemana) : Value.absent(),
-        ventasVuelta: ventasVuelta != null ? Value(ventasVuelta) : Value.absent(),
+        ventasVuelta: ventasVuelta != null
+            ? Value(ventasVuelta)
+            : Value.absent(),
         puntuacion: puntuacion != null ? Value(puntuacion) : Value.absent(),
       ),
     );

@@ -186,6 +186,17 @@ class DatabaseService {
     return await _db!.select(_db!.deliveries).get();
   }
 
+  /// Obtiene los números de los últimos X deliveries
+  Future<List<int>> getLatestDeliveryNumbers(int limit) async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.deliveries)
+      ..orderBy([(d) => OrderingTerm.desc(d.deliveryNumber)])
+      ..limit(limit);
+
+    final result = await query.get();
+    return result.map((d) => d.deliveryNumber).toList();
+  }
+
   /// Elimina todos los deliveries
   Future<void> deleteAllDeliveries() async {
     _ensureInitialized();
@@ -261,7 +272,7 @@ class DatabaseService {
     double kgTotal = 0.0,
     double moda = 0.0,
     double maximo = 0.0,
-    String ultimas10 = "",
+    double ultimas10 = 0.0,
     double kgEvento = 0.0,
     double kgSemana = 0.0,
     int ventasVuelta = 0,
@@ -352,6 +363,36 @@ class DatabaseService {
     _ensureInitialized();
     await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
         .write(ClientesCompanion(eventos: Value(eventos)));
+  }
+
+  /// Actualiza el campo kgTotal de un cliente
+  Future<void> updateClienteKgTotal(int clientId, double kgTotal) async {
+    _ensureInitialized();
+    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
+        .write(ClientesCompanion(kgTotal: Value(kgTotal)));
+  }
+
+  /// Actualiza los campos de puntuación de un cliente
+  Future<void> updateClientePuntuacion({
+    required int clientId,
+    required double moda,
+    required double maximo,
+    required double ventasVuelta,
+    required double ultimas10,
+    required double kgEvento,
+  }) async {
+    _ensureInitialized();
+    await (_db!.update(
+      _db!.clientes,
+    )..where((tbl) => tbl.id.equals(clientId))).write(
+      ClientesCompanion(
+        moda: Value(moda),
+        maximo: Value(maximo),
+        ventasVuelta: Value(ventasVuelta),
+        ultimas10: Value(ultimas10),
+        kgEvento: Value(kgEvento),
+      ),
+    );
   }
 
   /// Elimina todos los clientes

@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
+import '../services/google_sheets_service.dart'; // Importar el servicio
 import '../services/sync_service.dart';
 import '../services/database_service.dart';
 import '../widgets/sync_action_button.dart';
 
-class SynchronizationPage extends StatelessWidget {
+class SynchronizationPage extends StatefulWidget {
   const SynchronizationPage({super.key});
+
+  @override
+  State<SynchronizationPage> createState() => _SynchronizationPageState();
+}
+
+class _SynchronizationPageState extends State<SynchronizationPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Inicializar GoogleSheetsService cuando la página se carga
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        GoogleSheetsService().init(context);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

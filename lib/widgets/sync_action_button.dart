@@ -167,7 +167,7 @@ class SyncActionButton extends StatelessWidget {
       SyncDialogs.showLoadingDialog(
         context,
         'Puntuando Clientes',
-        'Contando ventas por cliente...',
+        'Calculando puntuaciones...',
       );
 
       try {

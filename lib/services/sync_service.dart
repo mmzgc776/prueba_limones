@@ -129,7 +129,11 @@ class SyncService {
       await _databaseService.init();
 
       final clientes = await _databaseService.getAllClientes();
+      final latestDeliveries = await _databaseService.getLatestDeliveryNumbers(
+        10,
+      );
       int totalVentas = 0;
+      int numeroDeClientes = clientes.length;
 
       for (final cliente in clientes) {
         final ventasCliente = await _databaseService.getVentasByClientId(
@@ -138,10 +142,66 @@ class SyncService {
         final numeroVentas = ventasCliente.length;
         totalVentas += numeroVentas;
 
+        // Calcular estadísticas si hay ventas
+        if (ventasCliente.isNotEmpty) {
+          // Sumar los kilogramos totales
+          final double kgTotales = ventasCliente.fold(
+            0.0,
+            (sum, venta) => sum + venta.quantity,
+          );
+          await _databaseService.updateClienteKgTotal(cliente.id, kgTotales);
+
+          // Calcular máximo
+          final double maximo = ventasCliente
+              .map((v) => v.quantity)
+              .reduce((a, b) => a > b ? a : b);
+
+          // Calcular moda
+          final counts = <double, int>{};
+          for (var v in ventasCliente) {
+            counts[v.quantity] = (counts[v.quantity] ?? 0) + 1;
+          }
+          final double moda = counts.entries
+              .reduce((a, b) => a.value > b.value ? a : b)
+              .key;
+
+          // Calcular ventas en los últimos 10 repartos
+          final double ventasVuelta = ventasCliente
+              .where(
+                (v) =>
+                    v.deliveryNumber != null &&
+                    latestDeliveries.contains(v.deliveryNumber),
+              )
+              .length
+              .toDouble();
+
+          // Calcular el porcentaje de últimas 10 ventas
+          final double ultimas10 = ventasVuelta / 10.0;
+
+          // Calcular kg por evento
+          final double kgEvento = numeroVentas > 0
+              ? kgTotales / numeroVentas
+              : 0.0;
+
+          // Actualizar puntuaciones
+          await _databaseService.updateClientePuntuacion(
+            clientId: cliente.id,
+            moda: moda,
+            maximo: maximo,
+            ventasVuelta: ventasVuelta,
+            ultimas10: ultimas10,
+            kgEvento: kgEvento,
+          );
+        }
+
+        // Actualizar el número de eventos (ventas)
         await _databaseService.updateClienteEventos(cliente.id, numeroVentas);
       }
 
-      return SyncResult.success('Puntuaciones actualizadas', totalVentas);
+      return SyncResult.success(
+        'Puntuando $totalVentas ventas para empatar $numeroDeClientes clientes',
+        totalVentas,
+      );
     } catch (e) {
       return SyncResult.error('Error: ${e.toString()}');
     }

@@ -1260,13 +1260,13 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     'ultimas10',
   );
   @override
-  late final GeneratedColumn<String> ultimas10 = GeneratedColumn<String>(
+  late final GeneratedColumn<double> ultimas10 = GeneratedColumn<double>(
     'ultimas10',
     aliasedName,
     false,
-    type: DriftSqlType.string,
+    type: DriftSqlType.double,
     requiredDuringInsert: false,
-    defaultValue: const Constant(''),
+    defaultValue: const Constant(0.0),
   );
   static const VerificationMeta _kgEventoMeta = const VerificationMeta(
     'kgEvento',
@@ -1296,13 +1296,13 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     'ventasVuelta',
   );
   @override
-  late final GeneratedColumn<int> ventasVuelta = GeneratedColumn<int>(
+  late final GeneratedColumn<double> ventasVuelta = GeneratedColumn<double>(
     'ventas_vuelta',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.double,
     requiredDuringInsert: false,
-    defaultValue: const Constant(0),
+    defaultValue: const Constant(0.0),
   );
   static const VerificationMeta _puntuacionMeta = const VerificationMeta(
     'puntuacion',
@@ -1604,7 +1604,7 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
         data['${effectivePrefix}maximo'],
       )!,
       ultimas10: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
+        DriftSqlType.double,
         data['${effectivePrefix}ultimas10'],
       )!,
       kgEvento: attachedDatabase.typeMapping.read(
@@ -1616,7 +1616,7 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
         data['${effectivePrefix}kg_semana'],
       )!,
       ventasVuelta: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
+        DriftSqlType.double,
         data['${effectivePrefix}ventas_vuelta'],
       )!,
       puntuacion: attachedDatabase.typeMapping.read(
@@ -1651,10 +1651,10 @@ class Cliente extends DataClass implements Insertable<Cliente> {
   final double kgTotal;
   final double moda;
   final double maximo;
-  final String ultimas10;
+  final double ultimas10;
   final double kgEvento;
   final double kgSemana;
-  final int ventasVuelta;
+  final double ventasVuelta;
   final double puntuacion;
   const Cliente({
     required this.id,
@@ -1704,10 +1704,10 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     map['kg_total'] = Variable<double>(kgTotal);
     map['moda'] = Variable<double>(moda);
     map['maximo'] = Variable<double>(maximo);
-    map['ultimas10'] = Variable<String>(ultimas10);
+    map['ultimas10'] = Variable<double>(ultimas10);
     map['kg_evento'] = Variable<double>(kgEvento);
     map['kg_semana'] = Variable<double>(kgSemana);
-    map['ventas_vuelta'] = Variable<int>(ventasVuelta);
+    map['ventas_vuelta'] = Variable<double>(ventasVuelta);
     map['puntuacion'] = Variable<double>(puntuacion);
     return map;
   }
@@ -1766,10 +1766,10 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       kgTotal: serializer.fromJson<double>(json['kgTotal']),
       moda: serializer.fromJson<double>(json['moda']),
       maximo: serializer.fromJson<double>(json['maximo']),
-      ultimas10: serializer.fromJson<String>(json['ultimas10']),
+      ultimas10: serializer.fromJson<double>(json['ultimas10']),
       kgEvento: serializer.fromJson<double>(json['kgEvento']),
       kgSemana: serializer.fromJson<double>(json['kgSemana']),
-      ventasVuelta: serializer.fromJson<int>(json['ventasVuelta']),
+      ventasVuelta: serializer.fromJson<double>(json['ventasVuelta']),
       puntuacion: serializer.fromJson<double>(json['puntuacion']),
     );
   }
@@ -1795,10 +1795,10 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       'kgTotal': serializer.toJson<double>(kgTotal),
       'moda': serializer.toJson<double>(moda),
       'maximo': serializer.toJson<double>(maximo),
-      'ultimas10': serializer.toJson<String>(ultimas10),
+      'ultimas10': serializer.toJson<double>(ultimas10),
       'kgEvento': serializer.toJson<double>(kgEvento),
       'kgSemana': serializer.toJson<double>(kgSemana),
-      'ventasVuelta': serializer.toJson<int>(ventasVuelta),
+      'ventasVuelta': serializer.toJson<double>(ventasVuelta),
       'puntuacion': serializer.toJson<double>(puntuacion),
     };
   }
@@ -1822,10 +1822,10 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     double? kgTotal,
     double? moda,
     double? maximo,
-    String? ultimas10,
+    double? ultimas10,
     double? kgEvento,
     double? kgSemana,
-    int? ventasVuelta,
+    double? ventasVuelta,
     double? puntuacion,
   }) => Cliente(
     id: id ?? this.id,
@@ -1996,10 +1996,10 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
   final Value<double> kgTotal;
   final Value<double> moda;
   final Value<double> maximo;
-  final Value<String> ultimas10;
+  final Value<double> ultimas10;
   final Value<double> kgEvento;
   final Value<double> kgSemana;
-  final Value<int> ventasVuelta;
+  final Value<double> ventasVuelta;
   final Value<double> puntuacion;
   const ClientesCompanion({
     this.id = const Value.absent(),
@@ -2081,10 +2081,10 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     Expression<double>? kgTotal,
     Expression<double>? moda,
     Expression<double>? maximo,
-    Expression<String>? ultimas10,
+    Expression<double>? ultimas10,
     Expression<double>? kgEvento,
     Expression<double>? kgSemana,
-    Expression<int>? ventasVuelta,
+    Expression<double>? ventasVuelta,
     Expression<double>? puntuacion,
   }) {
     return RawValuesInsertable({
@@ -2133,10 +2133,10 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     Value<double>? kgTotal,
     Value<double>? moda,
     Value<double>? maximo,
-    Value<String>? ultimas10,
+    Value<double>? ultimas10,
     Value<double>? kgEvento,
     Value<double>? kgSemana,
-    Value<int>? ventasVuelta,
+    Value<double>? ventasVuelta,
     Value<double>? puntuacion,
   }) {
     return ClientesCompanion(
@@ -2224,7 +2224,7 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
       map['maximo'] = Variable<double>(maximo.value);
     }
     if (ultimas10.present) {
-      map['ultimas10'] = Variable<String>(ultimas10.value);
+      map['ultimas10'] = Variable<double>(ultimas10.value);
     }
     if (kgEvento.present) {
       map['kg_evento'] = Variable<double>(kgEvento.value);
@@ -2233,7 +2233,7 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
       map['kg_semana'] = Variable<double>(kgSemana.value);
     }
     if (ventasVuelta.present) {
-      map['ventas_vuelta'] = Variable<int>(ventasVuelta.value);
+      map['ventas_vuelta'] = Variable<double>(ventasVuelta.value);
     }
     if (puntuacion.present) {
       map['puntuacion'] = Variable<double>(puntuacion.value);
@@ -3125,10 +3125,10 @@ typedef $$ClientesTableCreateCompanionBuilder =
       Value<double> kgTotal,
       Value<double> moda,
       Value<double> maximo,
-      Value<String> ultimas10,
+      Value<double> ultimas10,
       Value<double> kgEvento,
       Value<double> kgSemana,
-      Value<int> ventasVuelta,
+      Value<double> ventasVuelta,
       Value<double> puntuacion,
     });
 typedef $$ClientesTableUpdateCompanionBuilder =
@@ -3151,10 +3151,10 @@ typedef $$ClientesTableUpdateCompanionBuilder =
       Value<double> kgTotal,
       Value<double> moda,
       Value<double> maximo,
-      Value<String> ultimas10,
+      Value<double> ultimas10,
       Value<double> kgEvento,
       Value<double> kgSemana,
-      Value<int> ventasVuelta,
+      Value<double> ventasVuelta,
       Value<double> puntuacion,
     });
 
@@ -3257,7 +3257,7 @@ class $$ClientesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get ultimas10 => $composableBuilder(
+  ColumnFilters<double> get ultimas10 => $composableBuilder(
     column: $table.ultimas10,
     builder: (column) => ColumnFilters(column),
   );
@@ -3272,7 +3272,7 @@ class $$ClientesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get ventasVuelta => $composableBuilder(
+  ColumnFilters<double> get ventasVuelta => $composableBuilder(
     column: $table.ventasVuelta,
     builder: (column) => ColumnFilters(column),
   );
@@ -3382,7 +3382,7 @@ class $$ClientesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get ultimas10 => $composableBuilder(
+  ColumnOrderings<double> get ultimas10 => $composableBuilder(
     column: $table.ultimas10,
     builder: (column) => ColumnOrderings(column),
   );
@@ -3397,7 +3397,7 @@ class $$ClientesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get ventasVuelta => $composableBuilder(
+  ColumnOrderings<double> get ventasVuelta => $composableBuilder(
     column: $table.ventasVuelta,
     builder: (column) => ColumnOrderings(column),
   );
@@ -3479,7 +3479,7 @@ class $$ClientesTableAnnotationComposer
   GeneratedColumn<double> get maximo =>
       $composableBuilder(column: $table.maximo, builder: (column) => column);
 
-  GeneratedColumn<String> get ultimas10 =>
+  GeneratedColumn<double> get ultimas10 =>
       $composableBuilder(column: $table.ultimas10, builder: (column) => column);
 
   GeneratedColumn<double> get kgEvento =>
@@ -3488,7 +3488,7 @@ class $$ClientesTableAnnotationComposer
   GeneratedColumn<double> get kgSemana =>
       $composableBuilder(column: $table.kgSemana, builder: (column) => column);
 
-  GeneratedColumn<int> get ventasVuelta => $composableBuilder(
+  GeneratedColumn<double> get ventasVuelta => $composableBuilder(
     column: $table.ventasVuelta,
     builder: (column) => column,
   );
@@ -3545,10 +3545,10 @@ class $$ClientesTableTableManager
                 Value<double> kgTotal = const Value.absent(),
                 Value<double> moda = const Value.absent(),
                 Value<double> maximo = const Value.absent(),
-                Value<String> ultimas10 = const Value.absent(),
+                Value<double> ultimas10 = const Value.absent(),
                 Value<double> kgEvento = const Value.absent(),
                 Value<double> kgSemana = const Value.absent(),
-                Value<int> ventasVuelta = const Value.absent(),
+                Value<double> ventasVuelta = const Value.absent(),
                 Value<double> puntuacion = const Value.absent(),
               }) => ClientesCompanion(
                 id: id,
@@ -3595,10 +3595,10 @@ class $$ClientesTableTableManager
                 Value<double> kgTotal = const Value.absent(),
                 Value<double> moda = const Value.absent(),
                 Value<double> maximo = const Value.absent(),
-                Value<String> ultimas10 = const Value.absent(),
+                Value<double> ultimas10 = const Value.absent(),
                 Value<double> kgEvento = const Value.absent(),
                 Value<double> kgSemana = const Value.absent(),
-                Value<int> ventasVuelta = const Value.absent(),
+                Value<double> ventasVuelta = const Value.absent(),
                 Value<double> puntuacion = const Value.absent(),
               }) => ClientesCompanion.insert(
                 id: id,
