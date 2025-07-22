@@ -275,7 +275,7 @@ class DatabaseService {
     double ultimas10 = 0.0,
     double kgEvento = 0.0,
     double kgSemana = 0.0,
-    int ventasVuelta = 0,
+    double ventasVuelta = 0.0,
     double puntuacion = 0.0,
   }) async {
     _ensureInitialized();
@@ -481,33 +481,57 @@ class DatabaseService {
     String spreadsheetId,
     String range,
   ) async {
-    // Implementación de sincronización específica para repartos
     final googleSheetsService = GoogleSheetsService();
 
-    // Lógica de sincronización aquí
-    // Por simplicidad, se muestra la estructura básica
-    final updatedData = <List<Object?>>[];
+    if (localDeliveries.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 9 || row[0] == null) continue;
+        try {
+          final delivery = DeliveriesCompanion(
+            deliveryNumber: Value(int.parse(row[0].toString())),
+            date: Value(DateTime.tryParse(row[1].toString()) ?? DateTime.now()),
+            durationSeconds: Value(int.tryParse(row[2].toString()) ?? 0),
+            avgPrice: Value(double.tryParse(row[3].toString()) ?? 0.0),
+            kilograms: Value(double.tryParse(row[4].toString()) ?? 0.0),
+            boxes: Value(int.tryParse(row[5].toString()) ?? 0),
+            remaining: Value(double.tryParse(row[6].toString()) ?? 0.0),
+            seller: Value(row[7].toString()),
+            total: Value(double.tryParse(row[8].toString()) ?? 0.0),
+          );
+          await _db!.into(_db!.deliveries).insertOnConflictUpdate(delivery);
+        } catch (e) {
+          print('Error procesando fila de reparto: $row, error: $e');
+        }
+      }
+    } else if (localDeliveries.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      }
 
-    // Procesar datos locales y de hoja de cálculo
-    for (var delivery in localDeliveries) {
-      updatedData.add([
-        delivery.deliveryNumber,
-        delivery.date.toString(),
-        delivery.durationSeconds,
-        delivery.avgPrice,
-        delivery.kilograms,
-        delivery.boxes,
-        delivery.remaining,
-        delivery.seller,
-        delivery.total,
-      ]);
+      for (var delivery in localDeliveries) {
+        updatedData.add([
+          delivery.deliveryNumber,
+          delivery.date.toString(),
+          delivery.durationSeconds,
+          delivery.avgPrice,
+          delivery.kilograms,
+          delivery.boxes,
+          delivery.remaining,
+          delivery.seller,
+          delivery.total,
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
     }
-
-    await googleSheetsService.updateSheetData(
-      spreadsheetId,
-      range,
-      updatedData,
-    );
   }
 
   /// Método privado para sincronizar datos de ventas
@@ -518,26 +542,54 @@ class DatabaseService {
     String range,
   ) async {
     final googleSheetsService = GoogleSheetsService();
-    final updatedData = <List<Object?>>[];
 
-    for (var sale in localSales) {
-      updatedData.add([
-        sale.id,
-        sale.date.toString(),
-        sale.clientId,
-        sale.quantity,
-        sale.price,
-        sale.total,
-        sale.notesId ?? '',
-        sale.deliveryNumber ?? '',
-      ]);
+    if (localSales.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 8 || row[0] == null) continue;
+        try {
+          final sale = SalesCompanion(
+            id: Value(int.parse(row[0].toString())),
+            date: Value(DateTime.tryParse(row[1].toString()) ?? DateTime.now()),
+            clientId: Value(int.parse(row[2].toString())),
+            quantity: Value(double.parse(row[3].toString())),
+            price: Value(double.parse(row[4].toString())),
+            total: Value(double.parse(row[5].toString())),
+            notesId: Value(int.tryParse(row[6].toString())),
+            deliveryNumber: Value(int.tryParse(row[7].toString())),
+          );
+          await _db!.into(_db!.sales).insertOnConflictUpdate(sale);
+        } catch (e) {
+          print('Error procesando fila de venta: $row, error: $e');
+        }
+      }
+    } else if (localSales.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      }
+
+      for (var sale in localSales) {
+        updatedData.add([
+          sale.id,
+          sale.date.toString(),
+          sale.clientId,
+          sale.quantity,
+          sale.price,
+          sale.total,
+          sale.notesId ?? '',
+          sale.deliveryNumber ?? '',
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
     }
-
-    await googleSheetsService.updateSheetData(
-      spreadsheetId,
-      range,
-      updatedData,
-    );
   }
 
   /// Método privado para sincronizar datos de clientes
@@ -548,68 +600,86 @@ class DatabaseService {
     String range,
   ) async {
     final googleSheetsService = GoogleSheetsService();
-    final updatedData = <List<Object?>>[];
 
-    // Agregar encabezados
-    updatedData.add([
-      'ID',
-      'Nombre',
-      'Contacto',
-      'TipoNegocio',
-      'Ciudad',
-      'Domicilio',
-      'Ubicacion',
-      'Telefono',
-      'Consumo',
-      'UltimoContacto',
-      'HoraInicio',
-      'HoraCierre',
-      'NotasId',
-      'Dias',
-      'Eventos',
-      'KgTotal',
-      'Moda',
-      'Maximo',
-      'Ultimas10',
-      'KgEvento',
-      'KgSemana',
-      'VentasVuelta',
-      'Puntuacion',
-    ]);
+    if (localClientes.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 23 || row[0] == null) continue;
+        try {
+          final cliente = ClientesCompanion(
+            id: Value(int.parse(row[0].toString())),
+            nombre: Value(row[1].toString()),
+            contacto: Value(row[2].toString()),
+            tipoNegocio: Value(row[3].toString()),
+            ciudad: Value(row[4].toString()),
+            domicilio: Value(row[5].toString()),
+            ubicacion: Value(row[6].toString()),
+            telefono: Value(row[7].toString()),
+            consumo: Value(int.tryParse(row[8].toString()) ?? 0),
+            ultimoContacto: Value(
+              DateTime.tryParse(row[9].toString()) ?? DateTime.now(),
+            ),
+            horaInicio: Value(int.tryParse(row[10].toString()) ?? 0),
+            horaCierre: Value(int.tryParse(row[11].toString()) ?? 0),
+            notasId: Value(int.tryParse(row[12].toString())),
+            dias: Value(row[13].toString()),
+            eventos: Value(int.tryParse(row[14].toString()) ?? 0),
+            kgTotal: Value(double.tryParse(row[15].toString()) ?? 0.0),
+            moda: Value(double.tryParse(row[16].toString()) ?? 0.0),
+            maximo: Value(double.tryParse(row[17].toString()) ?? 0.0),
+            ultimas10: Value(double.tryParse(row[18].toString()) ?? 0.0),
+            kgEvento: Value(double.tryParse(row[19].toString()) ?? 0.0),
+            kgSemana: Value(double.tryParse(row[20].toString()) ?? 0.0),
+            ventasVuelta: Value(double.tryParse(row[21].toString()) ?? 0.0),
+            puntuacion: Value(double.tryParse(row[22].toString()) ?? 0.0),
+          );
+          await _db!.into(_db!.clientes).insertOnConflictUpdate(cliente);
+        } catch (e) {
+          print('Error procesando fila de cliente: $row, error: $e');
+        }
+      }
+    } else if (localClientes.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      }
 
-    for (var cliente in localClientes) {
-      updatedData.add([
-        cliente.id,
-        cliente.nombre,
-        cliente.contacto,
-        cliente.tipoNegocio,
-        cliente.ciudad,
-        cliente.domicilio,
-        cliente.ubicacion,
-        cliente.telefono,
-        cliente.consumo,
-        cliente.ultimoContacto.toString(),
-        cliente.horaInicio,
-        cliente.horaCierre,
-        cliente.notasId ?? '',
-        cliente.dias,
-        cliente.eventos,
-        cliente.kgTotal,
-        cliente.moda,
-        cliente.maximo,
-        cliente.ultimas10,
-        cliente.kgEvento,
-        cliente.kgSemana,
-        cliente.ventasVuelta,
-        cliente.puntuacion,
-      ]);
+      for (var cliente in localClientes) {
+        updatedData.add([
+          cliente.id,
+          cliente.nombre,
+          cliente.contacto,
+          cliente.tipoNegocio,
+          cliente.ciudad,
+          cliente.domicilio,
+          cliente.ubicacion,
+          cliente.telefono,
+          cliente.consumo,
+          cliente.ultimoContacto.toString(),
+          cliente.horaInicio,
+          cliente.horaCierre,
+          cliente.notasId ?? '',
+          cliente.dias,
+          cliente.eventos,
+          cliente.kgTotal,
+          cliente.moda,
+          cliente.maximo,
+          cliente.ultimas10,
+          cliente.kgEvento,
+          cliente.kgSemana,
+          cliente.ventasVuelta,
+          cliente.puntuacion,
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
     }
-
-    await googleSheetsService.updateSheetData(
-      spreadsheetId,
-      range,
-      updatedData,
-    );
   }
 
   // ===== UTILIDADES =====
