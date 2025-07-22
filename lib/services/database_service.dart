@@ -197,6 +197,28 @@ class DatabaseService {
     return result.map((d) => d.deliveryNumber).toList();
   }
 
+  /// Obtiene la fecha del delivery más antiguo
+  Future<DateTime?> getOldestDeliveryDate() async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.deliveries)
+      ..orderBy([(d) => OrderingTerm.asc(d.date)])
+      ..limit(1);
+
+    final result = await query.getSingleOrNull();
+    return result?.date;
+  }
+
+  /// Obtiene el número de delivery más alto
+  Future<int?> getHighestDeliveryNumber() async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.deliveries)
+      ..orderBy([(d) => OrderingTerm.desc(d.deliveryNumber)])
+      ..limit(1);
+
+    final result = await query.getSingleOrNull();
+    return result?.deliveryNumber;
+  }
+
   /// Elimina todos los deliveries
   Future<void> deleteAllDeliveries() async {
     _ensureInitialized();
@@ -395,10 +417,83 @@ class DatabaseService {
     );
   }
 
+  /// Actualiza el campo kgSemana de un cliente
+  Future<void> updateClienteKgSemana(int clientId, double kgSemana) async {
+    _ensureInitialized();
+    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
+        .write(ClientesCompanion(kgSemana: Value(kgSemana)));
+  }
+
   /// Elimina todos los clientes
   Future<void> deleteAllClientes() async {
     _ensureInitialized();
     await _db!.delete(_db!.clientes).go();
+  }
+
+  /// Actualiza el campo puntuacion final de un cliente
+  Future<void> updateClienteFinalScore(int clientId, double score) async {
+    _ensureInitialized();
+    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
+        .write(ClientesCompanion(puntuacion: Value(score)));
+  }
+
+  // Métodos para obtener los valores máximos para la normalización
+  Future<int?> getMaxEventos() async {
+    _ensureInitialized();
+    final maxEventos = _db!.clientes.eventos.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxEventos]);
+    return await query.map((row) => row.read(maxEventos)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxKgTotal() async {
+    _ensureInitialized();
+    final maxKgTotal = _db!.clientes.kgTotal.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxKgTotal]);
+    return await query.map((row) => row.read(maxKgTotal)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxModa() async {
+    _ensureInitialized();
+    final maxModa = _db!.clientes.moda.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxModa]);
+    return await query.map((row) => row.read(maxModa)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxMaximo() async {
+    _ensureInitialized();
+    final maxMaximo = _db!.clientes.maximo.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxMaximo]);
+    return await query.map((row) => row.read(maxMaximo)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxUltimas10() async {
+    _ensureInitialized();
+    final maxUltimas10 = _db!.clientes.ultimas10.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxUltimas10]);
+    return await query.map((row) => row.read(maxUltimas10)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxKgEvento() async {
+    _ensureInitialized();
+    final maxKgEvento = _db!.clientes.kgEvento.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxKgEvento]);
+    return await query.map((row) => row.read(maxKgEvento)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxKgSemana() async {
+    _ensureInitialized();
+    final maxKgSemana = _db!.clientes.kgSemana.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxKgSemana]);
+    return await query.map((row) => row.read(maxKgSemana)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxVentasVuelta() async {
+    _ensureInitialized();
+    final maxVentasVuelta = _db!.clientes.ventasVuelta.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxVentasVuelta]);
+    return await query
+        .map((row) => row.read(maxVentasVuelta))
+        .getSingleOrNull();
   }
 
   // ===== SINCRONIZACIÓN CON GOOGLE SHEETS =====
