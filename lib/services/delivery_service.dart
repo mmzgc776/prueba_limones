@@ -11,11 +11,19 @@ class DeliveryService {
     await _dbService.init();
   }
 
-  // Load all clients from the database
+  // Load clients for delivery, filtered by heuristic and excluding recent sales
   Future<List<Cliente>> loadClientes() async {
     try {
       await init();
-      return await _dbService.getAllClientes();
+      // Obtener los IDs de los clientes de las últimas 10 ventas
+      final lastSalesClientIds = await _dbService.getLast10SalesClientIds();
+      // Obtener los 30 clientes con mayor puntuación
+      final topClientes = await _dbService.getTop30ClientesByPuntuacion();
+      // Filtrar los clientes, excluyendo aquellos en las últimas ventas
+      final filteredClientes = topClientes
+          .where((cliente) => !lastSalesClientIds.contains(cliente.id))
+          .toList();
+      return filteredClientes;
     } catch (e) {
       debugPrint('Error loading clientes from database: $e');
       throw Exception('Error al cargar los clientes');

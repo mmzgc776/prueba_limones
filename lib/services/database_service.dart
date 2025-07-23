@@ -823,4 +823,23 @@ class DatabaseService {
           ..limit(10))
         .get();
   }
+
+  /// Obtiene los IDs de los clientes de las últimas 10 ventas
+  Future<List<int>> getLast10SalesClientIds() async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.sales)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
+      ..limit(10);
+    final result = await query.get();
+    return result.map((sale) => sale.clientId).toList();
+  }
+
+  /// Obtiene los 30 clientes con mayor puntuación
+  Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.clientes)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
+      ..limit(30);
+    return await query.get();
+  }
 }
