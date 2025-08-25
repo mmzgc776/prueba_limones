@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../delivery_record.dart';
 import '../../../services/database_service.dart'; // Adjust path as necessary
 import 'unassigned_sales_view.dart';
+import '../../edit_sale_page.dart';
 
 class DeliveryDetailView extends StatefulWidget {
   final DeliveryRecord deliveryRecord;
@@ -215,6 +216,31 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                           DataCell(
                             Row(
                               children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  tooltip: 'Editar venta',
+                                  onPressed: () async {
+                                    // Navigate to edit sale page
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditSalePage(
+                                          saleId: sale['id'],
+                                          deliveryNumber: widget
+                                              .deliveryRecord
+                                              .deliveryNumber,
+                                        ),
+                                      ),
+                                    );
+
+                                    // Refresh the view if sale was updated
+                                    if (result == true) {
+                                      setState(() {
+                                        _loadDeliveryRecord();
+                                      });
+                                    }
+                                  },
+                                ),
                                 IconButton(
                                   icon: const Icon(Icons.save),
                                   onPressed: () async {

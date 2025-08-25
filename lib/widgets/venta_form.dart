@@ -5,6 +5,505 @@ import '../data/database.dart';
 import '../data/delivery_state.dart';
 import '../pages/logs_page.dart';
 
+// Edit VentaForm that extends the base VentaForm with edit functionality
+class EditVentaForm extends VentaForm {
+  final Sale sale;
+
+  const EditVentaForm({
+    super.key,
+    required this.sale,
+    super.cliente,
+    super.deliveryNumber,
+  }) : super();
+
+  @override
+  State<EditVentaForm> createState() => _EditVentaFormState();
+}
+
+class _EditVentaFormState extends State<EditVentaForm> {
+  DateTime selectedDate = DateTime.now();
+  Cliente? selectedClient;
+  int? selectedButtonValue;
+  int? pressedButtonValue;
+  final TextEditingController numberController = TextEditingController();
+  final TextEditingController customPriceController = TextEditingController();
+  final TextEditingController totalController = TextEditingController();
+  final TextEditingController notesController = TextEditingController();
+  final FocusNode customPriceFocusNode = FocusNode();
+  List<Cliente> clients = [];
+  String? selectedPrice;
+
+  Map<String, double> get priceOptions {
+    double? globalPrice = DeliveryStateManager().getCurrentPrice();
+    if (globalPrice == null || globalPrice == 0.0) {
+      return {'menudeo': 20.0, 'default': 10.0, 'mayoreo': 5.0};
+    } else {
+      return {
+        'menudeo': (globalPrice * 1.20).ceilToDouble(),
+        'default': globalPrice.ceilToDouble(),
+        'mayoreo': (globalPrice * 0.9).ceilToDouble(),
+      };
+    }
+  }
+
+  String? lastEditedField;
+  bool isSyncing = false;
+
+  final DatabaseService _dbService = DatabaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    numberController.addListener(() => _onFieldChanged('cantidad'));
+    customPriceController.addListener(() => _onFieldChanged('precio'));
+    totalController.addListener(() => _onFieldChanged('total'));
+    _initDb();
+    _loadClients();
+    // Pre-fill the form with existing sale data
+    _loadSaleData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set the client from the widget parameter if available
+    final editForm = widget as EditVentaForm;
+    if (editForm.cliente != null && selectedClient == null) {
+      setState(() {
+        selectedClient = editForm.cliente;
+        // Add the client to the list if it's not already there
+        if (!clients.any((c) => c.id == editForm.cliente!.id)) {
+          clients.add(editForm.cliente!);
+        }
+      });
+    }
+  }
+
+  Future<void> _initDb() async {
+    await _dbService.init();
+  }
+
+  Future<void> _loadClients() async {
+    try {
+      await _initDb(); // Ensure database is initialized before loading clients
+      final fetchedClientes = await _dbService.getAllClientes();
+      setState(() {
+        clients = fetchedClientes;
+      });
+    } catch (e) {
+      debugPrint('Error loading clients: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al cargar los clientes')),
+      );
+    }
+  }
+
+  void _onFieldChanged(String field) {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+      final cantidad = double.tryParse(numberController.text) ?? 0.0;
+      final precio =
+          double.tryParse(
+            selectedPrice == 'elegir'
+                ? customPriceController.text
+                : (selectedPrice != null
+                      ? priceOptions[selectedPrice].toString()
+                      : ''),
+          ) ??
+          0.0;
+      final total = double.tryParse(totalController.text) ?? 0.0;
+
+      final cantidadOk = cantidad > 0;
+      final precioOk = precio > 0;
+      final totalOk = total > 0;
+
+      if (field == 'cantidad') lastEditedField = 'cantidad';
+      if (field == 'precio') lastEditedField = 'precio';
+      if (field == 'total') lastEditedField = 'total';
+
+      if ((field == 'cantidad' && precioOk) ||
+          (field == 'precio' && cantidadOk)) {
+        final calcTotal = cantidad * precio;
+        if (totalController.text != calcTotal.toStringAsFixed(2)) {
+          totalController.text = calcTotal.toStringAsFixed(2);
+        }
+      } else if ((field == 'cantidad' && totalOk) ||
+          (field == 'total' && cantidadOk)) {
+        if (cantidad > 0) {
+          final calcPrecio = total / cantidad;
+          if (selectedPrice == 'elegir') {
+            if (customPriceController.text != calcPrecio.toStringAsFixed(2)) {
+              customPriceController.text = calcPrecio.toStringAsFixed(2);
+            }
+          }
+        }
+      } else if ((field == 'precio' && totalOk) ||
+          (field == 'total' && precioOk)) {
+        if (precio > 0) {
+          final calcCantidad = total / precio;
+          if (numberController.text != calcCantidad.toStringAsFixed(2)) {
+            numberController.text = calcCantidad.toStringAsFixed(2);
+          }
+        }
+      }
+    } finally {
+      isSyncing = false;
+    }
+  }
+
+  Future<int?> _getClientId() async {
+    if (selectedClient == null) return null;
+    return selectedClient!.id;
+  }
+
+  @override
+  void dispose() {
+    numberController.dispose();
+    customPriceController.dispose();
+    totalController.dispose();
+    notesController.dispose();
+    customPriceFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _loadSaleData() {
+    final editForm = widget as EditVentaForm;
+    final sale = editForm.sale;
+
+    // Pre-fill date
+    selectedDate = sale.date;
+
+    // Pre-fill quantity
+    numberController.text = sale.quantity.toStringAsFixed(2);
+
+    // Pre-fill price based on sale data
+    customPriceController.text = sale.price.toStringAsFixed(2);
+    selectedPrice = 'elegir'; // Use custom price
+
+    // Pre-fill total
+    totalController.text = sale.total.toStringAsFixed(2);
+
+    // Load the client if not provided
+    if (widget.cliente == null && sale.clientId > 0) {
+      _loadClientById(sale.clientId);
+    }
+  }
+
+  Future<void> _loadClientById(int clientId) async {
+    try {
+      final cliente = await _dbService.getClienteById(clientId);
+      if (cliente != null) {
+        setState(() {
+          selectedClient = cliente;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading client: $e');
+    }
+  }
+
+  @override
+  Future<void> _saveSale() async {
+    final editForm = widget as EditVentaForm;
+    final saleId = editForm.sale.id;
+
+    final clientId = await _getClientId();
+    if (clientId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecciona un cliente')));
+      return;
+    }
+
+    final cantidad = double.tryParse(numberController.text) ?? 0.0;
+    final precio =
+        double.tryParse(
+          selectedPrice == 'elegir'
+              ? customPriceController.text
+              : (selectedPrice != null
+                    ? priceOptions[selectedPrice].toString()
+                    : ''),
+        ) ??
+        0.0;
+    final total = double.tryParse(totalController.text) ?? 0.0;
+
+    // Update the existing sale
+    await _dbService.updateSale(
+      id: saleId,
+      quantity: cantidad,
+      price: precio,
+      total: total,
+      date: selectedDate,
+    );
+
+    // Log the update
+    final clientName = selectedClient?.nombre ?? 'Cliente ID $clientId';
+    final deliveryNum = DeliveryStateManager().getCurrentDeliveryNumber();
+    appLog(
+      'Actualizando venta - ID: $saleId, Cliente: $clientName, Cantidad: $cantidad, Precio: \$$precio, Total: \$$total, Fecha: $selectedDate, Reparto: $deliveryNum',
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Venta actualizada en la base de datos')),
+    );
+    Navigator.of(context).pop(true); // Return true to indicate success
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Date picker
+          GestureDetector(
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2101),
+              );
+              if (picked != null && picked != selectedDate) {
+                setState(() {
+                  selectedDate = picked;
+                });
+              }
+            },
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                labelText: 'Fecha',
+                hintText: 'Fecha',
+                border: OutlineInputBorder(),
+              ),
+              child: Text(
+                '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Client selection
+          clients.isEmpty
+              ? const Center(child: CircularProgressIndicator())
+              : DropdownSearch<Cliente>(
+                  popupProps: PopupProps.menu(
+                    showSearchBox: true,
+                    searchFieldProps: TextFieldProps(
+                      decoration: const InputDecoration(
+                        hintText: 'Buscar cliente...',
+                        border: InputBorder.none,
+                      ),
+                    ),
+                    emptyBuilder: (context, searchEntry) {
+                      return const Center(
+                        child: Text('No se encontraron clientes'),
+                      );
+                    },
+                  ),
+                  items: clients,
+                  dropdownDecoratorProps: const DropDownDecoratorProps(
+                    dropdownSearchDecoration: InputDecoration(
+                      labelText: 'Cliente',
+                      hintText: 'Cliente',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  dropdownBuilder: (context, selectedItem) {
+                    return Text(selectedItem?.nombre ?? '');
+                  },
+                  itemAsString: (Cliente c) => '${c.nombre} - ${c.contacto}',
+                  compareFn: (item, selectedItem) => item.id == selectedItem.id,
+                  filterFn: (item, filter) {
+                    return item.nombre.toLowerCase().contains(
+                          filter.toLowerCase(),
+                        ) ||
+                        item.contacto.toLowerCase().contains(
+                          filter.toLowerCase(),
+                        );
+                  },
+                  onChanged: (value) {
+                    setState(() {
+                      selectedClient = value;
+                    });
+                  },
+                  selectedItem: selectedClient,
+                ),
+          const SizedBox(height: 16),
+
+          // Quantity buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              for (var value in [1, 5, 10, 15, 20])
+                GestureDetector(
+                  onTapDown: (_) {
+                    setState(() {
+                      pressedButtonValue = value;
+                    });
+                  },
+                  onTapUp: (_) {
+                    setState(() {
+                      pressedButtonValue = null;
+                    });
+                  },
+                  onTapCancel: () {
+                    setState(() {
+                      pressedButtonValue = null;
+                    });
+                  },
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: pressedButtonValue == value
+                          ? Colors.deepPurple
+                          : null,
+                    ),
+                    onPressed: () {
+                      double current =
+                          double.tryParse(numberController.text) ?? 0.0;
+                      numberController.text = (current + value).toStringAsFixed(
+                        2,
+                      );
+                    },
+                    child: Text(value.toString()),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Quantity field
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: numberController,
+            builder: (context, value, child) {
+              return TextField(
+                controller: numberController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Cantidad',
+                  hintText: 'Cantidad',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: value.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            numberController.clear();
+                          },
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Price selection (custom price for editing)
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: customPriceController,
+            builder: (context, value, child) {
+              return TextField(
+                controller: customPriceController,
+                focusNode: customPriceFocusNode,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Precio',
+                  hintText: 'Precio',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: value.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              customPriceController.clear();
+                              selectedPrice = null;
+                            });
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (value) {
+                  FocusScope.of(context).unfocus();
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Total field
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: totalController,
+            builder: (context, value, child) {
+              return TextField(
+                controller: totalController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Total',
+                  hintText: 'Total',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: value.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            totalController.clear();
+                          },
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Notes field
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: notesController,
+            builder: (context, value, child) {
+              return TextField(
+                controller: notesController,
+                decoration: InputDecoration(
+                  labelText: 'Notas',
+                  hintText: 'Notas',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: value.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            notesController.clear();
+                          },
+                        )
+                      : null,
+                ),
+                maxLines: 2,
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // Save button
+          ElevatedButton(
+            onPressed: _saveSale,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Actualizar'),
+          ),
+          const SizedBox(height: 12),
+
+          // Cancel button
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(false);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class VentaForm extends StatefulWidget {
   final Cliente? cliente;
   final int? deliveryNumber;

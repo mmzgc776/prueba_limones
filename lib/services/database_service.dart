@@ -99,6 +99,14 @@ class DatabaseService {
     )..where((tbl) => tbl.clientId.equals(clientId))).get();
   }
 
+  /// Obtiene una venta específica por ID
+  Future<Sale?> getSaleById(int saleId) async {
+    _ensureInitialized();
+    return await (_db!.select(
+      _db!.sales,
+    )..where((tbl) => tbl.id.equals(saleId))).getSingleOrNull();
+  }
+
   /// Actualiza una venta existente
   Future<int> updateSale({
     required int id,
@@ -824,22 +832,22 @@ class DatabaseService {
         .get();
   }
 
-  /// Obtiene los IDs de los clientes de las últimas 10 ventas
+  /// Obtiene los IDs de los clientes de las últimas 20 ventas
   Future<List<int>> getLast10SalesClientIds() async {
     _ensureInitialized();
     final query = _db!.select(_db!.sales)
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
-      ..limit(10);
+      ..limit(20);
     final result = await query.get();
     return result.map((sale) => sale.clientId).toList();
   }
 
-  /// Obtiene los 30 clientes con mayor puntuación
+  /// Obtiene los 50 clientes con mayor puntuación
   Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
     _ensureInitialized();
     final query = _db!.select(_db!.clientes)
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
-      ..limit(30);
+      ..limit(50);
     return await query.get();
   }
 }

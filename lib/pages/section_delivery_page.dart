@@ -40,9 +40,9 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
         _controller.initializeClients(clientes.length);
       });
       await _controller.loadDeliveryRecords();
-      ScaffoldMessenger.of(context).showSnackBar(
+      /* ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Datos cargados correctamente')),
-      );
+      ); */
     } catch (e) {
       ScaffoldMessenger.of(
         context,
