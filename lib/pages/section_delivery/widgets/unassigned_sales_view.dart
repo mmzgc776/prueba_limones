@@ -15,6 +15,7 @@ class _UnassignedSalesViewState extends State<UnassignedSalesView> {
   final DatabaseService _databaseService = DatabaseService();
   List<Map<String, dynamic>> _unassignedSales = [];
   final Set<int> _selectedSales = {};
+  bool _selectAll = false;
 
   @override
   void initState() {
@@ -87,6 +88,29 @@ class _UnassignedSalesViewState extends State<UnassignedSalesView> {
     }
   }
 
+  void _toggleSelectAll(bool? value) {
+    setState(() {
+      _selectAll = value ?? false;
+      if (_selectAll) {
+        _selectedSales.addAll(_unassignedSales.map((sale) => sale['id']));
+      } else {
+        _selectedSales.clear();
+      }
+    });
+  }
+
+  void _toggleSaleSelection(int saleId) {
+    setState(() {
+      if (_selectedSales.contains(saleId)) {
+        _selectedSales.remove(saleId);
+      } else {
+        _selectedSales.add(saleId);
+      }
+      // Actualizar el estado de "seleccionar todas"
+      _selectAll = _selectedSales.length == _unassignedSales.length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,42 +143,21 @@ class _UnassignedSalesViewState extends State<UnassignedSalesView> {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('Seleccionar')),
-                        DataColumn(label: Text('ID')),
-                        DataColumn(label: Text('Cliente')),
-                        DataColumn(label: Text('Cantidad')),
-                        DataColumn(label: Text('Precio')),
-                        DataColumn(label: Text('Total')),
-                        DataColumn(label: Text('Fecha')),
+                      columns: [
+                        const DataColumn(label: Text('ID')),
+                        const DataColumn(label: Text('Cliente')),
+                        const DataColumn(label: Text('Cantidad')),
+                        const DataColumn(label: Text('Precio')),
+                        const DataColumn(label: Text('Total')),
+                        const DataColumn(label: Text('Fecha')),
                       ],
                       rows: _unassignedSales.map((sale) {
                         return DataRow(
                           selected: _selectedSales.contains(sale['id']),
                           onSelectChanged: (selected) {
-                            setState(() {
-                              if (selected == true) {
-                                _selectedSales.add(sale['id']);
-                              } else {
-                                _selectedSales.remove(sale['id']);
-                              }
-                            });
+                            _toggleSaleSelection(sale['id']);
                           },
                           cells: [
-                            DataCell(
-                              Checkbox(
-                                value: _selectedSales.contains(sale['id']),
-                                onChanged: (value) {
-                                  setState(() {
-                                    if (value == true) {
-                                      _selectedSales.add(sale['id']);
-                                    } else {
-                                      _selectedSales.remove(sale['id']);
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
                             DataCell(Text(sale['id'].toString())),
                             DataCell(Text(sale['clientName'])),
                             DataCell(Text(sale['quantity'].toString())),
