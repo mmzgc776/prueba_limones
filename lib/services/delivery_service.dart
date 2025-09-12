@@ -12,16 +12,29 @@ class DeliveryService {
   }
 
   // Load clients for delivery, filtered by heuristic and excluding recent sales
-  Future<List<Cliente>> loadClientes() async {
+  Future<List<Cliente>> loadClientes({int? excludeDeliveryNumber}) async {
     try {
       await init();
       // Obtener los IDs de los clientes de las últimas 10 ventas
       final lastSalesClientIds = await _dbService.getLast10SalesClientIds();
+
+      // Si se especifica un deliveryNumber, obtener también los clientes de ese reparto
+      List<int> excludedClientIds = List.from(lastSalesClientIds);
+      if (excludeDeliveryNumber != null) {
+        final deliverySales = await _dbService.getSalesByDeliveryNumber(
+          excludeDeliveryNumber,
+        );
+        final deliveryClientIds = deliverySales
+            .map((sale) => sale.clientId)
+            .toList();
+        excludedClientIds.addAll(deliveryClientIds);
+      }
+
       // Obtener los 30 clientes con mayor puntuación
       final topClientes = await _dbService.getTop30ClientesByPuntuacion();
-      // Filtrar los clientes, excluyendo aquellos en las últimas ventas
+      // Filtrar los clientes, excluyendo aquellos en las últimas ventas y del reparto especificado
       final filteredClientes = topClientes
-          .where((cliente) => !lastSalesClientIds.contains(cliente.id))
+          .where((cliente) => !excludedClientIds.contains(cliente.id))
           .toList();
       return filteredClientes;
     } catch (e) {

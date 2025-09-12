@@ -11,7 +11,10 @@ import 'section_delivery/widgets/contacto_options_sheet.dart';
 import '../widgets/venta_form.dart';
 
 class SectionDeliveryPage extends StatefulWidget {
-  const SectionDeliveryPage({Key? key}) : super(key: key);
+  final int? resumeDeliveryNumber;
+
+  const SectionDeliveryPage({Key? key, this.resumeDeliveryNumber})
+    : super(key: key);
 
   @override
   State<SectionDeliveryPage> createState() => _SectionDeliveryPageState();
@@ -34,12 +37,20 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
 
   Future<void> _loadData() async {
     try {
-      final clientes = await _deliveryService.loadClientes();
+      final clientes = await _deliveryService.loadClientes(
+        excludeDeliveryNumber: widget.resumeDeliveryNumber,
+      );
       setState(() {
         _clientes = clientes;
         _controller.initializeClients(clientes.length);
       });
       await _controller.loadDeliveryRecords();
+
+      // Si se está reanudando un reparto, iniciarlo automáticamente
+      if (widget.resumeDeliveryNumber != null) {
+        _controller.resumeSpecificDelivery(widget.resumeDeliveryNumber!);
+      }
+
       /* ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Datos cargados correctamente')),
       ); */

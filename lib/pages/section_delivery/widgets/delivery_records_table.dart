@@ -63,52 +63,60 @@ class DeliveryRecordsTable extends StatelessWidget {
             child: deliveryRecords.isEmpty
                 ? const Center(child: Text('No hay registros de repartos aún.'))
                 : SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      columns: const [
-                        DataColumn(label: Text('Nº')),
-                        DataColumn(label: Text('Fecha')),
-                        DataColumn(label: Text('Duración')),
-                        DataColumn(label: Text('Precio Prom.')),
-                        DataColumn(label: Text('Kg')),
-                        DataColumn(label: Text('Cajas')),
-                        DataColumn(label: Text('Restante')),
-                        DataColumn(label: Text('Vendedor')),
-                        DataColumn(label: Text('Total')),
-                      ],
-                      rows: deliveryRecords.map((record) {
-                        return DataRow(
-                          onSelectChanged: (selected) {
-                            if (selected == true) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => DeliveryDetailView(
-                                    deliveryRecord: record,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Nº')),
+                          DataColumn(label: Text('Fecha')),
+                          DataColumn(label: Text('Duración')),
+                          DataColumn(label: Text('Precio Prom.')),
+                          DataColumn(label: Text('Kg')),
+                          DataColumn(label: Text('Cajas')),
+                          DataColumn(label: Text('Restante')),
+                          DataColumn(label: Text('Vendedor')),
+                          DataColumn(label: Text('Total')),
+                        ],
+                        rows: deliveryRecords.map((record) {
+                          return DataRow(
+                            onSelectChanged: (selected) {
+                              if (selected == true) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DeliveryDetailView(
+                                      deliveryRecord: record,
+                                    ),
                                   ),
+                                );
+                              }
+                            },
+                            cells: [
+                              DataCell(Text(record.deliveryNumber.toString())),
+                              DataCell(
+                                Text(
+                                  '${record.date.day}/${record.date.month}/${record.date.year}',
                                 ),
-                              );
-                            }
-                          },
-                          cells: [
-                            DataCell(Text(record.deliveryNumber.toString())),
-                            DataCell(
-                              Text(
-                                '${record.date.day}/${record.date.month}/${record.date.year}',
                               ),
-                            ),
-                            DataCell(
-                              Text(record.duration.toString().split('.')[0]),
-                            ),
-                            DataCell(Text(record.avgPrice.toStringAsFixed(2))),
-                            DataCell(Text(record.kilograms.toStringAsFixed(2))),
-                            DataCell(Text(record.boxes.toString())),
-                            DataCell(Text(record.remaining.toStringAsFixed(2))),
-                            DataCell(Text(record.seller)),
-                            DataCell(Text(record.total.toStringAsFixed(2))),
-                          ],
-                        );
-                      }).toList(),
+                              DataCell(
+                                Text(record.duration.toString().split('.')[0]),
+                              ),
+                              DataCell(
+                                Text(record.avgPrice.toStringAsFixed(2)),
+                              ),
+                              DataCell(
+                                Text(record.kilograms.toStringAsFixed(2)),
+                              ),
+                              DataCell(Text(record.boxes.toString())),
+                              DataCell(
+                                Text(record.remaining.toStringAsFixed(2)),
+                              ),
+                              DataCell(Text(record.seller)),
+                              DataCell(Text(record.total.toStringAsFixed(2))),
+                            ],
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
           ),

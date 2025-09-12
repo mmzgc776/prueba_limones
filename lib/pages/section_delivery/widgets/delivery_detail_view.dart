@@ -3,6 +3,7 @@ import '../delivery_record.dart';
 import '../../../services/database_service.dart'; // Adjust path as necessary
 import 'unassigned_sales_view.dart';
 import '../../edit_sale_page.dart';
+import '../../section_delivery_page.dart';
 
 class DeliveryDetailView extends StatefulWidget {
   final DeliveryRecord deliveryRecord;
@@ -57,6 +58,21 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           'Detalle de Reparto #${widget.deliveryRecord.deliveryNumber}',
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            tooltip: 'Reanudar reparto',
+            onPressed: () async {
+              // Navegar a la página de reparto y reanudar con este deliveryNumber
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SectionDeliveryPage(
+                    resumeDeliveryNumber: widget.deliveryRecord.deliveryNumber,
+                  ),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Agregar ventas',
