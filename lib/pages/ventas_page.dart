@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/venta_form.dart';
 
-class Section2Page extends StatelessWidget {
+class VentasPage extends StatelessWidget {
   final int? deliveryNumber;
 
-  const Section2Page({super.key, this.deliveryNumber});
+  const VentasPage({super.key, this.deliveryNumber});
   @override
   Widget build(BuildContext context) {
     return Scaffold(

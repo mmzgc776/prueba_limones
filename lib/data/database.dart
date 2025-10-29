@@ -68,12 +68,21 @@ class Contactos extends Table {
   IntColumn get deliveryId => integer()(); // FK a tabla de entregas
 }
 
-@DriftDatabase(tables: [Sales, Deliveries, Clientes, Contactos])
+class Notas extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get nota => text()(); // Nota obligatoria
+  IntColumn get clientId => integer()(); // FK a tabla de clientes, obligatorio
+  IntColumn get ventaId =>
+      integer().nullable()(); // FK a tabla de ventas, opcional
+  TextColumn get color => text()(); // Color de la etiqueta
+}
+
+@DriftDatabase(tables: [Sales, Deliveries, Clientes, Contactos, Notas])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -95,6 +104,11 @@ class AppDatabase extends _$AppDatabase {
           'SELECT id, nombre, contacto, tipo_negocio, ciudad, domicilio, ubicacion, telefono, consumo, ultimo_contacto, hora_inicio, hora_cierre, notas_id, dias, eventos, kg_total, moda, maximo, ultimas10, kg_evento, kg_semana, puntuacion FROM _clientes_old_v11;',
         );
         await migrator.issueCustomQuery('DROP TABLE _clientes_old_v11;');
+      }
+
+      if (from == 12) {
+        // Migration from v12 to v13: add Notas table
+        await migrator.createTable(notas);
       }
     },
     onCreate: (migrator) async {
@@ -274,5 +288,33 @@ class AppDatabase extends _$AppDatabase {
         deliveryId: Value(deliveryId),
       ),
     );
+  }
+
+  Future<int> insertNota({
+    required String nota,
+    required int clientId,
+    int? ventaId,
+    required String color,
+  }) {
+    return into(notas).insert(
+      NotasCompanion(
+        nota: Value(nota),
+        clientId: Value(clientId),
+        ventaId: Value(ventaId),
+        color: Value(color),
+      ),
+    );
+  }
+
+  Future<List<Nota>> getNotasByClientId(int clientId) {
+    return (select(notas)..where((tbl) => tbl.clientId.equals(clientId))).get();
+  }
+
+  Future<List<Nota>> getNotasByVentaId(int ventaId) {
+    return (select(notas)..where((tbl) => tbl.ventaId.equals(ventaId))).get();
+  }
+
+  Future<int> deleteNota(int id) {
+    return (delete(notas)..where((tbl) => tbl.id.equals(id))).go();
   }
 }

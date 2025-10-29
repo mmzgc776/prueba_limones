@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/section1_page.dart';
-import 'pages/section2_page.dart';
+import 'pages/ventas_page.dart';
 import 'pages/section_delivery_page.dart';
 import 'pages/nuevo_cliente_page.dart';
 import 'pages/synchronization_page.dart';
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
       routes: {
         '/section1': (context) => const Section1Page(),
-        '/section2': (context) => const Section2Page(),
+        '/ventas': (context) => const VentasPage(),
         '/section_delivery': (context) => const SectionDeliveryPage(),
         '/nuevo_cliente': (context) => const NuevoClientePage(),
         '/synchronization': (context) => const SynchronizationPage(),
@@ -210,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: Icons.point_of_sale,
                       color: buttonColor,
                       size: buttonSize,
-                      onTap: () => Navigator.pushNamed(context, '/section2'),
+                      onTap: () => Navigator.pushNamed(context, '/ventas'),
                     ),
                     _clientesExpanded
                         ? SizedBox(

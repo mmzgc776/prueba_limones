@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../services/database_service.dart';
 import '../../data/database.dart';
 import 'logs_page.dart';
+import '../../widgets/notes_container.dart';
 
 class NuevoClientePage extends StatefulWidget {
   final String? nombreCliente;
@@ -372,12 +373,13 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
                   return null;
                 },
               ),
-              TextFormField(
-                controller: _notasController,
-                focusNode: _notasFocusNode,
-                decoration: const InputDecoration(labelText: 'Notas'),
-                maxLines: 3,
-              ),
+              // Notes container - only show for existing clients
+              if (widget.cliente != null)
+                NotesContainer(
+                  clientId: widget.cliente!.id!,
+                  saleId: null,
+                  type: NotesContainerType.client,
+                ),
               ListTile(
                 title: Text(
                   'Último contacto: ${DateFormat('dd/MM/yyyy').format(_ultimoContacto)}',

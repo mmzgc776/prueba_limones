@@ -2572,6 +2572,348 @@ class ContactosCompanion extends UpdateCompanion<Contacto> {
   }
 }
 
+class $NotasTable extends Notas with TableInfo<$NotasTable, Nota> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _notaMeta = const VerificationMeta('nota');
+  @override
+  late final GeneratedColumn<String> nota = GeneratedColumn<String>(
+    'nota',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
+  @override
+  late final GeneratedColumn<int> clientId = GeneratedColumn<int>(
+    'client_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ventaIdMeta = const VerificationMeta(
+    'ventaId',
+  );
+  @override
+  late final GeneratedColumn<int> ventaId = GeneratedColumn<int>(
+    'venta_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, nota, clientId, ventaId, color];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'notas';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Nota> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('nota')) {
+      context.handle(
+        _notaMeta,
+        nota.isAcceptableOrUnknown(data['nota']!, _notaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notaMeta);
+    }
+    if (data.containsKey('client_id')) {
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_clientIdMeta);
+    }
+    if (data.containsKey('venta_id')) {
+      context.handle(
+        _ventaIdMeta,
+        ventaId.isAcceptableOrUnknown(data['venta_id']!, _ventaIdMeta),
+      );
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Nota map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Nota(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      nota: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nota'],
+      )!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}client_id'],
+      )!,
+      ventaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}venta_id'],
+      ),
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+    );
+  }
+
+  @override
+  $NotasTable createAlias(String alias) {
+    return $NotasTable(attachedDatabase, alias);
+  }
+}
+
+class Nota extends DataClass implements Insertable<Nota> {
+  final int id;
+  final String nota;
+  final int clientId;
+  final int? ventaId;
+  final String color;
+  const Nota({
+    required this.id,
+    required this.nota,
+    required this.clientId,
+    this.ventaId,
+    required this.color,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['nota'] = Variable<String>(nota);
+    map['client_id'] = Variable<int>(clientId);
+    if (!nullToAbsent || ventaId != null) {
+      map['venta_id'] = Variable<int>(ventaId);
+    }
+    map['color'] = Variable<String>(color);
+    return map;
+  }
+
+  NotasCompanion toCompanion(bool nullToAbsent) {
+    return NotasCompanion(
+      id: Value(id),
+      nota: Value(nota),
+      clientId: Value(clientId),
+      ventaId: ventaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(ventaId),
+      color: Value(color),
+    );
+  }
+
+  factory Nota.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Nota(
+      id: serializer.fromJson<int>(json['id']),
+      nota: serializer.fromJson<String>(json['nota']),
+      clientId: serializer.fromJson<int>(json['clientId']),
+      ventaId: serializer.fromJson<int?>(json['ventaId']),
+      color: serializer.fromJson<String>(json['color']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'nota': serializer.toJson<String>(nota),
+      'clientId': serializer.toJson<int>(clientId),
+      'ventaId': serializer.toJson<int?>(ventaId),
+      'color': serializer.toJson<String>(color),
+    };
+  }
+
+  Nota copyWith({
+    int? id,
+    String? nota,
+    int? clientId,
+    Value<int?> ventaId = const Value.absent(),
+    String? color,
+  }) => Nota(
+    id: id ?? this.id,
+    nota: nota ?? this.nota,
+    clientId: clientId ?? this.clientId,
+    ventaId: ventaId.present ? ventaId.value : this.ventaId,
+    color: color ?? this.color,
+  );
+  Nota copyWithCompanion(NotasCompanion data) {
+    return Nota(
+      id: data.id.present ? data.id.value : this.id,
+      nota: data.nota.present ? data.nota.value : this.nota,
+      clientId: data.clientId.present ? data.clientId.value : this.clientId,
+      ventaId: data.ventaId.present ? data.ventaId.value : this.ventaId,
+      color: data.color.present ? data.color.value : this.color,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Nota(')
+          ..write('id: $id, ')
+          ..write('nota: $nota, ')
+          ..write('clientId: $clientId, ')
+          ..write('ventaId: $ventaId, ')
+          ..write('color: $color')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, nota, clientId, ventaId, color);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Nota &&
+          other.id == this.id &&
+          other.nota == this.nota &&
+          other.clientId == this.clientId &&
+          other.ventaId == this.ventaId &&
+          other.color == this.color);
+}
+
+class NotasCompanion extends UpdateCompanion<Nota> {
+  final Value<int> id;
+  final Value<String> nota;
+  final Value<int> clientId;
+  final Value<int?> ventaId;
+  final Value<String> color;
+  const NotasCompanion({
+    this.id = const Value.absent(),
+    this.nota = const Value.absent(),
+    this.clientId = const Value.absent(),
+    this.ventaId = const Value.absent(),
+    this.color = const Value.absent(),
+  });
+  NotasCompanion.insert({
+    this.id = const Value.absent(),
+    required String nota,
+    required int clientId,
+    this.ventaId = const Value.absent(),
+    required String color,
+  }) : nota = Value(nota),
+       clientId = Value(clientId),
+       color = Value(color);
+  static Insertable<Nota> custom({
+    Expression<int>? id,
+    Expression<String>? nota,
+    Expression<int>? clientId,
+    Expression<int>? ventaId,
+    Expression<String>? color,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nota != null) 'nota': nota,
+      if (clientId != null) 'client_id': clientId,
+      if (ventaId != null) 'venta_id': ventaId,
+      if (color != null) 'color': color,
+    });
+  }
+
+  NotasCompanion copyWith({
+    Value<int>? id,
+    Value<String>? nota,
+    Value<int>? clientId,
+    Value<int?>? ventaId,
+    Value<String>? color,
+  }) {
+    return NotasCompanion(
+      id: id ?? this.id,
+      nota: nota ?? this.nota,
+      clientId: clientId ?? this.clientId,
+      ventaId: ventaId ?? this.ventaId,
+      color: color ?? this.color,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (nota.present) {
+      map['nota'] = Variable<String>(nota.value);
+    }
+    if (clientId.present) {
+      map['client_id'] = Variable<int>(clientId.value);
+    }
+    if (ventaId.present) {
+      map['venta_id'] = Variable<int>(ventaId.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotasCompanion(')
+          ..write('id: $id, ')
+          ..write('nota: $nota, ')
+          ..write('clientId: $clientId, ')
+          ..write('ventaId: $ventaId, ')
+          ..write('color: $color')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2579,6 +2921,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DeliveriesTable deliveries = $DeliveriesTable(this);
   late final $ClientesTable clientes = $ClientesTable(this);
   late final $ContactosTable contactos = $ContactosTable(this);
+  late final $NotasTable notas = $NotasTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2588,6 +2931,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     deliveries,
     clientes,
     contactos,
+    notas,
   ];
 }
 
@@ -3818,6 +4162,193 @@ typedef $$ContactosTableProcessedTableManager =
       Contacto,
       PrefetchHooks Function()
     >;
+typedef $$NotasTableCreateCompanionBuilder =
+    NotasCompanion Function({
+      Value<int> id,
+      required String nota,
+      required int clientId,
+      Value<int?> ventaId,
+      required String color,
+    });
+typedef $$NotasTableUpdateCompanionBuilder =
+    NotasCompanion Function({
+      Value<int> id,
+      Value<String> nota,
+      Value<int> clientId,
+      Value<int?> ventaId,
+      Value<String> color,
+    });
+
+class $$NotasTableFilterComposer extends Composer<_$AppDatabase, $NotasTable> {
+  $$NotasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nota => $composableBuilder(
+    column: $table.nota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ventaId => $composableBuilder(
+    column: $table.ventaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NotasTableOrderingComposer
+    extends Composer<_$AppDatabase, $NotasTable> {
+  $$NotasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nota => $composableBuilder(
+    column: $table.nota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ventaId => $composableBuilder(
+    column: $table.ventaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NotasTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NotasTable> {
+  $$NotasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nota =>
+      $composableBuilder(column: $table.nota, builder: (column) => column);
+
+  GeneratedColumn<int> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
+
+  GeneratedColumn<int> get ventaId =>
+      $composableBuilder(column: $table.ventaId, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+}
+
+class $$NotasTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NotasTable,
+          Nota,
+          $$NotasTableFilterComposer,
+          $$NotasTableOrderingComposer,
+          $$NotasTableAnnotationComposer,
+          $$NotasTableCreateCompanionBuilder,
+          $$NotasTableUpdateCompanionBuilder,
+          (Nota, BaseReferences<_$AppDatabase, $NotasTable, Nota>),
+          Nota,
+          PrefetchHooks Function()
+        > {
+  $$NotasTableTableManager(_$AppDatabase db, $NotasTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NotasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NotasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NotasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> nota = const Value.absent(),
+                Value<int> clientId = const Value.absent(),
+                Value<int?> ventaId = const Value.absent(),
+                Value<String> color = const Value.absent(),
+              }) => NotasCompanion(
+                id: id,
+                nota: nota,
+                clientId: clientId,
+                ventaId: ventaId,
+                color: color,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String nota,
+                required int clientId,
+                Value<int?> ventaId = const Value.absent(),
+                required String color,
+              }) => NotasCompanion.insert(
+                id: id,
+                nota: nota,
+                clientId: clientId,
+                ventaId: ventaId,
+                color: color,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NotasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NotasTable,
+      Nota,
+      $$NotasTableFilterComposer,
+      $$NotasTableOrderingComposer,
+      $$NotasTableAnnotationComposer,
+      $$NotasTableCreateCompanionBuilder,
+      $$NotasTableUpdateCompanionBuilder,
+      (Nota, BaseReferences<_$AppDatabase, $NotasTable, Nota>),
+      Nota,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3830,4 +4361,6 @@ class $AppDatabaseManager {
       $$ClientesTableTableManager(_db, _db.clientes);
   $$ContactosTableTableManager get contactos =>
       $$ContactosTableTableManager(_db, _db.contactos);
+  $$NotasTableTableManager get notas =>
+      $$NotasTableTableManager(_db, _db.notas);
 }

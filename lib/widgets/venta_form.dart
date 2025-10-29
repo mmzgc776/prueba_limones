@@ -4,6 +4,7 @@ import '../services/database_service.dart';
 import '../data/database.dart';
 import '../data/delivery_state.dart';
 import '../pages/logs_page.dart';
+import 'notes_container.dart';
 
 // Edit VentaForm that extends the base VentaForm with edit functionality
 class EditVentaForm extends VentaForm {
@@ -457,29 +458,13 @@ class _EditVentaFormState extends State<EditVentaForm> {
           ),
           const SizedBox(height: 16),
 
-          // Notes field
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: notesController,
-            builder: (context, value, child) {
-              return TextField(
-                controller: notesController,
-                decoration: InputDecoration(
-                  labelText: 'Notas',
-                  hintText: 'Notas',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: value.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            notesController.clear();
-                          },
-                        )
-                      : null,
-                ),
-                maxLines: 2,
-              );
-            },
-          ),
+          // Notes container
+          if (selectedClient != null)
+            NotesContainer(
+              clientId: selectedClient!.id!,
+              saleId: (widget as EditVentaForm).sale.id,
+              type: NotesContainerType.sale,
+            ),
           const SizedBox(height: 24),
 
           // Save button
@@ -670,7 +655,7 @@ class _VentaFormState extends State<VentaForm> {
       'Registrando venta - Cliente: $clientName, Cantidad: $cantidad, Precio: \$$precio, Total: \$$total, Fecha: $selectedDate, Reparto: $deliveryNum',
     );
 
-    await _dbService.insertSale(
+    final saleId = await _dbService.insertSale(
       date: selectedDate,
       clientId: clientId,
       quantity: cantidad,
@@ -680,10 +665,11 @@ class _VentaFormState extends State<VentaForm> {
       deliveryNumber: deliveryNum,
     );
 
+    // Associate any notes that were added during sale creation with this sale
+    await _dbService.updateNotasVentaId(clientId, saleId);
+
     // Confirmar que la venta fue guardada
-    appLog(
-      'Venta guardada exitosamente - ID: ${DateTime.now().millisecondsSinceEpoch}',
-    );
+    appLog('Venta guardada exitosamente - ID: $saleId');
 
     // Store the price in global state
     DeliveryStateManager().setCurrentPrice(precio);
@@ -939,14 +925,13 @@ class _VentaFormState extends State<VentaForm> {
             },
           ),
           const SizedBox(height: 16),
-          TextField(
-            decoration: const InputDecoration(
-              labelText: 'Notas',
-              hintText: 'Notas',
-              border: OutlineInputBorder(),
+          // Notes container
+          if (selectedClient != null)
+            NotesContainer(
+              clientId: selectedClient!.id!,
+              saleId: null, // No sale ID yet for new sales
+              type: NotesContainerType.sale,
             ),
-            maxLines: 2,
-          ),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: _saveSale,

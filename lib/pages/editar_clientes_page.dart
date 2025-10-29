@@ -5,6 +5,7 @@ import '../data/database.dart';
 import '../services/database_service.dart';
 import 'nuevo_cliente_page.dart';
 import 'logs_page.dart';
+import '../widgets/notes_container.dart';
 
 class EditarClientesPage extends StatefulWidget {
   const EditarClientesPage({Key? key}) : super(key: key);
@@ -308,10 +309,11 @@ class _EditarClientesPageState extends State<EditarClientesPage> {
                           return null;
                         },
                       ),
-                      TextFormField(
-                        controller: _notasController,
-                        decoration: const InputDecoration(labelText: 'Notas'),
-                        maxLines: 3,
+                      // Notes container
+                      NotesContainer(
+                        clientId: _selectedClient!.id!,
+                        saleId: null,
+                        type: NotesContainerType.client,
                       ),
                       ListTile(
                         title: Text(

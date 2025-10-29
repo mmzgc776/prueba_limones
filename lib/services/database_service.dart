@@ -850,4 +850,49 @@ class DatabaseService {
       ..limit(50);
     return await query.get();
   }
+
+  // ===== OPERACIONES DE NOTAS =====
+
+  /// Inserta una nueva nota
+  Future<int> insertNota({
+    required String nota,
+    required int clientId,
+    int? ventaId,
+    required String color,
+  }) async {
+    _ensureInitialized();
+    return await _db!.insertNota(
+      nota: nota,
+      clientId: clientId,
+      ventaId: ventaId,
+      color: color,
+    );
+  }
+
+  /// Obtiene todas las notas de un cliente
+  Future<List<Nota>> getNotasByClientId(int clientId) async {
+    _ensureInitialized();
+    return await _db!.getNotasByClientId(clientId);
+  }
+
+  /// Obtiene todas las notas de una venta
+  Future<List<Nota>> getNotasByVentaId(int ventaId) async {
+    _ensureInitialized();
+    return await _db!.getNotasByVentaId(ventaId);
+  }
+
+  /// Elimina una nota por ID
+  Future<int> deleteNota(int id) async {
+    _ensureInitialized();
+    return await _db!.deleteNota(id);
+  }
+
+  /// Actualiza el ventaId de las notas de un cliente que no tienen ventaId asignado
+  Future<int> updateNotasVentaId(int clientId, int ventaId) async {
+    _ensureInitialized();
+    return await (_db!.update(
+          _db!.notas,
+        )..where((tbl) => tbl.clientId.equals(clientId) & tbl.ventaId.isNull()))
+        .write(NotasCompanion(ventaId: Value(ventaId)));
+  }
 }

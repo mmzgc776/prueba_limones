@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../nuevo_cliente_page.dart';
 import '../../../data/delivery_state.dart';
-import '../../section2_page.dart';
+import '../../ventas_page.dart';
 
 class FABs extends StatelessWidget {
   final bool started;
@@ -69,7 +69,7 @@ class FABs extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) =>
-                        Section2Page(deliveryNumber: deliveryNumber),
+                        VentasPage(deliveryNumber: deliveryNumber),
                   ),
                 );
               },
