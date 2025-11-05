@@ -7,8 +7,10 @@ import 'pages/synchronization_page.dart';
 import 'pages/editar_clientes_page.dart';
 import 'pages/logs_page.dart';
 import 'data/delivery_state.dart';
+import 'widgets/notes_overview_widget.dart';
 
-import 'package:prueba_limones/pages/logs_page.dart';
+// Global RouteObserver to track navigation changes
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() {
   appLog('Application started');
@@ -26,6 +28,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      navigatorObservers: [routeObserver], // Add RouteObserver
       routes: {
         '/section1': (context) => const Section1Page(),
         '/ventas': (context) => const VentasPage(),
@@ -192,6 +195,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 32),
+
+                // Notes Overview Widget
+                const NotesOverviewWidget(),
+
                 const SizedBox(height: 32),
                 Wrap(
                   alignment: WrapAlignment.center,

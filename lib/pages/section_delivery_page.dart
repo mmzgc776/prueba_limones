@@ -25,12 +25,14 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
   late DeliveryService _deliveryService;
   List<Cliente> _clientes = [];
   late BuildContext rootContext;
+  bool _isResumedDelivery = false;
 
   @override
   void initState() {
     super.initState();
     _controller = DeliveryController();
     _deliveryService = DeliveryService();
+    _isResumedDelivery = widget.resumeDeliveryNumber != null;
     // Load data
     _loadData();
   }
@@ -176,9 +178,14 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                           ),
                         ],
                       ),
-                    ).then((confirm) {
+                    ).then((confirm) async {
                       if (confirm == true) {
-                        _controller.endDelivery(_clientes);
+                        await _controller.endDelivery(_clientes);
+
+                        // Si es un reparto reanudado, volver a la vista anterior
+                        if (_isResumedDelivery && mounted) {
+                          Navigator.of(context).pop();
+                        }
                       }
                     });
                   },

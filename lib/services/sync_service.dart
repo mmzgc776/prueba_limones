@@ -3,7 +3,7 @@ import '../data/database.dart';
 import '../services/database_service.dart';
 
 /// Tipos de sincronización disponibles
-enum SyncType { deliveries, sales, clients, expenses, database, rateClients }
+enum SyncType { deliveries, sales, clients, notas, expenses, database, rateClients }
 
 /// Resultado de una operación de sincronización
 class SyncResult {
@@ -62,6 +62,14 @@ class SyncService {
           );
           return SyncResult.success('Clientes sincronizados exitosamente');
 
+        case SyncType.notas:
+          await _databaseService.syncNotasUnified(
+            context: context,
+            spreadsheetId: _spreadsheetId,
+            range: 'Notas!A1:E',
+          );
+          return SyncResult.success('Notas sincronizadas exitosamente');
+
         case SyncType.expenses:
           return SyncResult.error('Sincronización de gastos no implementada');
 
@@ -94,6 +102,10 @@ class SyncService {
           await _databaseService.deleteAllClientes();
           return SyncResult.success('Clientes eliminados exitosamente');
 
+        case SyncType.notas:
+          await _databaseService.deleteAllNotas();
+          return SyncResult.success('Notas eliminadas exitosamente');
+
         case SyncType.expenses:
           return SyncResult.error('Eliminación de gastos no implementada');
 
@@ -101,6 +113,7 @@ class SyncService {
           await _databaseService.deleteAllSales();
           await _databaseService.deleteAllDeliveries();
           await _databaseService.deleteAllClientes();
+          await _databaseService.deleteAllNotas();
           return SyncResult.success('Base de datos limpiada exitosamente');
 
         case SyncType.rateClients:
@@ -118,6 +131,7 @@ class SyncService {
       await _databaseService.deleteAllSales();
       await _databaseService.deleteAllDeliveries();
       await _databaseService.deleteAllClientes();
+      await _databaseService.deleteAllNotas();
       return SyncResult.success('Base de datos limpiada exitosamente');
     } catch (e) {
       return SyncResult.error('Error: ${e.toString()}');

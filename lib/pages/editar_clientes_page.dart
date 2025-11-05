@@ -8,7 +8,9 @@ import 'logs_page.dart';
 import '../widgets/notes_container.dart';
 
 class EditarClientesPage extends StatefulWidget {
-  const EditarClientesPage({Key? key}) : super(key: key);
+  final int? preloadClientId;
+
+  const EditarClientesPage({Key? key, this.preloadClientId}) : super(key: key);
 
   @override
   _EditarClientesPageState createState() => _EditarClientesPageState();
@@ -49,6 +51,15 @@ class _EditarClientesPageState extends State<EditarClientesPage> {
       _isLoading = false;
       appLog("Loaded clientes: ${clientes.length}");
     });
+
+    // Si se proporcionó un clientId, precargar ese cliente
+    if (widget.preloadClientId != null) {
+      final cliente = clientes.firstWhere(
+        (c) => c.id == widget.preloadClientId,
+        orElse: () => clientes.first,
+      );
+      _onClientSelected(cliente);
+    }
   }
 
   void _onClientSelected(Cliente? client) {

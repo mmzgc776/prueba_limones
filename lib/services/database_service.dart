@@ -140,6 +140,38 @@ class DatabaseService {
     return result;
   }
 
+  /// Desasigna una venta de su delivery (pone deliveryNumber en null)
+  Future<int> unassignSaleFromDelivery(int saleId) async {
+    _ensureInitialized();
+
+    // Primero obtener la venta para saber de qué delivery desasignarla
+    final sale = await (_db!.select(
+      _db!.sales,
+    )..where((tbl) => tbl.id.equals(saleId))).getSingleOrNull();
+
+    if (sale == null) {
+      throw Exception('Venta no encontrada');
+    }
+
+    final previousDeliveryNumber = sale.deliveryNumber;
+
+    // Desasignar la venta (poner deliveryNumber en null)
+    final result = await (_db!.update(
+      _db!.sales,
+    )..where((tbl) => tbl.id.equals(saleId))).write(
+      SalesCompanion(
+        deliveryNumber: Value(null),
+      ),
+    );
+
+    // Recalcular las estadísticas del delivery del cual se desasignó
+    if (previousDeliveryNumber != null) {
+      await recalculateDeliveryStats(previousDeliveryNumber);
+    }
+
+    return result;
+  }
+
   /// Elimina una venta específica
   Future<void> deleteSale(int id) async {
     _ensureInitialized();
@@ -225,6 +257,44 @@ class DatabaseService {
 
     final result = await query.getSingleOrNull();
     return result?.deliveryNumber;
+  }
+
+  /// Obtiene un delivery específico por número
+  Future<Delivery?> getDeliveryByNumber(int deliveryNumber) async {
+    _ensureInitialized();
+    return await (_db!.select(
+      _db!.deliveries,
+    )..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber)))
+        .getSingleOrNull();
+  }
+
+  /// Actualiza un delivery existente
+  Future<int> updateDelivery({
+    required int deliveryNumber,
+    required DateTime date,
+    required int durationSeconds,
+    required double avgPrice,
+    required double kilograms,
+    required int boxes,
+    required double remaining,
+    required String seller,
+    required double total,
+  }) async {
+    _ensureInitialized();
+    return await (_db!.update(
+      _db!.deliveries,
+    )..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber))).write(
+      DeliveriesCompanion(
+        date: Value(date),
+        durationSeconds: Value(durationSeconds),
+        avgPrice: Value(avgPrice),
+        kilograms: Value(kilograms),
+        boxes: Value(boxes),
+        remaining: Value(remaining),
+        seller: Value(seller),
+        total: Value(total),
+      ),
+    );
   }
 
   /// Elimina todos los deliveries
@@ -894,5 +964,137 @@ class DatabaseService {
           _db!.notas,
         )..where((tbl) => tbl.clientId.equals(clientId) & tbl.ventaId.isNull()))
         .write(NotasCompanion(ventaId: Value(ventaId)));
+  }
+
+  /// Obtiene todas las notas con información del cliente asociado
+  Future<List<Map<String, dynamic>>> getAllNotasWithClientInfo() async {
+    _ensureInitialized();
+
+    // Obtener todas las notas
+    final notas = await _db!.select(_db!.notas).get();
+
+    // Para cada nota, obtener el cliente asociado y datos de la venta si existe
+    final result = <Map<String, dynamic>>[];
+    for (final nota in notas) {
+      final cliente = await getClienteById(nota.clientId);
+      if (cliente != null) {
+        final map = <String, dynamic>{
+          'nota': nota,
+          'clientName': cliente.nombre,
+          'cliente': cliente,
+        };
+
+        // Si la nota tiene una venta asociada, obtener sus datos
+        if (nota.ventaId != null) {
+          final venta = await (_db!.select(_db!.sales)
+                ..where((tbl) => tbl.id.equals(nota.ventaId!)))
+              .getSingleOrNull();
+          if (venta != null) {
+            map['venta'] = venta;
+            map['ventaTotal'] = venta.total;
+            map['deliveryNumber'] = venta.deliveryNumber;
+          }
+        }
+
+        result.add(map);
+      }
+    }
+
+    return result;
+  }
+
+  /// Obtiene todas las notas
+  Future<List<Nota>> getAllNotas() async {
+    _ensureInitialized();
+    return await _db!.select(_db!.notas).get();
+  }
+
+  /// Elimina todas las notas
+  Future<void> deleteAllNotas() async {
+    _ensureInitialized();
+    await _db!.delete(_db!.notas).go();
+  }
+
+  /// Sincroniza notas con Google Sheets
+  Future<void> syncNotasUnified({
+    required BuildContext context,
+    required String spreadsheetId,
+    required String range,
+  }) async {
+    _ensureInitialized();
+    final googleSheetsService = GoogleSheetsService();
+
+    try {
+      final localNotas = await getAllNotas();
+      final sheetData = await googleSheetsService.getSheetData(
+        spreadsheetId,
+        range,
+      );
+
+      await _syncNotasData(localNotas, sheetData, spreadsheetId, range);
+    } catch (e) {
+      throw Exception('Error al sincronizar notas: $e');
+    }
+  }
+
+  /// Método privado para sincronizar datos de notas
+  Future<void> _syncNotasData(
+    List<Nota> localNotas,
+    List<List<Object?>> sheetData,
+    String spreadsheetId,
+    String range,
+  ) async {
+    final googleSheetsService = GoogleSheetsService();
+
+    if (localNotas.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 5 || row[0] == null) continue;
+        try {
+          final nota = NotasCompanion(
+            id: Value(int.parse(row[0].toString())),
+            nota: Value(row[1].toString()),
+            clientId: Value(int.parse(row[2].toString())),
+            ventaId: Value(int.tryParse(row[3].toString())),
+            color: Value(row[4].toString()),
+          );
+          await _db!.into(_db!.notas).insertOnConflictUpdate(nota);
+        } catch (e) {
+          print('Error procesando fila de nota: $row, error: $e');
+        }
+      }
+    } else if (localNotas.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      } else {
+        // Si no hay cabeceras, agregar las cabeceras por defecto
+        updatedData.add([
+          'id',
+          'nota',
+          'client_id',
+          'venta_id',
+          'color',
+        ]);
+      }
+
+      for (var nota in localNotas) {
+        updatedData.add([
+          nota.id,
+          nota.nota,
+          nota.clientId,
+          nota.ventaId ?? '',
+          nota.color,
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
+    }
   }
 }

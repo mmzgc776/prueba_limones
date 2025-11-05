@@ -63,7 +63,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
             tooltip: 'Reanudar reparto',
             onPressed: () async {
               // Navegar a la página de reparto y reanudar con este deliveryNumber
-              Navigator.pushReplacement(
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => SectionDeliveryPage(
@@ -71,6 +71,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                   ),
                 ),
               );
+
+              // Si se detuvo el reparto, refrescar la vista de detalles
+              if (result == true || result == null) {
+                setState(() {
+                  _loadDeliveryRecord();
+                });
+              }
             },
           ),
           IconButton(
@@ -283,25 +290,100 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                 ),
                                 IconButton(
                                   icon: const Icon(
+                                    Icons.link_off,
+                                    color: Colors.orange,
+                                  ),
+                                  tooltip: 'Desasignar venta',
+                                  onPressed: () async {
+                                    // Confirmar desasignación
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Desasignar venta'),
+                                        content: Text(
+                                          '¿Desea desasignar la venta #${sale['id']}? '
+                                          'La venta no se eliminará, pero quedará sin reparto asignado.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            child: const Text('Desasignar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (confirm == true) {
+                                      final databaseService = DatabaseService();
+                                      await databaseService.init();
+                                      await databaseService.unassignSaleFromDelivery(
+                                        sale['id'],
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Venta #${sale['id']} desasignada del reparto',
+                                          ),
+                                        ),
+                                      );
+                                      setState(() {
+                                        _loadDeliveryRecord();
+                                      });
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
                                     Icons.delete,
                                     color: Colors.red,
                                   ),
+                                  tooltip: 'Eliminar venta',
                                   onPressed: () async {
-                                    final databaseService = DatabaseService();
-                                    await databaseService.init();
-                                    await databaseService.deleteSale(
-                                      sale['id'],
-                                    );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
+                                    // Confirmar eliminación
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Eliminar venta'),
                                         content: Text(
-                                          'Venta #${sale['id']} eliminada',
+                                          '¿Está seguro de eliminar permanentemente la venta #${sale['id']}?',
                                         ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, false),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context, true),
+                                            child: const Text(
+                                              'Eliminar',
+                                              style: TextStyle(color: Colors.red),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     );
-                                    setState(() {
-                                      _loadDeliveryRecord();
-                                    });
+
+                                    if (confirm == true) {
+                                      final databaseService = DatabaseService();
+                                      await databaseService.init();
+                                      await databaseService.deleteSale(
+                                        sale['id'],
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Venta #${sale['id']} eliminada',
+                                          ),
+                                        ),
+                                      );
+                                      setState(() {
+                                        _loadDeliveryRecord();
+                                      });
+                                    }
                                   },
                                 ),
                               ],

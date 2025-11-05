@@ -48,7 +48,7 @@ class DeliveryService {
     try {
       await init();
       final deliveries = await _dbService.getAllDeliveries();
-      return deliveries
+      final deliveryRecords = deliveries
           .map(
             (delivery) => DeliveryRecord(
               deliveryNumber: delivery.deliveryNumber,
@@ -63,27 +63,58 @@ class DeliveryService {
             ),
           )
           .toList();
+
+      // Sort in descending order (most recent first)
+      deliveryRecords.sort((a, b) => b.deliveryNumber.compareTo(a.deliveryNumber));
+
+      return deliveryRecords;
     } catch (e) {
       debugPrint('Error loading deliveries from database: $e');
       throw Exception('Error al cargar los registros de reparto');
     }
   }
 
-  // Save a delivery record to the database
+  // Save a delivery record to the database (insert or update if exists)
   Future<void> saveDeliveryToDatabase(DeliveryRecord record) async {
     try {
       await init();
-      await _dbService.insertDelivery(
-        deliveryNumber: record.deliveryNumber,
-        date: record.date,
-        durationSeconds: record.duration.inSeconds,
-        avgPrice: record.avgPrice,
-        kilograms: record.kilograms,
-        boxes: record.boxes,
-        remaining: record.remaining,
-        seller: record.seller,
-        total: record.total,
+
+      // Verificar si el delivery ya existe
+      final existingDelivery = await _dbService.getDeliveryByNumber(
+        record.deliveryNumber,
       );
+
+      if (existingDelivery != null) {
+        // Si existe, actualizar
+        debugPrint(
+          'Actualizando delivery existente #${record.deliveryNumber}',
+        );
+        await _dbService.updateDelivery(
+          deliveryNumber: record.deliveryNumber,
+          date: record.date,
+          durationSeconds: record.duration.inSeconds,
+          avgPrice: record.avgPrice,
+          kilograms: record.kilograms,
+          boxes: record.boxes,
+          remaining: record.remaining,
+          seller: record.seller,
+          total: record.total,
+        );
+      } else {
+        // Si no existe, insertar
+        debugPrint('Insertando nuevo delivery #${record.deliveryNumber}');
+        await _dbService.insertDelivery(
+          deliveryNumber: record.deliveryNumber,
+          date: record.date,
+          durationSeconds: record.duration.inSeconds,
+          avgPrice: record.avgPrice,
+          kilograms: record.kilograms,
+          boxes: record.boxes,
+          remaining: record.remaining,
+          seller: record.seller,
+          total: record.total,
+        );
+      }
     } catch (e) {
       debugPrint('Error saving delivery to database: $e');
       throw Exception('Error al guardar el reparto en la base de datos');
