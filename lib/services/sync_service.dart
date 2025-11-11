@@ -3,7 +3,7 @@ import '../data/database.dart';
 import '../services/database_service.dart';
 
 /// Tipos de sincronización disponibles
-enum SyncType { deliveries, sales, clients, notas, expenses, database, rateClients }
+enum SyncType { deliveries, sales, clients, notas, interacciones, expenses, database, rateClients }
 
 /// Resultado de una operación de sincronización
 class SyncResult {
@@ -70,6 +70,14 @@ class SyncService {
           );
           return SyncResult.success('Notas sincronizadas exitosamente');
 
+        case SyncType.interacciones:
+          await _databaseService.syncInteraccionesUnified(
+            context: context,
+            spreadsheetId: _spreadsheetId,
+            range: 'Interacciones!A1:D',
+          );
+          return SyncResult.success('Interacciones sincronizadas exitosamente');
+
         case SyncType.expenses:
           return SyncResult.error('Sincronización de gastos no implementada');
 
@@ -106,6 +114,10 @@ class SyncService {
           await _databaseService.deleteAllNotas();
           return SyncResult.success('Notas eliminadas exitosamente');
 
+        case SyncType.interacciones:
+          await _databaseService.deleteAllInteracciones();
+          return SyncResult.success('Interacciones eliminadas exitosamente');
+
         case SyncType.expenses:
           return SyncResult.error('Eliminación de gastos no implementada');
 
@@ -114,6 +126,7 @@ class SyncService {
           await _databaseService.deleteAllDeliveries();
           await _databaseService.deleteAllClientes();
           await _databaseService.deleteAllNotas();
+          await _databaseService.deleteAllInteracciones();
           return SyncResult.success('Base de datos limpiada exitosamente');
 
         case SyncType.rateClients:
@@ -132,6 +145,7 @@ class SyncService {
       await _databaseService.deleteAllDeliveries();
       await _databaseService.deleteAllClientes();
       await _databaseService.deleteAllNotas();
+      await _databaseService.deleteAllInteracciones();
       return SyncResult.success('Base de datos limpiada exitosamente');
     } catch (e) {
       return SyncResult.error('Error: ${e.toString()}');

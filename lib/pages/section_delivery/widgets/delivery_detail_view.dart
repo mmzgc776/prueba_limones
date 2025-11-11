@@ -50,6 +50,15 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     );
   }
 
+  /// Calcula kilogramos por caja
+  String _calculateKgPerBox(DeliveryRecord record) {
+    if (record.boxes == 0) {
+      return 'N/A';
+    }
+    final kgPerBox = record.kilograms / record.boxes;
+    return kgPerBox.toStringAsFixed(2);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -139,6 +148,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                   'Kilogramos: ${deliveryRecord.kilograms.toStringAsFixed(0)}',
                 ),
                 Text('Cajas: ${deliveryRecord.boxes}'),
+                Text('Kg/Caja: ${_calculateKgPerBox(deliveryRecord)}'),
                 Text(
                   'Restante: ${deliveryRecord.remaining.toStringAsFixed(0)}',
                 ),
@@ -214,9 +224,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                               MaterialPageRoute(
                                 builder: (context) => EditSalePage(
                                   saleId: sale['id'],
-                                  deliveryNumber: widget
-                                      .deliveryRecord
-                                      .deliveryNumber,
+                                  deliveryNumber:
+                                      widget.deliveryRecord.deliveryNumber,
                                 ),
                               ),
                             );
@@ -305,11 +314,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(context, false),
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
                                             child: const Text('Cancelar'),
                                           ),
                                           TextButton(
-                                            onPressed: () => Navigator.pop(context, true),
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
                                             child: const Text('Desasignar'),
                                           ),
                                         ],
@@ -319,10 +330,11 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                     if (confirm == true) {
                                       final databaseService = DatabaseService();
                                       await databaseService.init();
-                                      await databaseService.unassignSaleFromDelivery(
-                                        sale['id'],
-                                      );
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      await databaseService
+                                          .unassignSaleFromDelivery(sale['id']);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             'Venta #${sale['id']} desasignada del reparto',
@@ -352,14 +364,18 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                         ),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(context, false),
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
                                             child: const Text('Cancelar'),
                                           ),
                                           TextButton(
-                                            onPressed: () => Navigator.pop(context, true),
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
                                             child: const Text(
                                               'Eliminar',
-                                              style: TextStyle(color: Colors.red),
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -372,7 +388,9 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                       await databaseService.deleteSale(
                                         sale['id'],
                                       );
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             'Venta #${sale['id']} eliminada',

@@ -1023,6 +1023,18 @@ class DatabaseService {
     await _db!.delete(_db!.notas).go();
   }
 
+  /// Elimina todas las interacciones
+  Future<void> deleteAllInteracciones() async {
+    _ensureInitialized();
+    await _db!.delete(_db!.interacciones).go();
+  }
+
+  /// Obtiene todas las interacciones
+  Future<List<Interaccione>> getAllInteracciones() async {
+    _ensureInitialized();
+    return await _db!.select(_db!.interacciones).get();
+  }
+
   /// Sincroniza notas con Google Sheets
   Future<void> syncNotasUnified({
     required BuildContext context,
@@ -1095,6 +1107,91 @@ class DatabaseService {
           nota.clientId,
           nota.ventaId ?? '',
           nota.color,
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
+    }
+  }
+
+  /// Sincroniza interacciones con Google Sheets
+  Future<void> syncInteraccionesUnified({
+    required BuildContext context,
+    required String spreadsheetId,
+    required String range,
+  }) async {
+    _ensureInitialized();
+    final googleSheetsService = GoogleSheetsService();
+
+    try {
+      final localInteracciones = await getAllInteracciones();
+      final sheetData = await googleSheetsService.getSheetData(
+        spreadsheetId,
+        range,
+      );
+
+      await _syncInteraccionesData(
+        localInteracciones,
+        sheetData,
+        spreadsheetId,
+        range,
+      );
+    } catch (e) {
+      throw Exception('Error al sincronizar interacciones: $e');
+    }
+  }
+
+  /// Método privado para sincronizar datos de interacciones
+  Future<void> _syncInteraccionesData(
+    List<Interaccione> localInteracciones,
+    List<List<Object?>> sheetData,
+    String spreadsheetId,
+    String range,
+  ) async {
+    final googleSheetsService = GoogleSheetsService();
+
+    if (localInteracciones.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 4 || row[0] == null) continue;
+        try {
+          final interaccion = InteraccionesCompanion(
+            id: Value(int.parse(row[0].toString())),
+            clientId: Value(int.parse(row[1].toString())),
+            result: Value(row[2].toString()),
+            deliveryId: Value(int.parse(row[3].toString())),
+          );
+          await _db!.into(_db!.interacciones).insertOnConflictUpdate(interaccion);
+        } catch (e) {
+          print('Error procesando fila de interacción: $row, error: $e');
+        }
+      }
+    } else if (localInteracciones.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      } else {
+        // Si no hay cabeceras, agregar las cabeceras por defecto
+        updatedData.add([
+          'id',
+          'client_id',
+          'result',
+          'delivery_id',
+        ]);
+      }
+
+      for (var interaccion in localInteracciones) {
+        updatedData.add([
+          interaccion.id,
+          interaccion.clientId,
+          interaccion.result,
+          interaccion.deliveryId,
         ]);
       }
 

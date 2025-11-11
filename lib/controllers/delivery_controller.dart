@@ -13,6 +13,7 @@ class DeliveryController with ChangeNotifier {
   bool _paused = false;
   int _elapsedSeconds = 0;
   Timer? _timer;
+  int _initialBoxes = 0; // Número de cajas con las que inicia el reparto
 
   // Estado de clientes
   List<bool> _clientesContactados = [];
@@ -114,10 +115,11 @@ class DeliveryController with ChangeNotifier {
   }
 
   /// Inicia un nuevo delivery
-  void startDelivery(int deliveryNumber) {
+  void startDelivery(int deliveryNumber, {int boxes = 0}) {
     _started = true;
     _paused = false;
     _elapsedSeconds = 0;
+    _initialBoxes = boxes;
 
     _stateManager.startDelivery(deliveryNumber);
     _stateManager.updateClientesContactados(_clientesContactados);
@@ -240,7 +242,7 @@ class DeliveryController with ChangeNotifier {
         duration: Duration(seconds: _elapsedSeconds),
         avgPrice: stats.avgPricePerKilo,
         kilograms: stats.totalKilograms,
-        boxes: 0,
+        boxes: _initialBoxes,
         remaining: 0.0,
         seller: "Default Seller",
         total: stats.totalAmount,
@@ -309,7 +311,7 @@ class DeliveryController with ChangeNotifier {
       duration: Duration(seconds: _elapsedSeconds),
       avgPrice: 0.0,
       kilograms: 0.0,
-      boxes: 0,
+      boxes: _initialBoxes,
       remaining: 0.0,
       seller: "Default Seller",
       total: 0.0,
@@ -323,6 +325,7 @@ class DeliveryController with ChangeNotifier {
     _started = false;
     _paused = false;
     _elapsedSeconds = 0;
+    _initialBoxes = 0;
     _clientesContactados = List.generate(clientes.length, (_) => false);
     _clientesEstado = List.generate(clientes.length, (_) => '');
     _selectedClienteIndex = null;

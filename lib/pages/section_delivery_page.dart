@@ -152,10 +152,15 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                     _controller.clientesContactados,
                   ),
                   selectedClienteIndex: _controller.selectedClienteIndex,
-                  onStartDelivery: () {
-                    _controller.startDelivery(
-                      _controller.deliveryRecords.length + 1,
-                    );
+                  onStartDelivery: () async {
+                    // Mostrar diálogo para preguntar número de cajas
+                    final boxes = await _showBoxesDialog();
+                    if (boxes != null) {
+                      _controller.startDelivery(
+                        _controller.deliveryRecords.length + 1,
+                        boxes: boxes,
+                      );
+                    }
                   },
                   onPauseDelivery: _controller.pauseDelivery,
                   onResumeDelivery: _controller.resumeDelivery,
@@ -197,6 +202,58 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  /// Muestra un diálogo para preguntar el número de cajas
+  Future<int?> _showBoxesDialog() async {
+    final controller = TextEditingController(text: '0');
+
+    return showDialog<int>(
+      context: context,
+      barrierDismissible: false, // Usuario debe responder
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Iniciar Reparto'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '¿Con cuántas cajas inicias el reparto?',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Número de cajas',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.inventory_2),
+                ),
+                onSubmitted: (value) {
+                  final boxes = int.tryParse(value) ?? 0;
+                  Navigator.of(context).pop(boxes);
+                },
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final boxes = int.tryParse(controller.text) ?? 0;
+                Navigator.of(context).pop(boxes);
+              },
+              child: const Text('Iniciar'),
+            ),
+          ],
         );
       },
     );

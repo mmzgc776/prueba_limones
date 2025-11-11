@@ -73,6 +73,14 @@ class _SynchronizationPageState extends State<SynchronizationPage> {
               syncService: syncService,
             ),
             SyncActionButton(
+              label: 'Interacciones',
+              icon: Icons.people_alt,
+              color: Colors.deepPurple,
+              size: buttonSize,
+              syncType: SyncType.interacciones,
+              syncService: syncService,
+            ),
+            SyncActionButton(
               label: 'Gastos',
               icon: Icons.attach_money,
               color: Colors.deepPurple,
