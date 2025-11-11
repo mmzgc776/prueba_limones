@@ -132,8 +132,8 @@ class DeliveryService {
     }
   }
 
-  // Save contact results to the database
-  Future<void> saveContactResultsToDatabase(
+  // Save interaction results to the database
+  Future<void> saveInteraccionesToDatabase(
     int deliveryId,
     List<Cliente> clientes,
     List<bool> contactados,
@@ -142,7 +142,7 @@ class DeliveryService {
     try {
       await init();
       debugPrint(
-        'Guardando resultados de contacto para deliveryId: $deliveryId',
+        'Guardando resultados de interacciones para deliveryId: $deliveryId',
       );
       int savedCount = 0;
       for (int i = 0; i < clientes.length; i++) {
@@ -151,9 +151,9 @@ class DeliveryService {
         // );
         if (contactados[i] && estados[i].isNotEmpty) {
           debugPrint(
-            'Guardando contacto: Cliente ID ${clientes[i].id}, Resultado: ${estados[i]}',
+            'Guardando interacción: Cliente ID ${clientes[i].id}, Resultado: ${estados[i]}',
           );
-          await _dbService.insertContacto(
+          await _dbService.insertInteraccion(
             clientId: clientes[i].id,
             result: estados[i],
             deliveryId: deliveryId,
@@ -161,10 +161,10 @@ class DeliveryService {
           savedCount++;
         }
       }
-      debugPrint('Total de contactos guardados: $savedCount');
+      debugPrint('Total de interacciones guardadas: $savedCount');
     } catch (e) {
-      debugPrint('Error saving contact results to database: $e');
-      throw Exception('Error al guardar los resultados de contacto');
+      debugPrint('Error saving interaction results to database: $e');
+      throw Exception('Error al guardar los resultados de interacción');
     }
   }
 
@@ -179,14 +179,14 @@ class DeliveryService {
     }
   }
 
-  // Debug contact records (fetch last 10)
-  Future<List<Contacto>> debugContactos() async {
+  // Debug interaction records (fetch last 10)
+  Future<List<Interaccione>> debugInteracciones() async {
     try {
       await init();
-      return await _dbService.getLast10Contactos();
+      return await _dbService.getLast10Interacciones();
     } catch (e) {
-      debugPrint('Error fetching contact records: $e');
-      throw Exception('Error al obtener los registros de contactos');
+      debugPrint('Error fetching interaction records: $e');
+      throw Exception('Error al obtener los registros de interacciones');
     }
   }
 

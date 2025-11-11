@@ -15,7 +15,7 @@ class ActiveDeliveryView extends StatefulWidget {
   final List<String> clientesEstado;
   final int? selectedClienteIndex;
   final Function(int) onClienteSelected;
-  final Function(int) onShowContactoSheet;
+  final Function(int) onShowInteraccionSheet;
   final VoidCallback onResumeDelivery;
 
   const ActiveDeliveryView({
@@ -28,7 +28,7 @@ class ActiveDeliveryView extends StatefulWidget {
     required this.clientesEstado,
     required this.selectedClienteIndex,
     required this.onClienteSelected,
-    required this.onShowContactoSheet,
+    required this.onShowInteraccionSheet,
     required this.onResumeDelivery,
   }) : super(key: key);
 
@@ -98,7 +98,7 @@ class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
                     clientesEstado: widget.clientesEstado,
                     selectedClienteIndex: widget.selectedClienteIndex,
                     onClienteSelected: widget.onClienteSelected,
-                    onShowContactoSheet: widget.onShowContactoSheet,
+                    onShowInteraccionSheet: widget.onShowInteraccionSheet,
                     onResumeDelivery: widget.onResumeDelivery,
                   ),
                   TimerDisplay(

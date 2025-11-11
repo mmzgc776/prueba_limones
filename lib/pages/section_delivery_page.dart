@@ -7,7 +7,7 @@ import 'section_delivery/delivery_record.dart';
 import 'section_delivery/widgets/active_delivery_view.dart';
 import 'section_delivery/widgets/delivery_records_table.dart';
 import 'section_delivery/widgets/fabs.dart';
-import 'section_delivery/widgets/contacto_options_sheet.dart';
+import 'section_delivery/widgets/interaccion_options_sheet.dart';
 import '../widgets/venta_form.dart';
 
 class SectionDeliveryPage extends StatefulWidget {
@@ -63,24 +63,24 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
     }
   }
 
-  void _showContactoSheet(int index) {
+  void _showInteraccionSheet(int index) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => ContactoOptionsSheet(
+      builder: (context) => InteraccionOptionsSheet(
         cliente: _clientes[index],
         index: index,
-        onContactoUpdated: (contactado, estado) {
+        onInteraccionUpdated: (contactado, estado) {
           _controller.updateContactoStatus(index, contactado, estado);
         },
         onActionSelected: (action) {
-          _handleContactoAction(action, index);
+          _handleInteraccionAction(action, index);
         },
         deliveryService: _deliveryService,
       ),
     );
   }
 
-  void _handleContactoAction(String action, int index) {
+  void _handleInteraccionAction(String action, int index) {
     _controller.updateContactoStatus(index, true, action);
     if (action == 'Venta') {
       Navigator.push(
@@ -135,14 +135,14 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                         clientesEstado: _controller.clientesEstado,
                         selectedClienteIndex: _controller.selectedClienteIndex,
                         onClienteSelected: _controller.selectCliente,
-                        onShowContactoSheet: _showContactoSheet,
+                        onShowInteraccionSheet: _showInteraccionSheet,
                         onResumeDelivery: _controller.resumeDelivery,
                       )
                     : DeliveryRecordsTable(
                         deliveryRecords: _controller.deliveryRecords,
                         onLoadRecords: _controller.loadDeliveryRecords,
                         onDeleteRecords: _controller.deleteDeliveryRecords,
-                        onDebugContactos: _controller.debugContactos,
+                        onDebugInteracciones: _controller.debugInteracciones,
                       ),
                 floatingActionButton: FABs(
                   started: _controller.started,
@@ -189,7 +189,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                       }
                     });
                   },
-                  onDebugContactos: _controller.debugContactos,
+                  onDebugInteracciones: _controller.debugInteracciones,
                 ),
                 floatingActionButtonLocation: const _CustomFABLocation(
                   offsetY: 80,

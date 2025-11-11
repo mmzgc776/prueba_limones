@@ -5,7 +5,7 @@ import '../../../data/delivery_state.dart';
 
 /// Widget que muestra el progreso del reparto actual:
 /// - Lista de ventas realizadas
-/// - Lista de clientes contactados (con resultados)
+/// - Lista de interacciones con clientes (con resultados)
 class DeliveryProgressView extends StatefulWidget {
   const DeliveryProgressView({Key? key}) : super(key: key);
 
@@ -18,7 +18,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
   final DeliveryStateManager _stateManager = DeliveryStateManager();
 
   List<Sale> _sales = [];
-  List<Contacto> _contactos = [];
+  List<Interaccione> _interacciones = [];
   Map<int, Cliente> _clientesMap = {};
   bool _isLoading = true;
 
@@ -39,14 +39,14 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
         // Cargar ventas del reparto actual
         final sales = await _dbService.getSalesByDeliveryNumber(deliveryNumber);
 
-        // Cargar contactos del reparto actual
-        final contactos =
-            await _dbService.getContactosByDeliveryNumber(deliveryNumber);
+        // Cargar interacciones del reparto actual
+        final interacciones =
+            await _dbService.getInteraccionesByDeliveryNumber(deliveryNumber);
 
         // Cargar información de clientes
         final clientIds = <int>{
           ...sales.map((s) => s.clientId),
-          ...contactos.map((c) => c.clientId),
+          ...interacciones.map((i) => i.clientId),
         };
 
         final clientesMap = <int, Cliente>{};
@@ -59,7 +59,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
 
         setState(() {
           _sales = sales;
-          _contactos = contactos;
+          _interacciones = interacciones;
           _clientesMap = clientesMap;
           _isLoading = false;
         });
@@ -120,8 +120,8 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
                         ),
                         _buildSummaryItem(
                           context,
-                          'Contactos',
-                          _contactos.length.toString(),
+                          'Interacciones',
+                          _interacciones.length.toString(),
                           Icons.people,
                         ),
                         _buildSummaryItem(
@@ -173,22 +173,22 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
 
             const SizedBox(height: 24),
 
-            // Lista de Contactos
+            // Lista de Interacciones
             Text(
-              'Clientes Contactados (${_contactos.length})',
+              'Interacciones con Clientes (${_interacciones.length})',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 8),
 
-            if (_contactos.isEmpty)
+            if (_interacciones.isEmpty)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Center(
                     child: Text(
-                      'No hay contactos registrados aún',
+                      'No hay interacciones registradas aún',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -197,9 +197,9 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
                 ),
               )
             else
-              ...(_contactos.map((contacto) => _buildContactoCard(
+              ...(_interacciones.map((interaccion) => _buildInteraccionCard(
                     context,
-                    contacto,
+                    interaccion,
                   ))),
 
             const SizedBox(height: 80), // Espacio para el FAB
@@ -264,14 +264,14 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
     );
   }
 
-  Widget _buildContactoCard(BuildContext context, Contacto contacto) {
-    final cliente = _clientesMap[contacto.clientId];
+  Widget _buildInteraccionCard(BuildContext context, Interaccione interaccion) {
+    final cliente = _clientesMap[interaccion.clientId];
     final clienteNombre = cliente?.nombre ?? 'Cliente desconocido';
 
     // Determinar color e icono según el resultado
     Color color;
     IconData icon;
-    switch (contacto.result) {
+    switch (interaccion.result) {
       case 'Venta':
         color = Colors.green;
         icon = Icons.shopping_cart;
@@ -306,7 +306,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
         ),
         trailing: Chip(
           label: Text(
-            contacto.result,
+            interaccion.result,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,

@@ -6,14 +6,14 @@ class DeliveryRecordsTable extends StatelessWidget {
   final List<DeliveryRecord> deliveryRecords;
   final Function() onLoadRecords;
   final Function() onDeleteRecords;
-  final Function() onDebugContactos;
+  final Function() onDebugInteracciones;
 
   const DeliveryRecordsTable({
     Key? key,
     required this.deliveryRecords,
     required this.onLoadRecords,
     required this.onDeleteRecords,
-    required this.onDebugContactos,
+    required this.onDebugInteracciones,
   }) : super(key: key);
 
   @override
@@ -49,9 +49,9 @@ class DeliveryRecordsTable extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               ElevatedButton(
-                onPressed: onDebugContactos,
+                onPressed: onDebugInteracciones,
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                child: const Text('Debug Contactos'),
+                child: const Text('Debug Interacciones'),
               ),
             ],
           ),

@@ -288,7 +288,7 @@ class DeliveryController with ChangeNotifier {
 
     await Future.wait([
       _deliveryService.saveDeliveryToDatabase(record),
-      _deliveryService.saveContactResultsToDatabase(
+      _deliveryService.saveInteraccionesToDatabase(
         record.deliveryNumber,
         clientes,
         _clientesContactados,
@@ -407,18 +407,18 @@ class DeliveryController with ChangeNotifier {
     }
   }
 
-  /// Muestra información de debug sobre los contactos
-  Future<void> debugContactos() async {
+  /// Muestra información de debug sobre las interacciones
+  Future<void> debugInteracciones() async {
     try {
-      final contactos = await _deliveryService.debugContactos();
+      final interacciones = await _deliveryService.debugInteracciones();
 
-      debugPrint('=== DEBUG CONTACTOS ===');
-      if (contactos.isEmpty) {
-        debugPrint('No hay registros de contactos.');
+      debugPrint('=== DEBUG INTERACCIONES ===');
+      if (interacciones.isEmpty) {
+        debugPrint('No hay registros de interacciones.');
       } else {
-        for (var contacto in contactos.take(10)) {
+        for (var interaccion in interacciones.take(10)) {
           debugPrint(
-            'ID: ${contacto.id} | Client ID: ${contacto.clientId} | Resultado: ${contacto.result} | Delivery ID: ${contacto.deliveryId}',
+            'ID: ${interaccion.id} | Client ID: ${interaccion.clientId} | Resultado: ${interaccion.result} | Delivery ID: ${interaccion.deliveryId}',
           );
         }
       }
@@ -432,7 +432,7 @@ class DeliveryController with ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('Error en debugContactos: $e');
+      debugPrint('Error en debugInteracciones: $e');
     }
   }
 

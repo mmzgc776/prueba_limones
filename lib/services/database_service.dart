@@ -878,34 +878,34 @@ class DatabaseService {
         .length;
   }
 
-  /// Inserta un registro de contacto
-  Future<int> insertContacto({
+  /// Inserta un registro de interacción
+  Future<int> insertInteraccion({
     required int clientId,
     required String result,
     required int deliveryId,
   }) async {
     _ensureInitialized();
-    return await _db!.insertContacto(
+    return await _db!.insertInteraccion(
       clientId: clientId,
       result: result,
       deliveryId: deliveryId,
     );
   }
 
-  /// Obtiene los últimos 10 registros de contacto
-  Future<List<Contacto>> getLast10Contactos() async {
+  /// Obtiene los últimos 10 registros de interacción
+  Future<List<Interaccione>> getLast10Interacciones() async {
     _ensureInitialized();
     // Si no existe en AppDatabase, implementa aquí la consulta
-    return await (_db!.select(_db!.contactos)
+    return await (_db!.select(_db!.interacciones)
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.id)])
           ..limit(10))
         .get();
   }
 
-  /// Obtiene todos los contactos de un delivery específico
-  Future<List<Contacto>> getContactosByDeliveryNumber(int deliveryNumber) async {
+  /// Obtiene todas las interacciones de un delivery específico
+  Future<List<Interaccione>> getInteraccionesByDeliveryNumber(int deliveryNumber) async {
     _ensureInitialized();
-    return await (_db!.select(_db!.contactos)
+    return await (_db!.select(_db!.interacciones)
           ..where((tbl) => tbl.deliveryId.equals(deliveryNumber)))
         .get();
   }

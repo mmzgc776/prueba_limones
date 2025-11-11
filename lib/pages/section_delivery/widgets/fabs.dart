@@ -13,7 +13,7 @@ class FABs extends StatelessWidget {
   final Future<void> Function() onPauseDelivery;
   final Function() onResumeDelivery;
   final Function() onEndDelivery;
-  final Function() onDebugContactos;
+  final Function() onDebugInteracciones;
 
   const FABs({
     Key? key,
@@ -26,7 +26,7 @@ class FABs extends StatelessWidget {
     required this.onPauseDelivery,
     required this.onResumeDelivery,
     required this.onEndDelivery,
-    required this.onDebugContactos,
+    required this.onDebugInteracciones,
   }) : super(key: key);
 
   @override

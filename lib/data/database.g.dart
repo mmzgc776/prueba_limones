@@ -2272,12 +2272,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
   }
 }
 
-class $ContactosTable extends Contactos
-    with TableInfo<$ContactosTable, Contacto> {
+class $InteraccionesTable extends Interacciones
+    with TableInfo<$InteraccionesTable, Interaccione> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $ContactosTable(this.attachedDatabase, [this._alias]);
+  $InteraccionesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -2328,10 +2328,10 @@ class $ContactosTable extends Contactos
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'contactos';
+  static const String $name = 'interacciones';
   @override
   VerificationContext validateIntegrity(
-    Insertable<Contacto> instance, {
+    Insertable<Interaccione> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -2369,9 +2369,9 @@ class $ContactosTable extends Contactos
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Contacto map(Map<String, dynamic> data, {String? tablePrefix}) {
+  Interaccione map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Contacto(
+    return Interaccione(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -2392,17 +2392,17 @@ class $ContactosTable extends Contactos
   }
 
   @override
-  $ContactosTable createAlias(String alias) {
-    return $ContactosTable(attachedDatabase, alias);
+  $InteraccionesTable createAlias(String alias) {
+    return $InteraccionesTable(attachedDatabase, alias);
   }
 }
 
-class Contacto extends DataClass implements Insertable<Contacto> {
+class Interaccione extends DataClass implements Insertable<Interaccione> {
   final int id;
   final int clientId;
   final String result;
   final int deliveryId;
-  const Contacto({
+  const Interaccione({
     required this.id,
     required this.clientId,
     required this.result,
@@ -2418,8 +2418,8 @@ class Contacto extends DataClass implements Insertable<Contacto> {
     return map;
   }
 
-  ContactosCompanion toCompanion(bool nullToAbsent) {
-    return ContactosCompanion(
+  InteraccionesCompanion toCompanion(bool nullToAbsent) {
+    return InteraccionesCompanion(
       id: Value(id),
       clientId: Value(clientId),
       result: Value(result),
@@ -2427,12 +2427,12 @@ class Contacto extends DataClass implements Insertable<Contacto> {
     );
   }
 
-  factory Contacto.fromJson(
+  factory Interaccione.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Contacto(
+    return Interaccione(
       id: serializer.fromJson<int>(json['id']),
       clientId: serializer.fromJson<int>(json['clientId']),
       result: serializer.fromJson<String>(json['result']),
@@ -2450,19 +2450,19 @@ class Contacto extends DataClass implements Insertable<Contacto> {
     };
   }
 
-  Contacto copyWith({
+  Interaccione copyWith({
     int? id,
     int? clientId,
     String? result,
     int? deliveryId,
-  }) => Contacto(
+  }) => Interaccione(
     id: id ?? this.id,
     clientId: clientId ?? this.clientId,
     result: result ?? this.result,
     deliveryId: deliveryId ?? this.deliveryId,
   );
-  Contacto copyWithCompanion(ContactosCompanion data) {
-    return Contacto(
+  Interaccione copyWithCompanion(InteraccionesCompanion data) {
+    return Interaccione(
       id: data.id.present ? data.id.value : this.id,
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
       result: data.result.present ? data.result.value : this.result,
@@ -2474,7 +2474,7 @@ class Contacto extends DataClass implements Insertable<Contacto> {
 
   @override
   String toString() {
-    return (StringBuffer('Contacto(')
+    return (StringBuffer('Interaccione(')
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
           ..write('result: $result, ')
@@ -2488,25 +2488,25 @@ class Contacto extends DataClass implements Insertable<Contacto> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is Contacto &&
+      (other is Interaccione &&
           other.id == this.id &&
           other.clientId == this.clientId &&
           other.result == this.result &&
           other.deliveryId == this.deliveryId);
 }
 
-class ContactosCompanion extends UpdateCompanion<Contacto> {
+class InteraccionesCompanion extends UpdateCompanion<Interaccione> {
   final Value<int> id;
   final Value<int> clientId;
   final Value<String> result;
   final Value<int> deliveryId;
-  const ContactosCompanion({
+  const InteraccionesCompanion({
     this.id = const Value.absent(),
     this.clientId = const Value.absent(),
     this.result = const Value.absent(),
     this.deliveryId = const Value.absent(),
   });
-  ContactosCompanion.insert({
+  InteraccionesCompanion.insert({
     this.id = const Value.absent(),
     required int clientId,
     required String result,
@@ -2514,7 +2514,7 @@ class ContactosCompanion extends UpdateCompanion<Contacto> {
   }) : clientId = Value(clientId),
        result = Value(result),
        deliveryId = Value(deliveryId);
-  static Insertable<Contacto> custom({
+  static Insertable<Interaccione> custom({
     Expression<int>? id,
     Expression<int>? clientId,
     Expression<String>? result,
@@ -2528,13 +2528,13 @@ class ContactosCompanion extends UpdateCompanion<Contacto> {
     });
   }
 
-  ContactosCompanion copyWith({
+  InteraccionesCompanion copyWith({
     Value<int>? id,
     Value<int>? clientId,
     Value<String>? result,
     Value<int>? deliveryId,
   }) {
-    return ContactosCompanion(
+    return InteraccionesCompanion(
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
       result: result ?? this.result,
@@ -2562,7 +2562,7 @@ class ContactosCompanion extends UpdateCompanion<Contacto> {
 
   @override
   String toString() {
-    return (StringBuffer('ContactosCompanion(')
+    return (StringBuffer('InteraccionesCompanion(')
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
           ..write('result: $result, ')
@@ -2920,7 +2920,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SalesTable sales = $SalesTable(this);
   late final $DeliveriesTable deliveries = $DeliveriesTable(this);
   late final $ClientesTable clientes = $ClientesTable(this);
-  late final $ContactosTable contactos = $ContactosTable(this);
+  late final $InteraccionesTable interacciones = $InteraccionesTable(this);
   late final $NotasTable notas = $NotasTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -2930,7 +2930,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     sales,
     deliveries,
     clientes,
-    contactos,
+    interacciones,
     notas,
   ];
 }
@@ -3991,24 +3991,24 @@ typedef $$ClientesTableProcessedTableManager =
       Cliente,
       PrefetchHooks Function()
     >;
-typedef $$ContactosTableCreateCompanionBuilder =
-    ContactosCompanion Function({
+typedef $$InteraccionesTableCreateCompanionBuilder =
+    InteraccionesCompanion Function({
       Value<int> id,
       required int clientId,
       required String result,
       required int deliveryId,
     });
-typedef $$ContactosTableUpdateCompanionBuilder =
-    ContactosCompanion Function({
+typedef $$InteraccionesTableUpdateCompanionBuilder =
+    InteraccionesCompanion Function({
       Value<int> id,
       Value<int> clientId,
       Value<String> result,
       Value<int> deliveryId,
     });
 
-class $$ContactosTableFilterComposer
-    extends Composer<_$AppDatabase, $ContactosTable> {
-  $$ContactosTableFilterComposer({
+class $$InteraccionesTableFilterComposer
+    extends Composer<_$AppDatabase, $InteraccionesTable> {
+  $$InteraccionesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4036,9 +4036,9 @@ class $$ContactosTableFilterComposer
   );
 }
 
-class $$ContactosTableOrderingComposer
-    extends Composer<_$AppDatabase, $ContactosTable> {
-  $$ContactosTableOrderingComposer({
+class $$InteraccionesTableOrderingComposer
+    extends Composer<_$AppDatabase, $InteraccionesTable> {
+  $$InteraccionesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4066,9 +4066,9 @@ class $$ContactosTableOrderingComposer
   );
 }
 
-class $$ContactosTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ContactosTable> {
-  $$ContactosTableAnnotationComposer({
+class $$InteraccionesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InteraccionesTable> {
+  $$InteraccionesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -4090,39 +4090,42 @@ class $$ContactosTableAnnotationComposer
   );
 }
 
-class $$ContactosTableTableManager
+class $$InteraccionesTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $ContactosTable,
-          Contacto,
-          $$ContactosTableFilterComposer,
-          $$ContactosTableOrderingComposer,
-          $$ContactosTableAnnotationComposer,
-          $$ContactosTableCreateCompanionBuilder,
-          $$ContactosTableUpdateCompanionBuilder,
-          (Contacto, BaseReferences<_$AppDatabase, $ContactosTable, Contacto>),
-          Contacto,
+          $InteraccionesTable,
+          Interaccione,
+          $$InteraccionesTableFilterComposer,
+          $$InteraccionesTableOrderingComposer,
+          $$InteraccionesTableAnnotationComposer,
+          $$InteraccionesTableCreateCompanionBuilder,
+          $$InteraccionesTableUpdateCompanionBuilder,
+          (
+            Interaccione,
+            BaseReferences<_$AppDatabase, $InteraccionesTable, Interaccione>,
+          ),
+          Interaccione,
           PrefetchHooks Function()
         > {
-  $$ContactosTableTableManager(_$AppDatabase db, $ContactosTable table)
+  $$InteraccionesTableTableManager(_$AppDatabase db, $InteraccionesTable table)
     : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$ContactosTableFilterComposer($db: db, $table: table),
+              $$InteraccionesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$ContactosTableOrderingComposer($db: db, $table: table),
+              $$InteraccionesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$ContactosTableAnnotationComposer($db: db, $table: table),
+              $$InteraccionesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> clientId = const Value.absent(),
                 Value<String> result = const Value.absent(),
                 Value<int> deliveryId = const Value.absent(),
-              }) => ContactosCompanion(
+              }) => InteraccionesCompanion(
                 id: id,
                 clientId: clientId,
                 result: result,
@@ -4134,7 +4137,7 @@ class $$ContactosTableTableManager
                 required int clientId,
                 required String result,
                 required int deliveryId,
-              }) => ContactosCompanion.insert(
+              }) => InteraccionesCompanion.insert(
                 id: id,
                 clientId: clientId,
                 result: result,
@@ -4148,18 +4151,21 @@ class $$ContactosTableTableManager
       );
 }
 
-typedef $$ContactosTableProcessedTableManager =
+typedef $$InteraccionesTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $ContactosTable,
-      Contacto,
-      $$ContactosTableFilterComposer,
-      $$ContactosTableOrderingComposer,
-      $$ContactosTableAnnotationComposer,
-      $$ContactosTableCreateCompanionBuilder,
-      $$ContactosTableUpdateCompanionBuilder,
-      (Contacto, BaseReferences<_$AppDatabase, $ContactosTable, Contacto>),
-      Contacto,
+      $InteraccionesTable,
+      Interaccione,
+      $$InteraccionesTableFilterComposer,
+      $$InteraccionesTableOrderingComposer,
+      $$InteraccionesTableAnnotationComposer,
+      $$InteraccionesTableCreateCompanionBuilder,
+      $$InteraccionesTableUpdateCompanionBuilder,
+      (
+        Interaccione,
+        BaseReferences<_$AppDatabase, $InteraccionesTable, Interaccione>,
+      ),
+      Interaccione,
       PrefetchHooks Function()
     >;
 typedef $$NotasTableCreateCompanionBuilder =
@@ -4359,8 +4365,8 @@ class $AppDatabaseManager {
       $$DeliveriesTableTableManager(_db, _db.deliveries);
   $$ClientesTableTableManager get clientes =>
       $$ClientesTableTableManager(_db, _db.clientes);
-  $$ContactosTableTableManager get contactos =>
-      $$ContactosTableTableManager(_db, _db.contactos);
+  $$InteraccionesTableTableManager get interacciones =>
+      $$InteraccionesTableTableManager(_db, _db.interacciones);
   $$NotasTableTableManager get notas =>
       $$NotasTableTableManager(_db, _db.notas);
 }

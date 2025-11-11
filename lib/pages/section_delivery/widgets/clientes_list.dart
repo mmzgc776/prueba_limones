@@ -10,7 +10,7 @@ class ClientesList extends StatelessWidget {
   final List<String> clientesEstado; // Estado: 'Rechazó', 'Pendiente', or ''
   final int? selectedClienteIndex;
   final Function(int) onClienteSelected;
-  final Function(int) onShowContactoSheet;
+  final Function(int) onShowInteraccionSheet;
   final Function() onResumeDelivery;
 
   const ClientesList({
@@ -22,7 +22,7 @@ class ClientesList extends StatelessWidget {
     required this.clientesEstado,
     required this.selectedClienteIndex,
     required this.onClienteSelected,
-    required this.onShowContactoSheet,
+    required this.onShowInteraccionSheet,
     required this.onResumeDelivery,
   }) : super(key: key);
 
@@ -67,7 +67,7 @@ class ClientesList extends StatelessWidget {
                           GestureDetector(
                             onTap: () {
                               if (paused) onResumeDelivery();
-                              onShowContactoSheet(index);
+                              onShowInteraccionSheet(index);
                             },
                             child: Icon(
                               clientesEstado[index] == 'Rechazó'

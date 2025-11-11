@@ -60,7 +60,7 @@ class Clientes extends Table {
   RealColumn get puntuacion => real().withDefault(const Constant(0.0))();
 }
 
-class Contactos extends Table {
+class Interacciones extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get clientId => integer()(); // FK a tabla de clientes
   TextColumn get result =>
@@ -77,12 +77,12 @@ class Notas extends Table {
   TextColumn get color => text()(); // Color de la etiqueta
 }
 
-@DriftDatabase(tables: [Sales, Deliveries, Clientes, Contactos, Notas])
+@DriftDatabase(tables: [Sales, Deliveries, Clientes, Interacciones, Notas])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,6 +109,13 @@ class AppDatabase extends _$AppDatabase {
       if (from == 12) {
         // Migration from v12 to v13: add Notas table
         await migrator.createTable(notas);
+      }
+
+      if (from == 13) {
+        // Migration from v13 to v14: rename Contactos to Interacciones
+        await migrator.issueCustomQuery(
+          'ALTER TABLE contactos RENAME TO interacciones;',
+        );
       }
     },
     onCreate: (migrator) async {
@@ -276,13 +283,13 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<int> insertContacto({
+  Future<int> insertInteraccion({
     required int clientId,
     required String result,
     required int deliveryId,
   }) {
-    return into(contactos).insert(
-      ContactosCompanion(
+    return into(interacciones).insert(
+      InteraccionesCompanion(
         clientId: Value(clientId),
         result: Value(result),
         deliveryId: Value(deliveryId),
