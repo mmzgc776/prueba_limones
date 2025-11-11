@@ -206,6 +206,29 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                           );
 
                       return DataRow(
+                        onSelectChanged: (selected) async {
+                          if (selected == true) {
+                            // Navigate to edit sale page when row is clicked
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditSalePage(
+                                  saleId: sale['id'],
+                                  deliveryNumber: widget
+                                      .deliveryRecord
+                                      .deliveryNumber,
+                                ),
+                              ),
+                            );
+
+                            // Refresh the view if sale was updated
+                            if (result == true) {
+                              setState(() {
+                                _loadDeliveryRecord();
+                              });
+                            }
+                          }
+                        },
                         cells: [
                           DataCell(Text(sale['id'].toString())),
                           DataCell(Text(sale['clientName'] ?? 'Desconocido')),
@@ -240,32 +263,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                             Row(
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  tooltip: 'Editar venta',
-                                  onPressed: () async {
-                                    // Navigate to edit sale page
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => EditSalePage(
-                                          saleId: sale['id'],
-                                          deliveryNumber: widget
-                                              .deliveryRecord
-                                              .deliveryNumber,
-                                        ),
-                                      ),
-                                    );
-
-                                    // Refresh the view if sale was updated
-                                    if (result == true) {
-                                      setState(() {
-                                        _loadDeliveryRecord();
-                                      });
-                                    }
-                                  },
-                                ),
-                                IconButton(
                                   icon: const Icon(Icons.save),
+                                  tooltip: 'Guardar cambios',
                                   onPressed: () async {
                                     final databaseService = DatabaseService();
                                     await databaseService.init();

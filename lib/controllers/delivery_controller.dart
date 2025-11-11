@@ -129,12 +129,27 @@ class DeliveryController with ChangeNotifier {
   }
 
   /// Reanuda un delivery específico
-  void resumeSpecificDelivery(int deliveryNumber) {
+  Future<void> resumeSpecificDelivery(int deliveryNumber) async {
+    // Load accumulated time from database if delivery already exists
+    try {
+      final existingDelivery = await _deliveryService.getDeliveryByNumber(deliveryNumber);
+      if (existingDelivery != null) {
+        _elapsedSeconds = existingDelivery.durationSeconds;
+        debugPrint('Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds');
+      } else {
+        _elapsedSeconds = 0;
+        debugPrint('Starting new delivery #$deliveryNumber from 0 seconds');
+      }
+    } catch (e) {
+      debugPrint('Error loading delivery time: $e');
+      _elapsedSeconds = 0;
+    }
+
     _started = true;
     _paused = false;
-    _elapsedSeconds = 0;
 
     _stateManager.startDelivery(deliveryNumber);
+    _stateManager.updateElapsedSeconds(_elapsedSeconds);
     _stateManager.updateClientesContactados(_clientesContactados);
     _stateManager.updateClientesEstado(_clientesEstado);
     _stateManager.updateSelectedClienteIndex(_selectedClienteIndex);
@@ -144,12 +159,62 @@ class DeliveryController with ChangeNotifier {
   }
 
   /// Pausa el delivery actual
-  void pauseDelivery() {
+  Future<void> pauseDelivery() async {
     _paused = true;
     _stateManager.pauseDelivery();
     _stateManager.updateElapsedSeconds(_elapsedSeconds);
     _stopTimer();
+
+    // Save current time to database when pausing
+    final deliveryNumber = _stateManager.getCurrentDeliveryNumber();
+    if (deliveryNumber != null) {
+      try {
+        await _saveCurrentDeliveryTime(deliveryNumber);
+        debugPrint('Saved delivery #$deliveryNumber time on pause: $_elapsedSeconds seconds');
+      } catch (e) {
+        debugPrint('Error saving delivery time on pause: $e');
+      }
+    }
+
     notifyListeners();
+  }
+
+  /// Guarda el tiempo actual del delivery en la base de datos
+  Future<void> _saveCurrentDeliveryTime(int deliveryNumber) async {
+    // Check if delivery already exists in database
+    final existingDelivery = await _deliveryService.getDeliveryByNumber(deliveryNumber);
+
+    if (existingDelivery != null) {
+      // Update existing delivery with current time
+      final stats = await _calculateDeliveryStats(deliveryNumber);
+      final record = DeliveryRecord(
+        deliveryNumber: deliveryNumber,
+        date: existingDelivery.date,
+        duration: Duration(seconds: _elapsedSeconds),
+        avgPrice: stats.avgPricePerKilo,
+        kilograms: stats.totalKilograms,
+        boxes: existingDelivery.boxes,
+        remaining: existingDelivery.remaining,
+        seller: existingDelivery.seller,
+        total: stats.totalAmount,
+      );
+      await _deliveryService.saveDeliveryToDatabase(record);
+    } else {
+      // Create new delivery entry with current time
+      final stats = await _calculateDeliveryStats(deliveryNumber);
+      final record = DeliveryRecord(
+        deliveryNumber: deliveryNumber,
+        date: DateTime.now(),
+        duration: Duration(seconds: _elapsedSeconds),
+        avgPrice: stats.avgPricePerKilo,
+        kilograms: stats.totalKilograms,
+        boxes: 0,
+        remaining: 0.0,
+        seller: "Default Seller",
+        total: stats.totalAmount,
+      );
+      await _deliveryService.saveDeliveryToDatabase(record);
+    }
   }
 
   /// Reanuda el delivery pausado

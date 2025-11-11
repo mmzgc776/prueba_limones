@@ -43,6 +43,17 @@ class DeliveryService {
     }
   }
 
+  // Get a specific delivery by number
+  Future<Delivery?> getDeliveryByNumber(int deliveryNumber) async {
+    try {
+      await init();
+      return await _dbService.getDeliveryByNumber(deliveryNumber);
+    } catch (e) {
+      debugPrint('Error getting delivery #$deliveryNumber: $e');
+      return null;
+    }
+  }
+
   // Load delivery records from the database
   Future<List<DeliveryRecord>> loadDeliveryRecords() async {
     try {

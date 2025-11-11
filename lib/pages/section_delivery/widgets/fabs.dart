@@ -10,7 +10,7 @@ class FABs extends StatelessWidget {
   final List<bool> clientesContactados;
   final int? selectedClienteIndex;
   final Function() onStartDelivery;
-  final Function() onPauseDelivery;
+  final Future<void> Function() onPauseDelivery;
   final Function() onResumeDelivery;
   final Function() onEndDelivery;
   final Function() onDebugContactos;

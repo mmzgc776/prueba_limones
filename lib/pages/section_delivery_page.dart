@@ -50,7 +50,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
 
       // Si se está reanudando un reparto, iniciarlo automáticamente
       if (widget.resumeDeliveryNumber != null) {
-        _controller.resumeSpecificDelivery(widget.resumeDeliveryNumber!);
+        await _controller.resumeSpecificDelivery(widget.resumeDeliveryNumber!);
       }
 
       /* ScaffoldMessenger.of(context).showSnackBar(
@@ -117,7 +117,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
             return WillPopScope(
               onWillPop: () async {
                 if (_controller.started && !_controller.paused) {
-                  _controller.pauseDelivery();
+                  await _controller.pauseDelivery();
                 }
                 return true;
               },
