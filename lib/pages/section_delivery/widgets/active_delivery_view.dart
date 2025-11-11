@@ -4,8 +4,9 @@ import '../delivery_record.dart';
 import 'cliente_info_card.dart';
 import 'clientes_list.dart';
 import 'timer_display.dart';
+import 'delivery_progress_view.dart';
 
-class ActiveDeliveryView extends StatelessWidget {
+class ActiveDeliveryView extends StatefulWidget {
   final bool started;
   final bool paused;
   final String formattedTime;
@@ -32,26 +33,86 @@ class ActiveDeliveryView extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<ActiveDeliveryView> createState() => _ActiveDeliveryViewState();
+}
+
+class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Stack(
+    return Column(
       children: [
-        ClienteInfoCard(
-          selectedClienteIndex: selectedClienteIndex,
-          started: started,
-          clientes: clientes,
+        // Pestañas
+        Material(
+          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: Theme.of(context).primaryColor,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Theme.of(context).primaryColor,
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.people),
+                text: 'Clientes',
+              ),
+              Tab(
+                icon: Icon(Icons.assessment),
+                text: 'Progreso',
+              ),
+            ],
+          ),
         ),
-        ClientesList(
-          started: started,
-          paused: paused,
-          clientes: clientes,
-          clientesContactados: clientesContactados,
-          clientesEstado: clientesEstado,
-          selectedClienteIndex: selectedClienteIndex,
-          onClienteSelected: onClienteSelected,
-          onShowContactoSheet: onShowContactoSheet,
-          onResumeDelivery: onResumeDelivery,
+
+        // Contenido de las pestañas
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              // Primera pestaña: Vista original de clientes
+              Stack(
+                children: [
+                  ClienteInfoCard(
+                    selectedClienteIndex: widget.selectedClienteIndex,
+                    started: widget.started,
+                    clientes: widget.clientes,
+                  ),
+                  ClientesList(
+                    started: widget.started,
+                    paused: widget.paused,
+                    clientes: widget.clientes,
+                    clientesContactados: widget.clientesContactados,
+                    clientesEstado: widget.clientesEstado,
+                    selectedClienteIndex: widget.selectedClienteIndex,
+                    onClienteSelected: widget.onClienteSelected,
+                    onShowContactoSheet: widget.onShowContactoSheet,
+                    onResumeDelivery: widget.onResumeDelivery,
+                  ),
+                  TimerDisplay(
+                    started: widget.started,
+                    formattedTime: widget.formattedTime,
+                  ),
+                ],
+              ),
+
+              // Segunda pestaña: Vista de progreso del reparto
+              const DeliveryProgressView(),
+            ],
+          ),
         ),
-        TimerDisplay(started: started, formattedTime: formattedTime),
       ],
     );
   }

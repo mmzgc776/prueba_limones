@@ -902,6 +902,14 @@ class DatabaseService {
         .get();
   }
 
+  /// Obtiene todos los contactos de un delivery específico
+  Future<List<Contacto>> getContactosByDeliveryNumber(int deliveryNumber) async {
+    _ensureInitialized();
+    return await (_db!.select(_db!.contactos)
+          ..where((tbl) => tbl.deliveryId.equals(deliveryNumber)))
+        .get();
+  }
+
   /// Obtiene los IDs de los clientes de las últimas 20 ventas
   Future<List<int>> getLast10SalesClientIds() async {
     _ensureInitialized();
