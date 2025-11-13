@@ -36,6 +36,13 @@ class DeliveryController with ChangeNotifier {
   int? get selectedClienteIndex => _selectedClienteIndex;
   List<DeliveryRecord> get deliveryRecords => _deliveryRecords;
 
+  /// Devuelve el número de delivery actual (si hay uno activo) o un número
+  /// calculado como siguiente disponible a partir de los registros guardados.
+  int getCurrentDeliveryNumber() {
+    return _stateManager.getCurrentDeliveryNumber() ??
+        (_deliveryRecords.length + 1);
+  }
+
   String get formattedTime {
     final hours = (_elapsedSeconds ~/ 3600).toString().padLeft(2, '0');
     final minutes = ((_elapsedSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -134,10 +141,14 @@ class DeliveryController with ChangeNotifier {
   Future<void> resumeSpecificDelivery(int deliveryNumber) async {
     // Load accumulated time from database if delivery already exists
     try {
-      final existingDelivery = await _deliveryService.getDeliveryByNumber(deliveryNumber);
+      final existingDelivery = await _deliveryService.getDeliveryByNumber(
+        deliveryNumber,
+      );
       if (existingDelivery != null) {
         _elapsedSeconds = existingDelivery.durationSeconds;
-        debugPrint('Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds');
+        debugPrint(
+          'Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds',
+        );
       } else {
         _elapsedSeconds = 0;
         debugPrint('Starting new delivery #$deliveryNumber from 0 seconds');
@@ -172,7 +183,9 @@ class DeliveryController with ChangeNotifier {
     if (deliveryNumber != null) {
       try {
         await _saveCurrentDeliveryTime(deliveryNumber);
-        debugPrint('Saved delivery #$deliveryNumber time on pause: $_elapsedSeconds seconds');
+        debugPrint(
+          'Saved delivery #$deliveryNumber time on pause: $_elapsedSeconds seconds',
+        );
       } catch (e) {
         debugPrint('Error saving delivery time on pause: $e');
       }
@@ -184,7 +197,9 @@ class DeliveryController with ChangeNotifier {
   /// Guarda el tiempo actual del delivery en la base de datos
   Future<void> _saveCurrentDeliveryTime(int deliveryNumber) async {
     // Check if delivery already exists in database
-    final existingDelivery = await _deliveryService.getDeliveryByNumber(deliveryNumber);
+    final existingDelivery = await _deliveryService.getDeliveryByNumber(
+      deliveryNumber,
+    );
 
     if (existingDelivery != null) {
       // Update existing delivery with current time
@@ -288,15 +303,10 @@ class DeliveryController with ChangeNotifier {
   ) async {
     _deliveryRecords.add(record);
 
-    await Future.wait([
-      _deliveryService.saveDeliveryToDatabase(record),
-      _deliveryService.saveInteraccionesToDatabase(
-        record.deliveryNumber,
-        clientes,
-        _clientesContactados,
-        _clientesEstado,
-      ),
-    ]);
+    // Guardamos sólo el registro del delivery aquí. Las interacciones
+    // se insertan inmediatamente cuando se capturan (insertInteraccionImmediate),
+    // para evitar duplicados y permitir análisis en tiempo real.
+    await _deliveryService.saveDeliveryToDatabase(record);
   }
 
   /// Guarda un registro vacío en caso de error

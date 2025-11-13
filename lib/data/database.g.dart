@@ -2322,8 +2322,25 @@ class $InteraccionesTable extends Interacciones
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, clientId, result, deliveryId];
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    clientId,
+    result,
+    deliveryId,
+    timestamp,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2363,6 +2380,14 @@ class $InteraccionesTable extends Interacciones
     } else if (isInserting) {
       context.missing(_deliveryIdMeta);
     }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
     return context;
   }
 
@@ -2388,6 +2413,10 @@ class $InteraccionesTable extends Interacciones
         DriftSqlType.int,
         data['${effectivePrefix}delivery_id'],
       )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
     );
   }
 
@@ -2402,11 +2431,13 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
   final int clientId;
   final String result;
   final int deliveryId;
+  final DateTime timestamp;
   const Interaccione({
     required this.id,
     required this.clientId,
     required this.result,
     required this.deliveryId,
+    required this.timestamp,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2415,6 +2446,7 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
     map['client_id'] = Variable<int>(clientId);
     map['result'] = Variable<String>(result);
     map['delivery_id'] = Variable<int>(deliveryId);
+    map['timestamp'] = Variable<DateTime>(timestamp);
     return map;
   }
 
@@ -2424,6 +2456,7 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
       clientId: Value(clientId),
       result: Value(result),
       deliveryId: Value(deliveryId),
+      timestamp: Value(timestamp),
     );
   }
 
@@ -2437,6 +2470,7 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
       clientId: serializer.fromJson<int>(json['clientId']),
       result: serializer.fromJson<String>(json['result']),
       deliveryId: serializer.fromJson<int>(json['deliveryId']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
     );
   }
   @override
@@ -2447,6 +2481,7 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
       'clientId': serializer.toJson<int>(clientId),
       'result': serializer.toJson<String>(result),
       'deliveryId': serializer.toJson<int>(deliveryId),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
     };
   }
 
@@ -2455,11 +2490,13 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
     int? clientId,
     String? result,
     int? deliveryId,
+    DateTime? timestamp,
   }) => Interaccione(
     id: id ?? this.id,
     clientId: clientId ?? this.clientId,
     result: result ?? this.result,
     deliveryId: deliveryId ?? this.deliveryId,
+    timestamp: timestamp ?? this.timestamp,
   );
   Interaccione copyWithCompanion(InteraccionesCompanion data) {
     return Interaccione(
@@ -2469,6 +2506,7 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
       deliveryId: data.deliveryId.present
           ? data.deliveryId.value
           : this.deliveryId,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
     );
   }
 
@@ -2478,13 +2516,14 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
           ..write('result: $result, ')
-          ..write('deliveryId: $deliveryId')
+          ..write('deliveryId: $deliveryId, ')
+          ..write('timestamp: $timestamp')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, clientId, result, deliveryId);
+  int get hashCode => Object.hash(id, clientId, result, deliveryId, timestamp);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2492,7 +2531,8 @@ class Interaccione extends DataClass implements Insertable<Interaccione> {
           other.id == this.id &&
           other.clientId == this.clientId &&
           other.result == this.result &&
-          other.deliveryId == this.deliveryId);
+          other.deliveryId == this.deliveryId &&
+          other.timestamp == this.timestamp);
 }
 
 class InteraccionesCompanion extends UpdateCompanion<Interaccione> {
@@ -2500,31 +2540,37 @@ class InteraccionesCompanion extends UpdateCompanion<Interaccione> {
   final Value<int> clientId;
   final Value<String> result;
   final Value<int> deliveryId;
+  final Value<DateTime> timestamp;
   const InteraccionesCompanion({
     this.id = const Value.absent(),
     this.clientId = const Value.absent(),
     this.result = const Value.absent(),
     this.deliveryId = const Value.absent(),
+    this.timestamp = const Value.absent(),
   });
   InteraccionesCompanion.insert({
     this.id = const Value.absent(),
     required int clientId,
     required String result,
     required int deliveryId,
+    required DateTime timestamp,
   }) : clientId = Value(clientId),
        result = Value(result),
-       deliveryId = Value(deliveryId);
+       deliveryId = Value(deliveryId),
+       timestamp = Value(timestamp);
   static Insertable<Interaccione> custom({
     Expression<int>? id,
     Expression<int>? clientId,
     Expression<String>? result,
     Expression<int>? deliveryId,
+    Expression<DateTime>? timestamp,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (clientId != null) 'client_id': clientId,
       if (result != null) 'result': result,
       if (deliveryId != null) 'delivery_id': deliveryId,
+      if (timestamp != null) 'timestamp': timestamp,
     });
   }
 
@@ -2533,12 +2579,14 @@ class InteraccionesCompanion extends UpdateCompanion<Interaccione> {
     Value<int>? clientId,
     Value<String>? result,
     Value<int>? deliveryId,
+    Value<DateTime>? timestamp,
   }) {
     return InteraccionesCompanion(
       id: id ?? this.id,
       clientId: clientId ?? this.clientId,
       result: result ?? this.result,
       deliveryId: deliveryId ?? this.deliveryId,
+      timestamp: timestamp ?? this.timestamp,
     );
   }
 
@@ -2557,6 +2605,9 @@ class InteraccionesCompanion extends UpdateCompanion<Interaccione> {
     if (deliveryId.present) {
       map['delivery_id'] = Variable<int>(deliveryId.value);
     }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
     return map;
   }
 
@@ -2566,7 +2617,8 @@ class InteraccionesCompanion extends UpdateCompanion<Interaccione> {
           ..write('id: $id, ')
           ..write('clientId: $clientId, ')
           ..write('result: $result, ')
-          ..write('deliveryId: $deliveryId')
+          ..write('deliveryId: $deliveryId, ')
+          ..write('timestamp: $timestamp')
           ..write(')'))
         .toString();
   }
@@ -3997,6 +4049,7 @@ typedef $$InteraccionesTableCreateCompanionBuilder =
       required int clientId,
       required String result,
       required int deliveryId,
+      required DateTime timestamp,
     });
 typedef $$InteraccionesTableUpdateCompanionBuilder =
     InteraccionesCompanion Function({
@@ -4004,6 +4057,7 @@ typedef $$InteraccionesTableUpdateCompanionBuilder =
       Value<int> clientId,
       Value<String> result,
       Value<int> deliveryId,
+      Value<DateTime> timestamp,
     });
 
 class $$InteraccionesTableFilterComposer
@@ -4032,6 +4086,11 @@ class $$InteraccionesTableFilterComposer
 
   ColumnFilters<int> get deliveryId => $composableBuilder(
     column: $table.deliveryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4064,6 +4123,11 @@ class $$InteraccionesTableOrderingComposer
     column: $table.deliveryId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$InteraccionesTableAnnotationComposer
@@ -4088,6 +4152,9 @@ class $$InteraccionesTableAnnotationComposer
     column: $table.deliveryId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
 }
 
 class $$InteraccionesTableTableManager
@@ -4125,11 +4192,13 @@ class $$InteraccionesTableTableManager
                 Value<int> clientId = const Value.absent(),
                 Value<String> result = const Value.absent(),
                 Value<int> deliveryId = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
               }) => InteraccionesCompanion(
                 id: id,
                 clientId: clientId,
                 result: result,
                 deliveryId: deliveryId,
+                timestamp: timestamp,
               ),
           createCompanionCallback:
               ({
@@ -4137,11 +4206,13 @@ class $$InteraccionesTableTableManager
                 required int clientId,
                 required String result,
                 required int deliveryId,
+                required DateTime timestamp,
               }) => InteraccionesCompanion.insert(
                 id: id,
                 clientId: clientId,
                 result: result,
                 deliveryId: deliveryId,
+                timestamp: timestamp,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -66,6 +66,7 @@ class Interacciones extends Table {
   TextColumn get result =>
       text()(); // "Venta", "Rechazó", "Pendiente", "Encargó"
   IntColumn get deliveryId => integer()(); // FK a tabla de entregas
+  DateTimeColumn get timestamp => dateTime()();
 }
 
 class Notas extends Table {
@@ -82,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -115,6 +116,18 @@ class AppDatabase extends _$AppDatabase {
         // Migration from v13 to v14: rename Contactos to Interacciones
         await migrator.issueCustomQuery(
           'ALTER TABLE contactos RENAME TO interacciones;',
+        );
+      }
+      if (from == 14) {
+        // Migration v14 -> v15: add timestamp column to interacciones
+        // SQLite does not allow non-constant expressions as DEFAULT values
+        // in ALTER TABLE. We add the column (nullable), then populate it
+        // for existing rows with the current datetime.
+        await migrator.issueCustomQuery(
+          "ALTER TABLE interacciones ADD COLUMN timestamp TEXT;",
+        );
+        await migrator.issueCustomQuery(
+          "UPDATE interacciones SET timestamp = strftime('%Y-%m-%dT%H:%M:%f','now') WHERE timestamp IS NULL;",
         );
       }
     },
@@ -287,12 +300,14 @@ class AppDatabase extends _$AppDatabase {
     required int clientId,
     required String result,
     required int deliveryId,
+    DateTime? timestamp,
   }) {
     return into(interacciones).insert(
       InteraccionesCompanion(
         clientId: Value(clientId),
         result: Value(result),
         deliveryId: Value(deliveryId),
+        timestamp: Value(timestamp ?? DateTime.now()),
       ),
     );
   }

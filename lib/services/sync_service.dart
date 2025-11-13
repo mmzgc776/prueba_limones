@@ -74,7 +74,7 @@ class SyncService {
           await _databaseService.syncInteraccionesUnified(
             context: context,
             spreadsheetId: _spreadsheetId,
-            range: 'Interacciones!A1:D',
+            range: 'Interacciones!A1:E',
           );
           return SyncResult.success('Interacciones sincronizadas exitosamente');
 

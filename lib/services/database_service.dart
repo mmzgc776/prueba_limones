@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../data/database.dart';
 import 'google_sheets_service.dart';
-import '../pages/logs_page.dart';
 
 /// Servicio principal para operaciones de base de datos
 /// Maneja todas las operaciones CRUD y sincronización con Google Sheets
@@ -156,13 +155,9 @@ class DatabaseService {
     final previousDeliveryNumber = sale.deliveryNumber;
 
     // Desasignar la venta (poner deliveryNumber en null)
-    final result = await (_db!.update(
-      _db!.sales,
-    )..where((tbl) => tbl.id.equals(saleId))).write(
-      SalesCompanion(
-        deliveryNumber: Value(null),
-      ),
-    );
+    final result =
+        await (_db!.update(_db!.sales)..where((tbl) => tbl.id.equals(saleId)))
+            .write(SalesCompanion(deliveryNumber: Value(null)));
 
     // Recalcular las estadísticas del delivery del cual se desasignó
     if (previousDeliveryNumber != null) {
@@ -262,11 +257,35 @@ class DatabaseService {
   /// Obtiene un delivery específico por número
   Future<Delivery?> getDeliveryByNumber(int deliveryNumber) async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.deliveries,
-    )..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber)))
+    return await (_db!.select(_db!.deliveries)
+          ..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber)))
         .getSingleOrNull();
   }
+
+  /// Devuelve la fila cruda de un delivery (sin mapeo de Drift).
+  /// Útil como fallback cuando el mapeo generado por Drift falla
+  /// por datos corruptos (por ejemplo, una cadena en una columna numérica).
+  Future<Map<String, dynamic>?> getDeliveryRawByNumber(
+    int deliveryNumber,
+  ) async {
+    _ensureInitialized();
+    final query = await _db!
+        .customSelect(
+          'SELECT * FROM deliveries WHERE delivery_number = ? LIMIT 1',
+          variables: [Variable.withInt(deliveryNumber)],
+        )
+        .getSingleOrNull();
+
+    return query?.data;
+  }
+
+  /// Intenta corregir filas corruptas en la tabla `deliveries` donde
+  /// `duration_seconds` contiene texto/timestamps (p. ej. '2025-...').
+  /// Establece duration_seconds = 0 para las filas que aparentan contener
+  /// un timestamp (contienen 'T' o '-'), o cuyo tipo SQLite es TEXT.
+  // NOTE: fixCorruptDeliveryDurations was a temporary helper to repair
+  // corrupted rows where `duration_seconds` contained timestamp strings.
+  // It has been removed now that the data appears clean in production.
 
   /// Actualiza un delivery existente
   Future<int> updateDelivery({
@@ -866,29 +885,21 @@ class DatabaseService {
     }
   }
 
-  /// Cuenta campos no vacíos en una fila
-  int _countNonEmptyFields(List<Object?> row) {
-    return row
-        .where(
-          (field) =>
-              field != null &&
-              field.toString().isNotEmpty &&
-              field.toString() != '0',
-        )
-        .length;
-  }
+  // (removed unused helper _countNonEmptyFields)
 
   /// Inserta un registro de interacción
   Future<int> insertInteraccion({
     required int clientId,
     required String result,
     required int deliveryId,
+    DateTime? timestamp,
   }) async {
     _ensureInitialized();
     return await _db!.insertInteraccion(
       clientId: clientId,
       result: result,
       deliveryId: deliveryId,
+      timestamp: timestamp,
     );
   }
 
@@ -903,11 +914,13 @@ class DatabaseService {
   }
 
   /// Obtiene todas las interacciones de un delivery específico
-  Future<List<Interaccione>> getInteraccionesByDeliveryNumber(int deliveryNumber) async {
+  Future<List<Interaccione>> getInteraccionesByDeliveryNumber(
+    int deliveryNumber,
+  ) async {
     _ensureInitialized();
-    return await (_db!.select(_db!.interacciones)
-          ..where((tbl) => tbl.deliveryId.equals(deliveryNumber)))
-        .get();
+    return await (_db!.select(
+      _db!.interacciones,
+    )..where((tbl) => tbl.deliveryId.equals(deliveryNumber))).get();
   }
 
   /// Obtiene los IDs de los clientes de las últimas 20 ventas
@@ -994,9 +1007,9 @@ class DatabaseService {
 
         // Si la nota tiene una venta asociada, obtener sus datos
         if (nota.ventaId != null) {
-          final venta = await (_db!.select(_db!.sales)
-                ..where((tbl) => tbl.id.equals(nota.ventaId!)))
-              .getSingleOrNull();
+          final venta = await (_db!.select(
+            _db!.sales,
+          )..where((tbl) => tbl.id.equals(nota.ventaId!))).getSingleOrNull();
           if (venta != null) {
             map['venta'] = venta;
             map['ventaTotal'] = venta.total;
@@ -1091,13 +1104,7 @@ class DatabaseService {
         updatedData.add(sheetData[0]); // Conservar cabeceras existentes
       } else {
         // Si no hay cabeceras, agregar las cabeceras por defecto
-        updatedData.add([
-          'id',
-          'nota',
-          'client_id',
-          'venta_id',
-          'color',
-        ]);
+        updatedData.add(['id', 'nota', 'client_id', 'venta_id', 'color']);
       }
 
       for (var nota in localNotas) {
@@ -1158,15 +1165,20 @@ class DatabaseService {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
-        if (row.isEmpty || row.length < 4 || row[0] == null) continue;
+        if (row.isEmpty || row.length < 5 || row[0] == null) continue;
         try {
           final interaccion = InteraccionesCompanion(
             id: Value(int.parse(row[0].toString())),
             clientId: Value(int.parse(row[1].toString())),
             result: Value(row[2].toString()),
             deliveryId: Value(int.parse(row[3].toString())),
+            timestamp: Value(
+              DateTime.tryParse(row[4].toString()) ?? DateTime.now(),
+            ),
           );
-          await _db!.into(_db!.interacciones).insertOnConflictUpdate(interaccion);
+          await _db!
+              .into(_db!.interacciones)
+              .insertOnConflictUpdate(interaccion);
         } catch (e) {
           print('Error procesando fila de interacción: $row, error: $e');
         }
@@ -1183,6 +1195,7 @@ class DatabaseService {
           'client_id',
           'result',
           'delivery_id',
+          'timestamp',
         ]);
       }
 
@@ -1192,6 +1205,7 @@ class DatabaseService {
           interaccion.clientId,
           interaccion.result,
           interaccion.deliveryId,
+          interaccion.timestamp.toString(),
         ]);
       }
 

@@ -82,6 +82,18 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
 
   void _handleInteraccionAction(String action, int index) {
     _controller.updateContactoStatus(index, true, action);
+    // Insertar la interacción de forma inmediata en la base de datos
+    try {
+      final deliveryNumber = _controller.getCurrentDeliveryNumber();
+      _deliveryService.insertInteraccionImmediate(
+        deliveryId: deliveryNumber,
+        clientId: _clientes[index].id,
+        result: action,
+      );
+    } catch (e) {
+      // No bloqueamos la navegación UX por errores de inserción; sólo logueamos
+      debugPrint('Error al insertar interacción inmediata: $e');
+    }
     if (action == 'Venta') {
       Navigator.push(
         context,

@@ -49,6 +49,52 @@ class DeliveryService {
       await init();
       return await _dbService.getDeliveryByNumber(deliveryNumber);
     } catch (e) {
+      // Drift can throw a FormatException when a column contains
+      // an unexpected string (e.g. a timestamp in a numeric column).
+      // In that case try to read the raw row and coerce values safely.
+      if (e is FormatException) {
+        debugPrint(
+          'FormatException reading delivery #$deliveryNumber: $e. Attempting raw fallback.',
+        );
+        try {
+          final raw = await _dbService.getDeliveryRawByNumber(deliveryNumber);
+          if (raw == null) return null;
+
+          final dn =
+              int.tryParse(raw['delivery_number']?.toString() ?? '') ??
+              deliveryNumber;
+          final date =
+              DateTime.tryParse(raw['date']?.toString() ?? '') ??
+              DateTime.now();
+          final durationSeconds =
+              int.tryParse(raw['duration_seconds']?.toString() ?? '') ?? 0;
+          final avgPrice =
+              double.tryParse(raw['avg_price']?.toString() ?? '') ?? 0.0;
+          final kilograms =
+              double.tryParse(raw['kilograms']?.toString() ?? '') ?? 0.0;
+          final boxes = int.tryParse(raw['boxes']?.toString() ?? '') ?? 0;
+          final remaining =
+              double.tryParse(raw['remaining']?.toString() ?? '') ?? 0.0;
+          final seller = raw['seller']?.toString() ?? '';
+          final total = double.tryParse(raw['total']?.toString() ?? '') ?? 0.0;
+
+          return Delivery(
+            deliveryNumber: dn,
+            date: date,
+            durationSeconds: durationSeconds,
+            avgPrice: avgPrice,
+            kilograms: kilograms,
+            boxes: boxes,
+            remaining: remaining,
+            seller: seller,
+            total: total,
+          );
+        } catch (e2) {
+          debugPrint('Raw fallback failed for delivery #$deliveryNumber: $e2');
+          return null;
+        }
+      }
+
       debugPrint('Error getting delivery #$deliveryNumber: $e');
       return null;
     }
@@ -76,7 +122,9 @@ class DeliveryService {
           .toList();
 
       // Sort in descending order (most recent first)
-      deliveryRecords.sort((a, b) => b.deliveryNumber.compareTo(a.deliveryNumber));
+      deliveryRecords.sort(
+        (a, b) => b.deliveryNumber.compareTo(a.deliveryNumber),
+      );
 
       return deliveryRecords;
     } catch (e) {
@@ -97,9 +145,7 @@ class DeliveryService {
 
       if (existingDelivery != null) {
         // Si existe, actualizar
-        debugPrint(
-          'Actualizando delivery existente #${record.deliveryNumber}',
-        );
+        debugPrint('Actualizando delivery existente #${record.deliveryNumber}');
         await _dbService.updateDelivery(
           deliveryNumber: record.deliveryNumber,
           date: record.date,
@@ -187,6 +233,27 @@ class DeliveryService {
     } catch (e) {
       debugPrint('Error fetching interaction records: $e');
       throw Exception('Error al obtener los registros de interacciones');
+    }
+  }
+
+  /// Inserta una interacción individualmente (usa DatabaseService)
+  Future<void> insertInteraccionImmediate({
+    required int deliveryId,
+    required int clientId,
+    required String result,
+    DateTime? timestamp,
+  }) async {
+    try {
+      await init();
+      await _dbService.insertInteraccion(
+        clientId: clientId,
+        result: result,
+        deliveryId: deliveryId,
+        timestamp: timestamp ?? DateTime.now(),
+      );
+    } catch (e) {
+      debugPrint('Error inserting interaccion immediate: $e');
+      throw Exception('Error al insertar interacción');
     }
   }
 
