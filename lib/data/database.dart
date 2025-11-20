@@ -78,12 +78,33 @@ class Notas extends Table {
   TextColumn get color => text()(); // Color de la etiqueta
 }
 
-@DriftDatabase(tables: [Sales, Deliveries, Clientes, Interacciones, Notas])
+class PersistentDeliveryStates extends Table {
+  TextColumn get id => text()(); // Usaremos un ID fijo como 'current'
+  DateTimeColumn get startTime => dateTime().nullable()();
+  BoolColumn get isPaused => boolean()();
+  IntColumn get elapsedSeconds => integer()();
+  BoolColumn get isActive => boolean()();
+  IntColumn get deliveryNumber => integer().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(
+  tables: [
+    Sales,
+    Deliveries,
+    Clientes,
+    Interacciones,
+    Notas,
+    PersistentDeliveryStates,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -129,6 +150,11 @@ class AppDatabase extends _$AppDatabase {
         await migrator.issueCustomQuery(
           "UPDATE interacciones SET timestamp = strftime('%Y-%m-%dT%H:%M:%f','now') WHERE timestamp IS NULL;",
         );
+      }
+
+      if (from == 15) {
+        // Migration v15 -> v16: add PersistentDeliveryStates table
+        await migrator.createTable(persistentDeliveryStates);
       }
     },
     onCreate: (migrator) async {

@@ -2966,6 +2966,449 @@ class NotasCompanion extends UpdateCompanion<Nota> {
   }
 }
 
+class $PersistentDeliveryStatesTable extends PersistentDeliveryStates
+    with TableInfo<$PersistentDeliveryStatesTable, PersistentDeliveryState> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PersistentDeliveryStatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startTimeMeta = const VerificationMeta(
+    'startTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startTime = GeneratedColumn<DateTime>(
+    'start_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isPausedMeta = const VerificationMeta(
+    'isPaused',
+  );
+  @override
+  late final GeneratedColumn<bool> isPaused = GeneratedColumn<bool>(
+    'is_paused',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_paused" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _elapsedSecondsMeta = const VerificationMeta(
+    'elapsedSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> elapsedSeconds = GeneratedColumn<int>(
+    'elapsed_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _deliveryNumberMeta = const VerificationMeta(
+    'deliveryNumber',
+  );
+  @override
+  late final GeneratedColumn<int> deliveryNumber = GeneratedColumn<int>(
+    'delivery_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    startTime,
+    isPaused,
+    elapsedSeconds,
+    isActive,
+    deliveryNumber,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'persistent_delivery_states';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PersistentDeliveryState> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('start_time')) {
+      context.handle(
+        _startTimeMeta,
+        startTime.isAcceptableOrUnknown(data['start_time']!, _startTimeMeta),
+      );
+    }
+    if (data.containsKey('is_paused')) {
+      context.handle(
+        _isPausedMeta,
+        isPaused.isAcceptableOrUnknown(data['is_paused']!, _isPausedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isPausedMeta);
+    }
+    if (data.containsKey('elapsed_seconds')) {
+      context.handle(
+        _elapsedSecondsMeta,
+        elapsedSeconds.isAcceptableOrUnknown(
+          data['elapsed_seconds']!,
+          _elapsedSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_elapsedSecondsMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isActiveMeta);
+    }
+    if (data.containsKey('delivery_number')) {
+      context.handle(
+        _deliveryNumberMeta,
+        deliveryNumber.isAcceptableOrUnknown(
+          data['delivery_number']!,
+          _deliveryNumberMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PersistentDeliveryState map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PersistentDeliveryState(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      startTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_time'],
+      ),
+      isPaused: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_paused'],
+      )!,
+      elapsedSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}elapsed_seconds'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      deliveryNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}delivery_number'],
+      ),
+    );
+  }
+
+  @override
+  $PersistentDeliveryStatesTable createAlias(String alias) {
+    return $PersistentDeliveryStatesTable(attachedDatabase, alias);
+  }
+}
+
+class PersistentDeliveryState extends DataClass
+    implements Insertable<PersistentDeliveryState> {
+  final String id;
+  final DateTime? startTime;
+  final bool isPaused;
+  final int elapsedSeconds;
+  final bool isActive;
+  final int? deliveryNumber;
+  const PersistentDeliveryState({
+    required this.id,
+    this.startTime,
+    required this.isPaused,
+    required this.elapsedSeconds,
+    required this.isActive,
+    this.deliveryNumber,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || startTime != null) {
+      map['start_time'] = Variable<DateTime>(startTime);
+    }
+    map['is_paused'] = Variable<bool>(isPaused);
+    map['elapsed_seconds'] = Variable<int>(elapsedSeconds);
+    map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || deliveryNumber != null) {
+      map['delivery_number'] = Variable<int>(deliveryNumber);
+    }
+    return map;
+  }
+
+  PersistentDeliveryStatesCompanion toCompanion(bool nullToAbsent) {
+    return PersistentDeliveryStatesCompanion(
+      id: Value(id),
+      startTime: startTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startTime),
+      isPaused: Value(isPaused),
+      elapsedSeconds: Value(elapsedSeconds),
+      isActive: Value(isActive),
+      deliveryNumber: deliveryNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deliveryNumber),
+    );
+  }
+
+  factory PersistentDeliveryState.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PersistentDeliveryState(
+      id: serializer.fromJson<String>(json['id']),
+      startTime: serializer.fromJson<DateTime?>(json['startTime']),
+      isPaused: serializer.fromJson<bool>(json['isPaused']),
+      elapsedSeconds: serializer.fromJson<int>(json['elapsedSeconds']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      deliveryNumber: serializer.fromJson<int?>(json['deliveryNumber']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'startTime': serializer.toJson<DateTime?>(startTime),
+      'isPaused': serializer.toJson<bool>(isPaused),
+      'elapsedSeconds': serializer.toJson<int>(elapsedSeconds),
+      'isActive': serializer.toJson<bool>(isActive),
+      'deliveryNumber': serializer.toJson<int?>(deliveryNumber),
+    };
+  }
+
+  PersistentDeliveryState copyWith({
+    String? id,
+    Value<DateTime?> startTime = const Value.absent(),
+    bool? isPaused,
+    int? elapsedSeconds,
+    bool? isActive,
+    Value<int?> deliveryNumber = const Value.absent(),
+  }) => PersistentDeliveryState(
+    id: id ?? this.id,
+    startTime: startTime.present ? startTime.value : this.startTime,
+    isPaused: isPaused ?? this.isPaused,
+    elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+    isActive: isActive ?? this.isActive,
+    deliveryNumber: deliveryNumber.present
+        ? deliveryNumber.value
+        : this.deliveryNumber,
+  );
+  PersistentDeliveryState copyWithCompanion(
+    PersistentDeliveryStatesCompanion data,
+  ) {
+    return PersistentDeliveryState(
+      id: data.id.present ? data.id.value : this.id,
+      startTime: data.startTime.present ? data.startTime.value : this.startTime,
+      isPaused: data.isPaused.present ? data.isPaused.value : this.isPaused,
+      elapsedSeconds: data.elapsedSeconds.present
+          ? data.elapsedSeconds.value
+          : this.elapsedSeconds,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      deliveryNumber: data.deliveryNumber.present
+          ? data.deliveryNumber.value
+          : this.deliveryNumber,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersistentDeliveryState(')
+          ..write('id: $id, ')
+          ..write('startTime: $startTime, ')
+          ..write('isPaused: $isPaused, ')
+          ..write('elapsedSeconds: $elapsedSeconds, ')
+          ..write('isActive: $isActive, ')
+          ..write('deliveryNumber: $deliveryNumber')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    startTime,
+    isPaused,
+    elapsedSeconds,
+    isActive,
+    deliveryNumber,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PersistentDeliveryState &&
+          other.id == this.id &&
+          other.startTime == this.startTime &&
+          other.isPaused == this.isPaused &&
+          other.elapsedSeconds == this.elapsedSeconds &&
+          other.isActive == this.isActive &&
+          other.deliveryNumber == this.deliveryNumber);
+}
+
+class PersistentDeliveryStatesCompanion
+    extends UpdateCompanion<PersistentDeliveryState> {
+  final Value<String> id;
+  final Value<DateTime?> startTime;
+  final Value<bool> isPaused;
+  final Value<int> elapsedSeconds;
+  final Value<bool> isActive;
+  final Value<int?> deliveryNumber;
+  final Value<int> rowid;
+  const PersistentDeliveryStatesCompanion({
+    this.id = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.isPaused = const Value.absent(),
+    this.elapsedSeconds = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.deliveryNumber = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PersistentDeliveryStatesCompanion.insert({
+    required String id,
+    this.startTime = const Value.absent(),
+    required bool isPaused,
+    required int elapsedSeconds,
+    required bool isActive,
+    this.deliveryNumber = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       isPaused = Value(isPaused),
+       elapsedSeconds = Value(elapsedSeconds),
+       isActive = Value(isActive);
+  static Insertable<PersistentDeliveryState> custom({
+    Expression<String>? id,
+    Expression<DateTime>? startTime,
+    Expression<bool>? isPaused,
+    Expression<int>? elapsedSeconds,
+    Expression<bool>? isActive,
+    Expression<int>? deliveryNumber,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (startTime != null) 'start_time': startTime,
+      if (isPaused != null) 'is_paused': isPaused,
+      if (elapsedSeconds != null) 'elapsed_seconds': elapsedSeconds,
+      if (isActive != null) 'is_active': isActive,
+      if (deliveryNumber != null) 'delivery_number': deliveryNumber,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PersistentDeliveryStatesCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime?>? startTime,
+    Value<bool>? isPaused,
+    Value<int>? elapsedSeconds,
+    Value<bool>? isActive,
+    Value<int?>? deliveryNumber,
+    Value<int>? rowid,
+  }) {
+    return PersistentDeliveryStatesCompanion(
+      id: id ?? this.id,
+      startTime: startTime ?? this.startTime,
+      isPaused: isPaused ?? this.isPaused,
+      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+      isActive: isActive ?? this.isActive,
+      deliveryNumber: deliveryNumber ?? this.deliveryNumber,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (startTime.present) {
+      map['start_time'] = Variable<DateTime>(startTime.value);
+    }
+    if (isPaused.present) {
+      map['is_paused'] = Variable<bool>(isPaused.value);
+    }
+    if (elapsedSeconds.present) {
+      map['elapsed_seconds'] = Variable<int>(elapsedSeconds.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (deliveryNumber.present) {
+      map['delivery_number'] = Variable<int>(deliveryNumber.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PersistentDeliveryStatesCompanion(')
+          ..write('id: $id, ')
+          ..write('startTime: $startTime, ')
+          ..write('isPaused: $isPaused, ')
+          ..write('elapsedSeconds: $elapsedSeconds, ')
+          ..write('isActive: $isActive, ')
+          ..write('deliveryNumber: $deliveryNumber, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2974,6 +3417,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ClientesTable clientes = $ClientesTable(this);
   late final $InteraccionesTable interacciones = $InteraccionesTable(this);
   late final $NotasTable notas = $NotasTable(this);
+  late final $PersistentDeliveryStatesTable persistentDeliveryStates =
+      $PersistentDeliveryStatesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2984,6 +3429,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     clientes,
     interacciones,
     notas,
+    persistentDeliveryStates,
   ];
 }
 
@@ -4426,6 +4872,248 @@ typedef $$NotasTableProcessedTableManager =
       Nota,
       PrefetchHooks Function()
     >;
+typedef $$PersistentDeliveryStatesTableCreateCompanionBuilder =
+    PersistentDeliveryStatesCompanion Function({
+      required String id,
+      Value<DateTime?> startTime,
+      required bool isPaused,
+      required int elapsedSeconds,
+      required bool isActive,
+      Value<int?> deliveryNumber,
+      Value<int> rowid,
+    });
+typedef $$PersistentDeliveryStatesTableUpdateCompanionBuilder =
+    PersistentDeliveryStatesCompanion Function({
+      Value<String> id,
+      Value<DateTime?> startTime,
+      Value<bool> isPaused,
+      Value<int> elapsedSeconds,
+      Value<bool> isActive,
+      Value<int?> deliveryNumber,
+      Value<int> rowid,
+    });
+
+class $$PersistentDeliveryStatesTableFilterComposer
+    extends Composer<_$AppDatabase, $PersistentDeliveryStatesTable> {
+  $$PersistentDeliveryStatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startTime => $composableBuilder(
+    column: $table.startTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isPaused => $composableBuilder(
+    column: $table.isPaused,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get elapsedSeconds => $composableBuilder(
+    column: $table.elapsedSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deliveryNumber => $composableBuilder(
+    column: $table.deliveryNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PersistentDeliveryStatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $PersistentDeliveryStatesTable> {
+  $$PersistentDeliveryStatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startTime => $composableBuilder(
+    column: $table.startTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isPaused => $composableBuilder(
+    column: $table.isPaused,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get elapsedSeconds => $composableBuilder(
+    column: $table.elapsedSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deliveryNumber => $composableBuilder(
+    column: $table.deliveryNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PersistentDeliveryStatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PersistentDeliveryStatesTable> {
+  $$PersistentDeliveryStatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startTime =>
+      $composableBuilder(column: $table.startTime, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPaused =>
+      $composableBuilder(column: $table.isPaused, builder: (column) => column);
+
+  GeneratedColumn<int> get elapsedSeconds => $composableBuilder(
+    column: $table.elapsedSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get deliveryNumber => $composableBuilder(
+    column: $table.deliveryNumber,
+    builder: (column) => column,
+  );
+}
+
+class $$PersistentDeliveryStatesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PersistentDeliveryStatesTable,
+          PersistentDeliveryState,
+          $$PersistentDeliveryStatesTableFilterComposer,
+          $$PersistentDeliveryStatesTableOrderingComposer,
+          $$PersistentDeliveryStatesTableAnnotationComposer,
+          $$PersistentDeliveryStatesTableCreateCompanionBuilder,
+          $$PersistentDeliveryStatesTableUpdateCompanionBuilder,
+          (
+            PersistentDeliveryState,
+            BaseReferences<
+              _$AppDatabase,
+              $PersistentDeliveryStatesTable,
+              PersistentDeliveryState
+            >,
+          ),
+          PersistentDeliveryState,
+          PrefetchHooks Function()
+        > {
+  $$PersistentDeliveryStatesTableTableManager(
+    _$AppDatabase db,
+    $PersistentDeliveryStatesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PersistentDeliveryStatesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$PersistentDeliveryStatesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$PersistentDeliveryStatesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime?> startTime = const Value.absent(),
+                Value<bool> isPaused = const Value.absent(),
+                Value<int> elapsedSeconds = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<int?> deliveryNumber = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PersistentDeliveryStatesCompanion(
+                id: id,
+                startTime: startTime,
+                isPaused: isPaused,
+                elapsedSeconds: elapsedSeconds,
+                isActive: isActive,
+                deliveryNumber: deliveryNumber,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<DateTime?> startTime = const Value.absent(),
+                required bool isPaused,
+                required int elapsedSeconds,
+                required bool isActive,
+                Value<int?> deliveryNumber = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PersistentDeliveryStatesCompanion.insert(
+                id: id,
+                startTime: startTime,
+                isPaused: isPaused,
+                elapsedSeconds: elapsedSeconds,
+                isActive: isActive,
+                deliveryNumber: deliveryNumber,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PersistentDeliveryStatesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PersistentDeliveryStatesTable,
+      PersistentDeliveryState,
+      $$PersistentDeliveryStatesTableFilterComposer,
+      $$PersistentDeliveryStatesTableOrderingComposer,
+      $$PersistentDeliveryStatesTableAnnotationComposer,
+      $$PersistentDeliveryStatesTableCreateCompanionBuilder,
+      $$PersistentDeliveryStatesTableUpdateCompanionBuilder,
+      (
+        PersistentDeliveryState,
+        BaseReferences<
+          _$AppDatabase,
+          $PersistentDeliveryStatesTable,
+          PersistentDeliveryState
+        >,
+      ),
+      PersistentDeliveryState,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4440,4 +5128,9 @@ class $AppDatabaseManager {
       $$InteraccionesTableTableManager(_db, _db.interacciones);
   $$NotasTableTableManager get notas =>
       $$NotasTableTableManager(_db, _db.notas);
+  $$PersistentDeliveryStatesTableTableManager get persistentDeliveryStates =>
+      $$PersistentDeliveryStatesTableTableManager(
+        _db,
+        _db.persistentDeliveryStates,
+      );
 }

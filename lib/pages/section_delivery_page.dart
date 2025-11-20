@@ -33,6 +33,10 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
     _controller = DeliveryController();
     _deliveryService = DeliveryService();
     _isResumedDelivery = widget.resumeDeliveryNumber != null;
+
+    // Registrar el observer del ciclo de vida
+    WidgetsBinding.instance.addObserver(_controller);
+
     // Load data
     _loadData();
   }
@@ -116,6 +120,13 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
         ),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    // Remover el observer del ciclo de vida
+    WidgetsBinding.instance.removeObserver(_controller);
+    super.dispose();
   }
 
   @override

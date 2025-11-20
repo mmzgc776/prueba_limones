@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../data/database.dart';
+import '../data/delivery_state.dart';
 import '../pages/section_delivery/delivery_record.dart';
 import 'database_service.dart';
 
@@ -293,6 +294,50 @@ class DeliveryService {
     } catch (e) {
       debugPrint('Error al obtener la localización: $e');
       throw Exception('Error al obtener la localización');
+    }
+  }
+
+  /// Guarda el estado persistente del delivery
+  Future<void> savePersistentDeliveryState(
+    DeliveryPersistentState state,
+  ) async {
+    try {
+      await init();
+      final stateMap = state.toMap();
+      await _dbService.savePersistentDeliveryState(stateMap);
+      debugPrint(
+        'Estado persistente guardado: ${state.isActive ? 'Activo' : 'Inactivo'}',
+      );
+    } catch (e) {
+      debugPrint('Error saving persistent delivery state: $e');
+      throw Exception('Error al guardar el estado persistente del delivery');
+    }
+  }
+
+  /// Carga el estado persistente del delivery
+  Future<DeliveryPersistentState?> loadPersistentDeliveryState() async {
+    try {
+      await init();
+      final stateMap = await _dbService.loadPersistentDeliveryState();
+      if (stateMap != null) {
+        return DeliveryPersistentState.fromMap(stateMap);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error loading persistent delivery state: $e');
+      return null;
+    }
+  }
+
+  /// Elimina el estado persistente del delivery
+  Future<void> clearPersistentDeliveryState() async {
+    try {
+      await init();
+      await _dbService.clearPersistentDeliveryState();
+      debugPrint('Estado persistente eliminado');
+    } catch (e) {
+      debugPrint('Error clearing persistent delivery state: $e');
+      throw Exception('Error al eliminar el estado persistente del delivery');
     }
   }
 }

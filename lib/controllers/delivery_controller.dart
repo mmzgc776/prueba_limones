@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../data/delivery_state.dart';
 import '../data/database.dart';
 import '../pages/section_delivery/delivery_record.dart';
@@ -7,13 +8,14 @@ import '../services/delivery_service.dart';
 
 /// Controlador principal para la gestión de repartos
 /// Maneja el estado del delivery, temporizador y estadísticas
-class DeliveryController with ChangeNotifier {
+class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
   // Estado del delivery
   bool _started = false;
   bool _paused = false;
   int _elapsedSeconds = 0;
   Timer? _timer;
   int _initialBoxes = 0; // Número de cajas con las que inicia el reparto
+  DateTime? _backgroundTime; // Tiempo cuando app fue a segundo plano
 
   // Estado de clientes
   List<bool> _clientesContactados = [];
@@ -264,6 +266,7 @@ class DeliveryController with ChangeNotifier {
       );
 
       await _saveDeliveryRecord(record, clientes);
+      await _clearPersistentState(); // Limpiar estado persistente
       _resetDeliveryState(clientes);
     } catch (e) {
       debugPrint('Error al finalizar delivery: $e');
@@ -446,6 +449,94 @@ class DeliveryController with ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error en debugInteracciones: $e');
+    }
+  }
+
+  /// Maneja cambios en el ciclo de vida de la aplicación
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused && _started && !_paused) {
+      // App va a segundo plano mientras delivery está activo
+      // Guardar el tiempo actual para calcular tiempo en background
+      _backgroundTime = DateTime.now();
+      debugPrint('App paused - background time recorded: $_backgroundTime');
+      _savePersistentState();
+    } else if (state == AppLifecycleState.resumed && _backgroundTime != null) {
+      // App vuelve a primer plano - calcular tiempo transcurrido en background
+      final foregroundTime = DateTime.now();
+      final backgroundDuration = foregroundTime.difference(_backgroundTime!);
+      _elapsedSeconds += backgroundDuration.inSeconds;
+      _backgroundTime = null;
+
+      debugPrint(
+        'App resumed - added ${backgroundDuration.inSeconds} seconds from background',
+      );
+      debugPrint('Total elapsed: $_elapsedSeconds seconds');
+
+      _savePersistentState();
+      notifyListeners();
+    }
+  }
+
+  /// Guarda el estado persistente del delivery
+  Future<void> _savePersistentState() async {
+    if (!_started) return;
+
+    final state = DeliveryPersistentState(
+      startTime: DateTime.now().subtract(Duration(seconds: _elapsedSeconds)),
+      isPaused: _paused,
+      elapsedSeconds: _elapsedSeconds,
+      isActive: _started,
+      deliveryNumber: _stateManager.getCurrentDeliveryNumber(),
+    );
+
+    try {
+      await _deliveryService.savePersistentDeliveryState(state);
+      debugPrint('Estado persistente guardado: $_elapsedSeconds segundos');
+    } catch (e) {
+      debugPrint('Error guardando estado persistente: $e');
+    }
+  }
+
+  /// Carga el estado persistente del delivery
+  Future<void> _loadPersistentState() async {
+    try {
+      final savedState = await _deliveryService.loadPersistentDeliveryState();
+      if (savedState != null && savedState.isActive) {
+        if (savedState.isPaused) {
+          // Si estaba pausado, mantener el tiempo guardado
+          _elapsedSeconds = savedState.elapsedSeconds;
+          debugPrint('Estado cargado: pausado con $_elapsedSeconds segundos');
+        } else {
+          // Si estaba activo, calcular tiempo transcurrido desde el inicio
+          final currentTime = DateTime.now();
+          final timeDiff = currentTime.difference(savedState.startTime!);
+          _elapsedSeconds = timeDiff.inSeconds;
+          debugPrint(
+            'Estado cargado: activo con $_elapsedSeconds segundos calculados',
+          );
+
+          // Reiniciar timer si no está pausado
+          _startTimer();
+        }
+
+        _started = savedState.isActive;
+        _paused = savedState.isPaused;
+
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error cargando estado persistente: $e');
+    }
+  }
+
+  /// Limpia el estado persistente del delivery
+  Future<void> _clearPersistentState() async {
+    try {
+      await _deliveryService.clearPersistentDeliveryState();
+      debugPrint('Estado persistente limpiado');
+    } catch (e) {
+      debugPrint('Error limpiando estado persistente: $e');
     }
   }
 

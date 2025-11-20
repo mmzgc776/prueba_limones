@@ -1048,6 +1048,55 @@ class DatabaseService {
     return await _db!.select(_db!.interacciones).get();
   }
 
+  /// Guarda el estado persistente del delivery
+  Future<void> savePersistentDeliveryState(
+    Map<String, dynamic> stateMap,
+  ) async {
+    _ensureInitialized();
+    final companion = PersistentDeliveryStatesCompanion(
+      id: Value(stateMap['id'] as String),
+      startTime: Value(
+        stateMap['startTime'] != null
+            ? DateTime.parse(stateMap['startTime'])
+            : null,
+      ),
+      isPaused: Value(stateMap['isPaused'] as bool),
+      elapsedSeconds: Value(stateMap['elapsedSeconds'] as int),
+      isActive: Value(stateMap['isActive'] as bool),
+      deliveryNumber: Value(stateMap['deliveryNumber']),
+    );
+    await _db!
+        .into(_db!.persistentDeliveryStates)
+        .insertOnConflictUpdate(companion);
+  }
+
+  /// Carga el estado persistente del delivery
+  Future<Map<String, dynamic>?> loadPersistentDeliveryState() async {
+    _ensureInitialized();
+    final result = await (_db!.select(
+      _db!.persistentDeliveryStates,
+    )..where((tbl) => tbl.id.equals('current'))).getSingleOrNull();
+    if (result != null) {
+      return {
+        'id': result.id,
+        'startTime': result.startTime?.toIso8601String(),
+        'isPaused': result.isPaused,
+        'elapsedSeconds': result.elapsedSeconds,
+        'isActive': result.isActive,
+        'deliveryNumber': result.deliveryNumber,
+      };
+    }
+    return null;
+  }
+
+  /// Elimina el estado persistente del delivery
+  Future<void> clearPersistentDeliveryState() async {
+    _ensureInitialized();
+    await (_db!.delete(
+      _db!.persistentDeliveryStates,
+    )..where((tbl) => tbl.id.equals('current'))).go();
+  }
+
   /// Sincroniza notas con Google Sheets
   Future<void> syncNotasUnified({
     required BuildContext context,

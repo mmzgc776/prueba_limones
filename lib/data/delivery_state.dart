@@ -1,5 +1,46 @@
 import 'package:flutter/material.dart';
 
+/// Modelo para el estado persistente del delivery
+class DeliveryPersistentState {
+  final DateTime? startTime;
+  final bool isPaused;
+  final int elapsedSeconds;
+  final bool isActive;
+  final int? deliveryNumber;
+
+  DeliveryPersistentState({
+    this.startTime,
+    required this.isPaused,
+    required this.elapsedSeconds,
+    required this.isActive,
+    this.deliveryNumber,
+  });
+
+  /// Crear desde Map (para deserialización)
+  factory DeliveryPersistentState.fromMap(Map<String, dynamic> map) {
+    return DeliveryPersistentState(
+      startTime: map['startTime'] != null
+          ? DateTime.parse(map['startTime'])
+          : null,
+      isPaused: map['isPaused'] ?? false,
+      elapsedSeconds: map['elapsedSeconds'] ?? 0,
+      isActive: map['isActive'] ?? false,
+      deliveryNumber: map['deliveryNumber'],
+    );
+  }
+
+  /// Convertir a Map (para serialización)
+  Map<String, dynamic> toMap() {
+    return {
+      'startTime': startTime?.toIso8601String(),
+      'isPaused': isPaused,
+      'elapsedSeconds': elapsedSeconds,
+      'isActive': isActive,
+      'deliveryNumber': deliveryNumber,
+    };
+  }
+}
+
 class DeliveryStateManager {
   static final DeliveryStateManager _instance =
       DeliveryStateManager._internal();
