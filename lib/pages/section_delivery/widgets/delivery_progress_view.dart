@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../data/database.dart';
 import '../../../services/database_service.dart';
 import '../../../data/delivery_state.dart';
+import '../../../services/delivery_service.dart';
 
 /// Widget que muestra el progreso del reparto actual:
 /// - Lista de ventas realizadas
@@ -20,6 +21,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
   List<Sale> _sales = [];
   List<Interaccione> _interacciones = [];
   Map<int, Cliente> _clientesMap = {};
+  Delivery? _delivery;
   bool _isLoading = true;
 
   @override
@@ -40,8 +42,12 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
         final sales = await _dbService.getSalesByDeliveryNumber(deliveryNumber);
 
         // Cargar interacciones del reparto actual
-        final interacciones =
-            await _dbService.getInteraccionesByDeliveryNumber(deliveryNumber);
+        final interacciones = await _dbService.getInteraccionesByDeliveryNumber(
+          deliveryNumber,
+        );
+
+        // Cargar información del delivery
+        final delivery = await _dbService.getDeliveryByNumber(deliveryNumber);
 
         // Cargar información de clientes
         final clientIds = <int>{
@@ -61,6 +67,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
           _sales = sales;
           _interacciones = interacciones;
           _clientesMap = clientesMap;
+          _delivery = delivery;
           _isLoading = false;
         });
       } else {
@@ -81,13 +88,25 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
     final deliveryNumber = _stateManager.getCurrentDeliveryNumber();
 
     if (deliveryNumber == null) {
-      return const Center(
-        child: Text('No hay un reparto activo'),
-      );
+      return const Center(child: Text('No hay un reparto activo'));
     }
 
     final totalVentas = _sales.fold<double>(0, (sum, sale) => sum + sale.total);
     final totalKg = _sales.fold<double>(0, (sum, sale) => sum + sale.quantity);
+
+    // Calcular progreso de cajas
+    String progressText = 'N/A';
+    String progressLabel = 'Progreso';
+    final totalBoxes = _delivery?.boxes ?? _stateManager.initialBoxes;
+    if (totalBoxes != null && totalBoxes > 0) {
+      final completedBoxes = totalKg / 17.0;
+      final percentage = (completedBoxes / totalBoxes) * 100;
+      final remainingBoxes = totalBoxes - completedBoxes;
+      final remainingPercentage = 100 - percentage;
+      progressText =
+          '${percentage.toStringAsFixed(0)}% (${completedBoxes.toStringAsFixed(0)} cajas)\n${remainingPercentage.toStringAsFixed(0)}% (${remainingBoxes.toStringAsFixed(0)} cajas)';
+      progressLabel = 'Quedan ${remainingBoxes.toStringAsFixed(0)}c';
+    }
 
     return RefreshIndicator(
       onRefresh: _loadData,
@@ -115,26 +134,52 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
                         _buildSummaryItem(
                           context,
                           'Ventas',
-                          _sales.length.toString(),
+                          Text(
+                            _sales.length.toString(),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
                           Icons.shopping_cart,
                         ),
                         _buildSummaryItem(
                           context,
                           'Interacciones',
-                          _interacciones.length.toString(),
+                          Text(
+                            _interacciones.length.toString(),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
                           Icons.people,
                         ),
                         _buildSummaryItem(
                           context,
                           'Total',
-                          '\$${totalVentas.toStringAsFixed(0)}',
+                          Text(
+                            '\$${totalVentas.toStringAsFixed(0)}',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
                           Icons.attach_money,
                         ),
                         _buildSummaryItem(
                           context,
                           'Kg',
-                          totalKg.toStringAsFixed(1),
+                          Text(
+                            totalKg.toStringAsFixed(1),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
                           Icons.scale,
+                        ),
+                        _buildSummaryItem(
+                          context,
+                          progressLabel,
+                          _buildProgressWidget(context, progressText),
+                          Icons.inventory,
                         ),
                       ],
                     ),
@@ -148,9 +193,9 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
             // Lista de Ventas
             Text(
               'Ventas Realizadas (${_sales.length})',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
@@ -161,9 +206,9 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
                   child: Center(
                     child: Text(
                       'No hay ventas registradas aún',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                   ),
                 ),
@@ -176,9 +221,9 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
             // Lista de Interacciones
             Text(
               'Interacciones con Clientes (${_interacciones.length})',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
@@ -189,18 +234,17 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
                   child: Center(
                     child: Text(
                       'No hay interacciones registradas aún',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     ),
                   ),
                 ),
               )
             else
-              ...(_interacciones.map((interaccion) => _buildInteraccionCard(
-                    context,
-                    interaccion,
-                  ))),
+              ...(_interacciones.map(
+                (interaccion) => _buildInteraccionCard(context, interaccion),
+              )),
 
             const SizedBox(height: 80), // Espacio para el FAB
           ],
@@ -212,24 +256,19 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
   Widget _buildSummaryItem(
     BuildContext context,
     String label,
-    String value,
+    Widget value,
     IconData icon,
   ) {
     return Column(
       children: [
         Icon(icon, size: 28, color: Theme.of(context).primaryColor),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-        ),
+        value,
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -256,11 +295,59 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
         trailing: Text(
           '\$${sale.total.toStringAsFixed(2)}',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.green[700],
-              ),
+            fontWeight: FontWeight.bold,
+            color: Colors.green[700],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildProgressWidget(BuildContext context, String progressText) {
+    if (progressText == 'N/A') {
+      return const SizedBox(
+        width: 40,
+        height: 40,
+        child: CircularProgressIndicator(value: 0, strokeWidth: 4),
+      );
+    }
+
+    final lines = progressText.split('\n');
+    if (lines.length == 2) {
+      final completedPercent = double.tryParse(lines[0].split('%')[0]) ?? 0;
+      final progressValue = completedPercent / 100;
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(
+              value: progressValue,
+              strokeWidth: 4,
+              backgroundColor: Colors.grey[300],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                progressValue < 0.5 ? Colors.red : Colors.green,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${completedPercent.toStringAsFixed(0)}%',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox(
+      width: 40,
+      height: 40,
+      child: CircularProgressIndicator(value: 0, strokeWidth: 4),
     );
   }
 
@@ -307,10 +394,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
         trailing: Chip(
           label: Text(
             interaccion.result,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
           backgroundColor: color,
         ),

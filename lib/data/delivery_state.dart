@@ -59,8 +59,9 @@ class DeliveryStateManager {
   List<bool> clientesContactados = [];
   List<String> clientesEstado = [];
   int? selectedClienteIndex;
+  int? initialBoxes;
 
-  void startDelivery(int deliveryNumber) {
+  void startDelivery(int deliveryNumber, {int? boxes}) {
     currentDeliveryNumber = deliveryNumber;
     isDeliveryActive = true;
     isDeliveryPaused = false;
@@ -68,6 +69,7 @@ class DeliveryStateManager {
     clientesContactados = [];
     clientesEstado = [];
     selectedClienteIndex = null;
+    initialBoxes = boxes;
   }
 
   void pauseDelivery() {
@@ -86,6 +88,7 @@ class DeliveryStateManager {
     clientesContactados = [];
     clientesEstado = [];
     selectedClienteIndex = null;
+    initialBoxes = null;
   }
 
   int? getCurrentDeliveryNumber() {

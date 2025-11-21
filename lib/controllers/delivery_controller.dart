@@ -130,7 +130,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
     _elapsedSeconds = 0;
     _initialBoxes = boxes;
 
-    _stateManager.startDelivery(deliveryNumber);
+    _stateManager.startDelivery(deliveryNumber, boxes: boxes);
     _stateManager.updateClientesContactados(_clientesContactados);
     _stateManager.updateClientesEstado(_clientesEstado);
     _stateManager.updateSelectedClienteIndex(_selectedClienteIndex);
@@ -148,22 +148,25 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
       );
       if (existingDelivery != null) {
         _elapsedSeconds = existingDelivery.durationSeconds;
+        _initialBoxes = existingDelivery.boxes;
         debugPrint(
-          'Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds',
+          'Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds, boxes: $_initialBoxes',
         );
       } else {
         _elapsedSeconds = 0;
+        _initialBoxes = 0;
         debugPrint('Starting new delivery #$deliveryNumber from 0 seconds');
       }
     } catch (e) {
       debugPrint('Error loading delivery time: $e');
       _elapsedSeconds = 0;
+      _initialBoxes = 0;
     }
 
     _started = true;
     _paused = false;
 
-    _stateManager.startDelivery(deliveryNumber);
+    _stateManager.startDelivery(deliveryNumber, boxes: _initialBoxes);
     _stateManager.updateElapsedSeconds(_elapsedSeconds);
     _stateManager.updateClientesContactados(_clientesContactados);
     _stateManager.updateClientesEstado(_clientesEstado);
