@@ -85,11 +85,6 @@ class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
               // Primera pestaña: Vista original de clientes
               Stack(
                 children: [
-                  ClienteInfoCard(
-                    selectedClienteIndex: widget.selectedClienteIndex,
-                    started: widget.started,
-                    clientes: widget.clientes,
-                  ),
                   ClientesList(
                     started: widget.started,
                     paused: widget.paused,
@@ -100,6 +95,11 @@ class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
                     onClienteSelected: widget.onClienteSelected,
                     onShowInteraccionSheet: widget.onShowInteraccionSheet,
                     onResumeDelivery: widget.onResumeDelivery,
+                  ),
+                  ClienteInfoCard(
+                    selectedClienteIndex: widget.selectedClienteIndex,
+                    started: widget.started,
+                    clientes: widget.clientes,
                   ),
                   TimerDisplay(
                     started: widget.started,

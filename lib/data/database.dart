@@ -85,6 +85,7 @@ class PersistentDeliveryStates extends Table {
   IntColumn get elapsedSeconds => integer()();
   BoolColumn get isActive => boolean()();
   IntColumn get deliveryNumber => integer().nullable()();
+  IntColumn get boxes => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -104,7 +105,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -155,6 +156,13 @@ class AppDatabase extends _$AppDatabase {
       if (from == 15) {
         // Migration v15 -> v16: add PersistentDeliveryStates table
         await migrator.createTable(persistentDeliveryStates);
+      }
+
+      if (from == 16) {
+        // Migration v16 -> v17: add boxes column to PersistentDeliveryStates
+        await migrator.issueCustomQuery(
+          "ALTER TABLE persistent_delivery_states ADD COLUMN boxes INTEGER NOT NULL DEFAULT 0;",
+        );
       }
     },
     onCreate: (migrator) async {

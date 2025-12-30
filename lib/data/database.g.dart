@@ -3042,6 +3042,16 @@ class $PersistentDeliveryStatesTable extends PersistentDeliveryStates
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _boxesMeta = const VerificationMeta('boxes');
+  @override
+  late final GeneratedColumn<int> boxes = GeneratedColumn<int>(
+    'boxes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3050,6 +3060,7 @@ class $PersistentDeliveryStatesTable extends PersistentDeliveryStates
     elapsedSeconds,
     isActive,
     deliveryNumber,
+    boxes,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3110,6 +3121,12 @@ class $PersistentDeliveryStatesTable extends PersistentDeliveryStates
         ),
       );
     }
+    if (data.containsKey('boxes')) {
+      context.handle(
+        _boxesMeta,
+        boxes.isAcceptableOrUnknown(data['boxes']!, _boxesMeta),
+      );
+    }
     return context;
   }
 
@@ -3146,6 +3163,10 @@ class $PersistentDeliveryStatesTable extends PersistentDeliveryStates
         DriftSqlType.int,
         data['${effectivePrefix}delivery_number'],
       ),
+      boxes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}boxes'],
+      )!,
     );
   }
 
@@ -3163,6 +3184,7 @@ class PersistentDeliveryState extends DataClass
   final int elapsedSeconds;
   final bool isActive;
   final int? deliveryNumber;
+  final int boxes;
   const PersistentDeliveryState({
     required this.id,
     this.startTime,
@@ -3170,6 +3192,7 @@ class PersistentDeliveryState extends DataClass
     required this.elapsedSeconds,
     required this.isActive,
     this.deliveryNumber,
+    required this.boxes,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3184,6 +3207,7 @@ class PersistentDeliveryState extends DataClass
     if (!nullToAbsent || deliveryNumber != null) {
       map['delivery_number'] = Variable<int>(deliveryNumber);
     }
+    map['boxes'] = Variable<int>(boxes);
     return map;
   }
 
@@ -3199,6 +3223,7 @@ class PersistentDeliveryState extends DataClass
       deliveryNumber: deliveryNumber == null && nullToAbsent
           ? const Value.absent()
           : Value(deliveryNumber),
+      boxes: Value(boxes),
     );
   }
 
@@ -3214,6 +3239,7 @@ class PersistentDeliveryState extends DataClass
       elapsedSeconds: serializer.fromJson<int>(json['elapsedSeconds']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       deliveryNumber: serializer.fromJson<int?>(json['deliveryNumber']),
+      boxes: serializer.fromJson<int>(json['boxes']),
     );
   }
   @override
@@ -3226,6 +3252,7 @@ class PersistentDeliveryState extends DataClass
       'elapsedSeconds': serializer.toJson<int>(elapsedSeconds),
       'isActive': serializer.toJson<bool>(isActive),
       'deliveryNumber': serializer.toJson<int?>(deliveryNumber),
+      'boxes': serializer.toJson<int>(boxes),
     };
   }
 
@@ -3236,6 +3263,7 @@ class PersistentDeliveryState extends DataClass
     int? elapsedSeconds,
     bool? isActive,
     Value<int?> deliveryNumber = const Value.absent(),
+    int? boxes,
   }) => PersistentDeliveryState(
     id: id ?? this.id,
     startTime: startTime.present ? startTime.value : this.startTime,
@@ -3245,6 +3273,7 @@ class PersistentDeliveryState extends DataClass
     deliveryNumber: deliveryNumber.present
         ? deliveryNumber.value
         : this.deliveryNumber,
+    boxes: boxes ?? this.boxes,
   );
   PersistentDeliveryState copyWithCompanion(
     PersistentDeliveryStatesCompanion data,
@@ -3260,6 +3289,7 @@ class PersistentDeliveryState extends DataClass
       deliveryNumber: data.deliveryNumber.present
           ? data.deliveryNumber.value
           : this.deliveryNumber,
+      boxes: data.boxes.present ? data.boxes.value : this.boxes,
     );
   }
 
@@ -3271,7 +3301,8 @@ class PersistentDeliveryState extends DataClass
           ..write('isPaused: $isPaused, ')
           ..write('elapsedSeconds: $elapsedSeconds, ')
           ..write('isActive: $isActive, ')
-          ..write('deliveryNumber: $deliveryNumber')
+          ..write('deliveryNumber: $deliveryNumber, ')
+          ..write('boxes: $boxes')
           ..write(')'))
         .toString();
   }
@@ -3284,6 +3315,7 @@ class PersistentDeliveryState extends DataClass
     elapsedSeconds,
     isActive,
     deliveryNumber,
+    boxes,
   );
   @override
   bool operator ==(Object other) =>
@@ -3294,7 +3326,8 @@ class PersistentDeliveryState extends DataClass
           other.isPaused == this.isPaused &&
           other.elapsedSeconds == this.elapsedSeconds &&
           other.isActive == this.isActive &&
-          other.deliveryNumber == this.deliveryNumber);
+          other.deliveryNumber == this.deliveryNumber &&
+          other.boxes == this.boxes);
 }
 
 class PersistentDeliveryStatesCompanion
@@ -3305,6 +3338,7 @@ class PersistentDeliveryStatesCompanion
   final Value<int> elapsedSeconds;
   final Value<bool> isActive;
   final Value<int?> deliveryNumber;
+  final Value<int> boxes;
   final Value<int> rowid;
   const PersistentDeliveryStatesCompanion({
     this.id = const Value.absent(),
@@ -3313,6 +3347,7 @@ class PersistentDeliveryStatesCompanion
     this.elapsedSeconds = const Value.absent(),
     this.isActive = const Value.absent(),
     this.deliveryNumber = const Value.absent(),
+    this.boxes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PersistentDeliveryStatesCompanion.insert({
@@ -3322,6 +3357,7 @@ class PersistentDeliveryStatesCompanion
     required int elapsedSeconds,
     required bool isActive,
     this.deliveryNumber = const Value.absent(),
+    this.boxes = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        isPaused = Value(isPaused),
@@ -3334,6 +3370,7 @@ class PersistentDeliveryStatesCompanion
     Expression<int>? elapsedSeconds,
     Expression<bool>? isActive,
     Expression<int>? deliveryNumber,
+    Expression<int>? boxes,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3343,6 +3380,7 @@ class PersistentDeliveryStatesCompanion
       if (elapsedSeconds != null) 'elapsed_seconds': elapsedSeconds,
       if (isActive != null) 'is_active': isActive,
       if (deliveryNumber != null) 'delivery_number': deliveryNumber,
+      if (boxes != null) 'boxes': boxes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3354,6 +3392,7 @@ class PersistentDeliveryStatesCompanion
     Value<int>? elapsedSeconds,
     Value<bool>? isActive,
     Value<int?>? deliveryNumber,
+    Value<int>? boxes,
     Value<int>? rowid,
   }) {
     return PersistentDeliveryStatesCompanion(
@@ -3363,6 +3402,7 @@ class PersistentDeliveryStatesCompanion
       elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
       isActive: isActive ?? this.isActive,
       deliveryNumber: deliveryNumber ?? this.deliveryNumber,
+      boxes: boxes ?? this.boxes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3388,6 +3428,9 @@ class PersistentDeliveryStatesCompanion
     if (deliveryNumber.present) {
       map['delivery_number'] = Variable<int>(deliveryNumber.value);
     }
+    if (boxes.present) {
+      map['boxes'] = Variable<int>(boxes.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3403,6 +3446,7 @@ class PersistentDeliveryStatesCompanion
           ..write('elapsedSeconds: $elapsedSeconds, ')
           ..write('isActive: $isActive, ')
           ..write('deliveryNumber: $deliveryNumber, ')
+          ..write('boxes: $boxes, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4880,6 +4924,7 @@ typedef $$PersistentDeliveryStatesTableCreateCompanionBuilder =
       required int elapsedSeconds,
       required bool isActive,
       Value<int?> deliveryNumber,
+      Value<int> boxes,
       Value<int> rowid,
     });
 typedef $$PersistentDeliveryStatesTableUpdateCompanionBuilder =
@@ -4890,6 +4935,7 @@ typedef $$PersistentDeliveryStatesTableUpdateCompanionBuilder =
       Value<int> elapsedSeconds,
       Value<bool> isActive,
       Value<int?> deliveryNumber,
+      Value<int> boxes,
       Value<int> rowid,
     });
 
@@ -4929,6 +4975,11 @@ class $$PersistentDeliveryStatesTableFilterComposer
 
   ColumnFilters<int> get deliveryNumber => $composableBuilder(
     column: $table.deliveryNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get boxes => $composableBuilder(
+    column: $table.boxes,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4971,6 +5022,11 @@ class $$PersistentDeliveryStatesTableOrderingComposer
     column: $table.deliveryNumber,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get boxes => $composableBuilder(
+    column: $table.boxes,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PersistentDeliveryStatesTableAnnotationComposer
@@ -5003,6 +5059,9 @@ class $$PersistentDeliveryStatesTableAnnotationComposer
     column: $table.deliveryNumber,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get boxes =>
+      $composableBuilder(column: $table.boxes, builder: (column) => column);
 }
 
 class $$PersistentDeliveryStatesTableTableManager
@@ -5057,6 +5116,7 @@ class $$PersistentDeliveryStatesTableTableManager
                 Value<int> elapsedSeconds = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int?> deliveryNumber = const Value.absent(),
+                Value<int> boxes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PersistentDeliveryStatesCompanion(
                 id: id,
@@ -5065,6 +5125,7 @@ class $$PersistentDeliveryStatesTableTableManager
                 elapsedSeconds: elapsedSeconds,
                 isActive: isActive,
                 deliveryNumber: deliveryNumber,
+                boxes: boxes,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5075,6 +5136,7 @@ class $$PersistentDeliveryStatesTableTableManager
                 required int elapsedSeconds,
                 required bool isActive,
                 Value<int?> deliveryNumber = const Value.absent(),
+                Value<int> boxes = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PersistentDeliveryStatesCompanion.insert(
                 id: id,
@@ -5083,6 +5145,7 @@ class $$PersistentDeliveryStatesTableTableManager
                 elapsedSeconds: elapsedSeconds,
                 isActive: isActive,
                 deliveryNumber: deliveryNumber,
+                boxes: boxes,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

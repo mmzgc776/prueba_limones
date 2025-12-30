@@ -230,7 +230,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
         duration: Duration(seconds: _elapsedSeconds),
         avgPrice: stats.avgPricePerKilo,
         kilograms: stats.totalKilograms,
-        boxes: 0,
+        boxes: _initialBoxes,
         remaining: 0.0,
         seller: "Default Seller",
         total: stats.totalAmount,
@@ -491,11 +491,12 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
       elapsedSeconds: _elapsedSeconds,
       isActive: _started,
       deliveryNumber: _stateManager.getCurrentDeliveryNumber(),
+      initialBoxes: _initialBoxes,
     );
 
     try {
       await _deliveryService.savePersistentDeliveryState(state);
-      debugPrint('Estado persistente guardado: $_elapsedSeconds segundos');
+      debugPrint('Estado persistente guardado: $_elapsedSeconds segundos, $_initialBoxes cajas');
     } catch (e) {
       debugPrint('Error guardando estado persistente: $e');
     }
@@ -525,6 +526,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
 
         _started = savedState.isActive;
         _paused = savedState.isPaused;
+        _initialBoxes = savedState.initialBoxes;
 
         notifyListeners();
       }

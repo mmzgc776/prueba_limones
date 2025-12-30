@@ -7,6 +7,7 @@ class DeliveryPersistentState {
   final int elapsedSeconds;
   final bool isActive;
   final int? deliveryNumber;
+  final int initialBoxes;
 
   DeliveryPersistentState({
     this.startTime,
@@ -14,6 +15,7 @@ class DeliveryPersistentState {
     required this.elapsedSeconds,
     required this.isActive,
     this.deliveryNumber,
+    this.initialBoxes = 0,
   });
 
   /// Crear desde Map (para deserialización)
@@ -26,6 +28,7 @@ class DeliveryPersistentState {
       elapsedSeconds: map['elapsedSeconds'] ?? 0,
       isActive: map['isActive'] ?? false,
       deliveryNumber: map['deliveryNumber'],
+      initialBoxes: map['initialBoxes'] ?? 0,
     );
   }
 
@@ -37,6 +40,7 @@ class DeliveryPersistentState {
       'elapsedSeconds': elapsedSeconds,
       'isActive': isActive,
       'deliveryNumber': deliveryNumber,
+      'initialBoxes': initialBoxes,
     };
   }
 }

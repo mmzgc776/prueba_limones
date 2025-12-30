@@ -81,6 +81,7 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
 
   @override
   Widget build(BuildContext context) {
+    
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -131,55 +132,65 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildSummaryItem(
-                          context,
-                          'Ventas',
-                          Text(
-                            _sales.length.toString(),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            'Ventas',
+                            Text(
+                              _sales.length.toString(),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            Icons.shopping_cart,
                           ),
-                          Icons.shopping_cart,
                         ),
-                        _buildSummaryItem(
-                          context,
-                          'Interacciones',
-                          Text(
-                            _interacciones.length.toString(),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            'Interacciones',
+                            Text(
+                              _interacciones.length.toString(),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            Icons.people,
                           ),
-                          Icons.people,
                         ),
-                        _buildSummaryItem(
-                          context,
-                          'Total',
-                          Text(
-                            '\$${totalVentas.toStringAsFixed(0)}',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            'Total',
+                            Text(
+                              '\$${totalVentas.toStringAsFixed(0)}',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            Icons.attach_money,
                           ),
-                          Icons.attach_money,
                         ),
-                        _buildSummaryItem(
-                          context,
-                          'Kg',
-                          Text(
-                            totalKg.toStringAsFixed(1),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            'Kg',
+                            Text(
+                              totalKg.toStringAsFixed(1),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            Icons.scale,
                           ),
-                          Icons.scale,
                         ),
-                        _buildSummaryItem(
-                          context,
-                          progressLabel,
-                          _buildProgressWidget(context, progressText),
-                          Icons.inventory,
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            progressLabel,
+                            _buildProgressWidget(context, progressText),
+                            Icons.inventory,
+                          ),
                         ),
                       ],
                     ),
@@ -263,12 +274,21 @@ class _DeliveryProgressViewState extends State<DeliveryProgressView> {
       children: [
         Icon(icon, size: 28, color: Theme.of(context).primaryColor),
         const SizedBox(height: 4),
-        value,
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 1, minHeight: 1),
+            child: value,
+          ),
+        ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+          ),
         ),
       ],
     );

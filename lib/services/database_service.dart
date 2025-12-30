@@ -1064,6 +1064,7 @@ class DatabaseService {
       elapsedSeconds: Value(stateMap['elapsedSeconds'] as int),
       isActive: Value(stateMap['isActive'] as bool),
       deliveryNumber: Value(stateMap['deliveryNumber']),
+      boxes: Value(stateMap['boxes'] as int? ?? 0),
     );
     await _db!
         .into(_db!.persistentDeliveryStates)
@@ -1084,6 +1085,7 @@ class DatabaseService {
         'elapsedSeconds': result.elapsedSeconds,
         'isActive': result.isActive,
         'deliveryNumber': result.deliveryNumber,
+        'boxes': result.boxes,
       };
     }
     return null;

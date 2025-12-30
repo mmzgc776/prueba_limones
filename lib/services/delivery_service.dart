@@ -304,6 +304,7 @@ class DeliveryService {
     try {
       await init();
       final stateMap = state.toMap();
+      stateMap['id'] = 'current'; // ID fijo para el estado persistente
       await _dbService.savePersistentDeliveryState(stateMap);
       debugPrint(
         'Estado persistente guardado: ${state.isActive ? 'Activo' : 'Inactivo'}',
