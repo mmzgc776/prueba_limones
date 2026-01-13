@@ -923,6 +923,19 @@ class DatabaseService {
     )..where((tbl) => tbl.deliveryId.equals(deliveryNumber))).get();
   }
 
+  /// Obtiene los IDs de los clientes que rechazaron en un delivery específico
+  Future<List<int>> getRejectedClientIdsByDeliveryNumber(
+    int deliveryNumber,
+  ) async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.interacciones)
+      ..where((tbl) =>
+        tbl.deliveryId.equals(deliveryNumber) &
+        tbl.result.equals('Rechazó'));
+    final result = await query.get();
+    return result.map((interaccion) => interaccion.clientId).toList();
+  }
+
   /// Obtiene los IDs de los clientes de las últimas 20 ventas
   Future<List<int>> getLast10SalesClientIds() async {
     _ensureInitialized();
@@ -933,12 +946,12 @@ class DatabaseService {
     return result.map((sale) => sale.clientId).toList();
   }
 
-  /// Obtiene los 50 clientes con mayor puntuación
+  /// Obtiene los 60 clientes con mayor puntuación
   Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
     _ensureInitialized();
     final query = _db!.select(_db!.clientes)
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
-      ..limit(50);
+      ..limit(60);
     return await query.get();
   }
 

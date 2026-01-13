@@ -29,6 +29,12 @@ class DeliveryService {
             .map((sale) => sale.clientId)
             .toList();
         excludedClientIds.addAll(deliveryClientIds);
+
+        // Excluir también los clientes que rechazaron en este delivery
+        final rejectedClientIds = await _dbService.getRejectedClientIdsByDeliveryNumber(
+          excludeDeliveryNumber,
+        );
+        excludedClientIds.addAll(rejectedClientIds);
       }
 
       // Obtener los 30 clientes con mayor puntuación

@@ -3,7 +3,6 @@ import '../../../data/database.dart';
 import '../delivery_record.dart';
 import 'cliente_info_card.dart';
 import 'clientes_list.dart';
-import 'timer_display.dart';
 import 'delivery_progress_view.dart';
 
 class ActiveDeliveryView extends StatefulWidget {
@@ -83,27 +82,27 @@ class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
             controller: _tabController,
             children: [
               // Primera pestaña: Vista original de clientes
-              Stack(
+              Column(
                 children: [
-                  ClientesList(
-                    started: widget.started,
-                    paused: widget.paused,
-                    clientes: widget.clientes,
-                    clientesContactados: widget.clientesContactados,
-                    clientesEstado: widget.clientesEstado,
-                    selectedClienteIndex: widget.selectedClienteIndex,
-                    onClienteSelected: widget.onClienteSelected,
-                    onShowInteraccionSheet: widget.onShowInteraccionSheet,
-                    onResumeDelivery: widget.onResumeDelivery,
-                  ),
+                  // Tarjeta de información del cliente
                   ClienteInfoCard(
                     selectedClienteIndex: widget.selectedClienteIndex,
                     started: widget.started,
                     clientes: widget.clientes,
                   ),
-                  TimerDisplay(
-                    started: widget.started,
-                    formattedTime: widget.formattedTime,
+                  // Lista de clientes (expandida)
+                  Expanded(
+                    child: ClientesList(
+                      started: widget.started,
+                      paused: widget.paused,
+                      clientes: widget.clientes,
+                      clientesContactados: widget.clientesContactados,
+                      clientesEstado: widget.clientesEstado,
+                      selectedClienteIndex: widget.selectedClienteIndex,
+                      onClienteSelected: widget.onClienteSelected,
+                      onShowInteraccionSheet: widget.onShowInteraccionSheet,
+                      onResumeDelivery: widget.onResumeDelivery,
+                    ),
                   ),
                 ],
               ),

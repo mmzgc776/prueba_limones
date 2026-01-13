@@ -8,6 +8,7 @@ import 'section_delivery/widgets/active_delivery_view.dart';
 import 'section_delivery/widgets/delivery_records_table.dart';
 import 'section_delivery/widgets/fabs.dart';
 import 'section_delivery/widgets/interaccion_options_sheet.dart';
+import 'section_delivery/widgets/timer_display.dart';
 import '../widgets/venta_form.dart';
 
 class SectionDeliveryPage extends StatefulWidget {
@@ -43,8 +44,13 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
 
   Future<void> _loadData() async {
     try {
+      // Obtener el número del delivery actual si hay uno activo
+      final currentDeliveryNumber = _controller.started
+          ? _controller.getCurrentDeliveryNumber()
+          : widget.resumeDeliveryNumber;
+
       final clientes = await _deliveryService.loadClientes(
-        excludeDeliveryNumber: widget.resumeDeliveryNumber,
+        excludeDeliveryNumber: currentDeliveryNumber,
       );
       setState(() {
         _clientes = clientes;
@@ -94,6 +100,11 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
         clientId: _clientes[index].id,
         result: action,
       );
+
+      // Si el cliente rechazó, recargar la lista para excluirlo
+      if (action == 'Rechazó') {
+        _loadData();
+      }
     } catch (e) {
       // No bloqueamos la navegación UX por errores de inserción; sólo logueamos
       debugPrint('Error al insertar interacción inmediata: $e');
@@ -144,9 +155,40 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                 }
                 return true;
               },
-              child: Scaffold(
-                appBar: AppBar(title: const Text('Iniciar Reparto')),
-                body: _controller.started
+              child: Stack(
+                children: [
+                  Scaffold(
+                    appBar: AppBar(
+                      title: const Text('Iniciar Reparto'),
+                      actions: _controller.started
+                          ? [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 16),
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _controller.formattedTime,
+                                      style: const TextStyle(
+                                        color: Colors.deepPurple,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    body: _controller.started
                     ? ActiveDeliveryView(
                         started: _controller.started,
                         paused: _controller.paused,
@@ -167,61 +209,63 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                         onDeleteRecords: _controller.deleteDeliveryRecords,
                         onDebugInteracciones: _controller.debugInteracciones,
                       ),
-                floatingActionButton: FABs(
-                  started: _controller.started,
-                  paused: _controller.paused,
-                  elapsedSeconds: _controller.elapsedSeconds,
-                  clientesContactados: List<bool>.from(
-                    _controller.clientesContactados,
-                  ),
-                  selectedClienteIndex: _controller.selectedClienteIndex,
-                  onStartDelivery: () async {
-                    // Mostrar diálogo para preguntar número de cajas
-                    final boxes = await _showBoxesDialog();
-                    if (boxes != null) {
-                      _controller.startDelivery(
-                        _controller.deliveryRecords.length + 1,
-                        boxes: boxes,
-                      );
-                    }
-                  },
-                  onPauseDelivery: _controller.pauseDelivery,
-                  onResumeDelivery: _controller.resumeDelivery,
-                  onEndDelivery: () {
-                    showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Confirmar'),
-                        content: const Text(
-                          '¿Estás seguro que deseas detener el reparto? Esto guardará este número de reparto.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancelar'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Detener reparto'),
-                          ),
-                        ],
+                    floatingActionButton: FABs(
+                      started: _controller.started,
+                      paused: _controller.paused,
+                      elapsedSeconds: _controller.elapsedSeconds,
+                      clientesContactados: List<bool>.from(
+                        _controller.clientesContactados,
                       ),
-                    ).then((confirm) async {
-                      if (confirm == true) {
-                        await _controller.endDelivery(_clientes);
-
-                        // Si es un reparto reanudado, volver a la vista anterior
-                        if (_isResumedDelivery && mounted) {
-                          Navigator.of(context).pop();
+                      selectedClienteIndex: _controller.selectedClienteIndex,
+                      onStartDelivery: () async {
+                        // Mostrar diálogo para preguntar número de cajas
+                        final boxes = await _showBoxesDialog();
+                        if (boxes != null) {
+                          _controller.startDelivery(
+                            _controller.deliveryRecords.length + 1,
+                            boxes: boxes,
+                          );
                         }
-                      }
-                    });
-                  },
-                  onDebugInteracciones: _controller.debugInteracciones,
-                ),
-                floatingActionButtonLocation: const _CustomFABLocation(
-                  offsetY: 80,
-                ),
+                      },
+                      onPauseDelivery: _controller.pauseDelivery,
+                      onResumeDelivery: _controller.resumeDelivery,
+                      onEndDelivery: () {
+                        showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Confirmar'),
+                            content: const Text(
+                              '¿Estás seguro que deseas detener el reparto? Esto guardará este número de reparto.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('Cancelar'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text('Detener reparto'),
+                              ),
+                            ],
+                          ),
+                        ).then((confirm) async {
+                          if (confirm == true) {
+                            await _controller.endDelivery(_clientes);
+
+                            // Si es un reparto reanudado, volver a la vista anterior
+                            if (_isResumedDelivery && mounted) {
+                              Navigator.of(context).pop();
+                            }
+                          }
+                        });
+                      },
+                      onDebugInteracciones: _controller.debugInteracciones,
+                    ),
+                    floatingActionButtonLocation: const _CustomFABLocation(
+                      offsetY: 80,
+                    ),
+                  ),
+                ],
               ),
             );
           },

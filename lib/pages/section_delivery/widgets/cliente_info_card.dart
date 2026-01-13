@@ -29,10 +29,8 @@ class _ClienteInfoCardState extends State<ClienteInfoCard> {
     final idx = widget.selectedClienteIndex!;
     final cliente = widget.clientes[idx];
 
-    return Positioned(
-      top: 80,
-      left: 24,
-      right: 24,
+    return Padding(
+      padding: const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 12),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),

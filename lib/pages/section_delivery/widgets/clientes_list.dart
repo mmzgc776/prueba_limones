@@ -28,16 +28,16 @@ class ClientesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Calcular padding dinámico basado en el tamaño de la pantalla
+    final screenHeight = MediaQuery.of(context).size.height;
+    final bottomListPadding = screenHeight * 0.12; // 12% para el bottom de la lista
+
     return Column(
       children: [
-        const SizedBox(height: 20),
         if (started)
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 170,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -52,7 +52,7 @@ class ClientesList extends StatelessWidget {
                 ),
                 child: ListView.builder(
                   itemCount: clientes.length,
-                  padding: const EdgeInsets.only(bottom: 140),
+                  padding: EdgeInsets.only(bottom: bottomListPadding),
                   itemBuilder: (context, index) {
                     final cliente = clientes[index];
                     final contactado = clientesContactados[index];
