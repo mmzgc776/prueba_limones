@@ -58,6 +58,16 @@ class Clientes extends Table {
   RealColumn get kgSemana => real().withDefault(const Constant(0.0))();
   RealColumn get ventasVuelta => real().withDefault(const Constant(0.0))();
   RealColumn get puntuacion => real().withDefault(const Constant(0.0))();
+
+  // Métricas de ciclo de compra
+  RealColumn get intervaloPromedio => real().nullable().withDefault(const Constant(0.0))();
+  IntColumn get diasDesdeUltimaVenta => integer().nullable().withDefault(const Constant(0))();
+  RealColumn get cicloScore => real().nullable().withDefault(const Constant(0.0))();
+
+  // Métricas de patrón semanal
+  IntColumn get diaSemanaPreferido => integer().nullable().withDefault(const Constant(0))();
+  TextColumn get frecuenciasDiaSemana => text().nullable().withDefault(const Constant('{}'))();
+  RealColumn get weekdayScore => real().nullable().withDefault(const Constant(0.0))();
 }
 
 class Interacciones extends Table {
@@ -105,7 +115,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -162,6 +172,29 @@ class AppDatabase extends _$AppDatabase {
         // Migration v16 -> v17: add boxes column to PersistentDeliveryStates
         await migrator.issueCustomQuery(
           "ALTER TABLE persistent_delivery_states ADD COLUMN boxes INTEGER NOT NULL DEFAULT 0;",
+        );
+      }
+
+      if (from == 17) {
+        // Migration v17 -> v18: add purchase cycle and weekday pattern columns
+        // Note: Columns are nullable to handle backwards compatibility
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN intervalo_promedio REAL DEFAULT 0.0;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN dias_desde_ultima_venta INTEGER DEFAULT 0;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN ciclo_score REAL DEFAULT 0.0;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN dia_semana_preferido INTEGER DEFAULT 0;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN frecuencias_dia_semana TEXT DEFAULT '{}';",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN weekday_score REAL DEFAULT 0.0;",
         );
       }
     },

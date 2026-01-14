@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../data/database.dart';
 import '../services/database_service.dart';
@@ -58,7 +60,7 @@ class SyncService {
           await _databaseService.syncClientesUnified(
             context: context,
             spreadsheetId: _spreadsheetId,
-            range: 'Clientes!A1:W',
+            range: 'Clientes!A1:AC',
           );
           return SyncResult.success('Clientes sincronizados exitosamente');
 
@@ -239,6 +241,111 @@ class SyncService {
             final double kgSemana = kgTotales / weeksSinceFirstDelivery;
             await _databaseService.updateClienteKgSemana(cliente.id, kgSemana);
           }
+
+          // ===== NUEVO: Análisis de Ciclo de Compra =====
+          double intervaloPromedio = 0.0;
+          int diasDesdeUltimaVenta = 0;
+          double cicloScore = 0.0;
+
+          if (ventasCliente.length >= 2) {
+            // Ordenar ventas por fecha
+            final salesDates = ventasCliente.map((v) => v.date).toList()..sort();
+
+            // IMPORTANTE: Solo usar las últimas 10 ventas para calcular intervalo
+            // Esto hace que el sistema se adapte a cambios recientes en comportamiento
+            final recentSales = salesDates.length > 10
+                ? salesDates.sublist(salesDates.length - 10)
+                : salesDates;
+
+            // Calcular intervalos entre compras consecutivas
+            List<int> intervals = [];
+            for (int i = 1; i < recentSales.length; i++) {
+              int daysBetween = recentSales[i].difference(recentSales[i - 1]).inDays;
+              if (daysBetween > 0) intervals.add(daysBetween);
+            }
+
+            // Intervalo promedio
+            if (intervals.isNotEmpty) {
+              intervaloPromedio = intervals.reduce((a, b) => a + b) / intervals.length;
+            }
+
+            // Días desde última venta (usar todas las ventas para esto)
+            final now = DateTime.now();
+            final lastSaleDate = salesDates.last;
+            diasDesdeUltimaVenta = now.difference(lastSaleDate).inDays;
+
+            // Score de ciclo: qué tan cerca estamos del intervalo esperado
+            // Si el cliente compra cada 14 días y han pasado ~14 días: score alto
+            // Si han pasado 5 o 25 días: score bajo
+            if (intervaloPromedio > 0) {
+              final deviation = (diasDesdeUltimaVenta - intervaloPromedio).abs() / intervaloPromedio;
+              cicloScore = (1.0 - deviation).clamp(0.0, 1.0);
+            }
+          }
+
+          // ===== NUEVO: Análisis de Patrón Semanal =====
+          int diaSemanaPreferido = 0;
+          String frecuenciasDiaSemana = '{}';
+          double weekdayScore = 0.0;
+
+          if (ventasCliente.isNotEmpty) {
+            // Contar compras por día de semana (0=Lunes, 6=Domingo)
+            final weekdayCounts = <int, int>{};
+            for (var venta in ventasCliente) {
+              // DateTime.weekday es 1-7 (1=Lunes), convertir a 0-6
+              final weekday = venta.date.weekday - 1;
+              weekdayCounts[weekday] = (weekdayCounts[weekday] ?? 0) + 1;
+            }
+
+            // Encontrar día más común
+            int maxCount = 0;
+            weekdayCounts.forEach((weekday, count) {
+              if (count > maxCount) {
+                maxCount = count;
+                diaSemanaPreferido = weekday;
+              }
+            });
+
+            // Guardar como JSON para sync con Google Sheets
+            // Convertir claves int a String para asegurar JSON válido
+            final weekdayCountsStr = weekdayCounts.map(
+              (key, value) => MapEntry(key.toString(), value),
+            );
+            frecuenciasDiaSemana = json.encode(weekdayCountsStr);
+
+            // Calcular score basado en qué día es hoy
+            // Solo aplicar si hay patrón claro (al menos 2 compras en ese día)
+            if (maxCount >= 2) {
+              final today = DateTime.now().weekday - 1; // 0-6
+              final daysDiff = (today - diaSemanaPreferido).abs();
+
+              // Score decreciente LINEAL según distancia al día preferido
+              if (daysDiff == 0) {
+                weekdayScore = 1.0;  // Hoy es el día preferido
+              } else if (daysDiff == 1) {
+                weekdayScore = 0.7;  // 1 día de diferencia
+              } else if (daysDiff == 2) {
+                weekdayScore = 0.4;  // 2 días de diferencia
+              }
+              // 3+ días = 0.0 (sin boost)
+            }
+          }
+
+          // Guardar métricas de ciclo
+          await _databaseService.updateClienteCicloMetrics(
+            clientId: cliente.id,
+            intervaloPromedio: intervaloPromedio,
+            diasDesdeUltimaVenta: diasDesdeUltimaVenta,
+            cicloScore: cicloScore,
+          );
+
+          // Guardar métricas de día de semana
+          await _databaseService.updateClienteWeekdayMetrics(
+            clientId: cliente.id,
+            diaSemanaPreferido: diaSemanaPreferido,
+            frecuenciasDiaSemana: frecuenciasDiaSemana,
+            weekdayScore: weekdayScore,
+          );
         }
         await _databaseService.updateClienteEventos(cliente.id, numeroVentas);
       }
@@ -257,6 +364,7 @@ class SyncService {
       final maxVentasVuelta =
           await _databaseService.getMaxVentasVuelta() ?? 1.0;
       final maxUltimas10 = await _databaseService.getMaxUltimas10() ?? 1.0;
+      final maxCicloScore = await _databaseService.getMaxCicloScore() ?? 1.0;
 
       for (final cliente in clientes) {
         // Normalización
@@ -275,8 +383,22 @@ class SyncService {
         final kr =
             cliente.ventasVuelta / (maxVentasVuelta > 0 ? maxVentasVuelta : 1);
         final c10 = cliente.ultimas10 / (maxUltimas10 > 0 ? maxUltimas10 : 1);
+        final cs = (cliente.cicloScore ?? 0.0) / (maxCicloScore > 0 ? maxCicloScore : 1);
 
-        final puntuacion = 0.35 * co + 0.35 * v + 0.1 * kr + 0.2 * c10;
+        // ===== FÓRMULA ACTUALIZADA =====
+        // Pesos ajustados para incluir ciclo de compra:
+        // - Consistencia: 30% (reducido de 35%)
+        // - Volumen: 30% (reducido de 35%)
+        // - Frecuencia: 10% (sin cambio)
+        // - Recencia: 15% (reducido de 20%)
+        // - Ciclo: 15% (nuevo)
+        final baseScore = 0.30 * co + 0.30 * v + 0.10 * kr + 0.15 * c10 + 0.15 * cs;
+
+        // Aplicar boost multiplicativo por día de semana
+        // Boost máximo: 15% (multiplicador 1.15)
+        // weekdayScore ya está en rango [0-1], usar 0.0 si es null
+        final weekdayBoost = 1.0 + ((cliente.weekdayScore ?? 0.0) * 0.15);
+        final puntuacion = baseScore * weekdayBoost;
 
         await _databaseService.updateClienteFinalScore(cliente.id, puntuacion);
       }

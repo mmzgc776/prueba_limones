@@ -1316,6 +1316,77 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0.0),
   );
+  static const VerificationMeta _intervaloPromedioMeta = const VerificationMeta(
+    'intervaloPromedio',
+  );
+  @override
+  late final GeneratedColumn<double> intervaloPromedio =
+      GeneratedColumn<double>(
+        'intervalo_promedio',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0.0),
+      );
+  static const VerificationMeta _diasDesdeUltimaVentaMeta =
+      const VerificationMeta('diasDesdeUltimaVenta');
+  @override
+  late final GeneratedColumn<int> diasDesdeUltimaVenta = GeneratedColumn<int>(
+    'dias_desde_ultima_venta',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _cicloScoreMeta = const VerificationMeta(
+    'cicloScore',
+  );
+  @override
+  late final GeneratedColumn<double> cicloScore = GeneratedColumn<double>(
+    'ciclo_score',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _diaSemanaPreferidoMeta =
+      const VerificationMeta('diaSemanaPreferido');
+  @override
+  late final GeneratedColumn<int> diaSemanaPreferido = GeneratedColumn<int>(
+    'dia_semana_preferido',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _frecuenciasDiaSemanaMeta =
+      const VerificationMeta('frecuenciasDiaSemana');
+  @override
+  late final GeneratedColumn<String> frecuenciasDiaSemana =
+      GeneratedColumn<String>(
+        'frecuencias_dia_semana',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('{}'),
+      );
+  static const VerificationMeta _weekdayScoreMeta = const VerificationMeta(
+    'weekdayScore',
+  );
+  @override
+  late final GeneratedColumn<double> weekdayScore = GeneratedColumn<double>(
+    'weekday_score',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1341,6 +1412,12 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
     kgSemana,
     ventasVuelta,
     puntuacion,
+    intervaloPromedio,
+    diasDesdeUltimaVenta,
+    cicloScore,
+    diaSemanaPreferido,
+    frecuenciasDiaSemana,
+    weekdayScore,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1522,6 +1599,57 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
         puntuacion.isAcceptableOrUnknown(data['puntuacion']!, _puntuacionMeta),
       );
     }
+    if (data.containsKey('intervalo_promedio')) {
+      context.handle(
+        _intervaloPromedioMeta,
+        intervaloPromedio.isAcceptableOrUnknown(
+          data['intervalo_promedio']!,
+          _intervaloPromedioMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dias_desde_ultima_venta')) {
+      context.handle(
+        _diasDesdeUltimaVentaMeta,
+        diasDesdeUltimaVenta.isAcceptableOrUnknown(
+          data['dias_desde_ultima_venta']!,
+          _diasDesdeUltimaVentaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ciclo_score')) {
+      context.handle(
+        _cicloScoreMeta,
+        cicloScore.isAcceptableOrUnknown(data['ciclo_score']!, _cicloScoreMeta),
+      );
+    }
+    if (data.containsKey('dia_semana_preferido')) {
+      context.handle(
+        _diaSemanaPreferidoMeta,
+        diaSemanaPreferido.isAcceptableOrUnknown(
+          data['dia_semana_preferido']!,
+          _diaSemanaPreferidoMeta,
+        ),
+      );
+    }
+    if (data.containsKey('frecuencias_dia_semana')) {
+      context.handle(
+        _frecuenciasDiaSemanaMeta,
+        frecuenciasDiaSemana.isAcceptableOrUnknown(
+          data['frecuencias_dia_semana']!,
+          _frecuenciasDiaSemanaMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weekday_score')) {
+      context.handle(
+        _weekdayScoreMeta,
+        weekdayScore.isAcceptableOrUnknown(
+          data['weekday_score']!,
+          _weekdayScoreMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1623,6 +1751,30 @@ class $ClientesTable extends Clientes with TableInfo<$ClientesTable, Cliente> {
         DriftSqlType.double,
         data['${effectivePrefix}puntuacion'],
       )!,
+      intervaloPromedio: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}intervalo_promedio'],
+      ),
+      diasDesdeUltimaVenta: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dias_desde_ultima_venta'],
+      ),
+      cicloScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}ciclo_score'],
+      ),
+      diaSemanaPreferido: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dia_semana_preferido'],
+      ),
+      frecuenciasDiaSemana: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frecuencias_dia_semana'],
+      ),
+      weekdayScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}weekday_score'],
+      ),
     );
   }
 
@@ -1656,6 +1808,12 @@ class Cliente extends DataClass implements Insertable<Cliente> {
   final double kgSemana;
   final double ventasVuelta;
   final double puntuacion;
+  final double? intervaloPromedio;
+  final int? diasDesdeUltimaVenta;
+  final double? cicloScore;
+  final int? diaSemanaPreferido;
+  final String? frecuenciasDiaSemana;
+  final double? weekdayScore;
   const Cliente({
     required this.id,
     required this.nombre,
@@ -1680,6 +1838,12 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     required this.kgSemana,
     required this.ventasVuelta,
     required this.puntuacion,
+    this.intervaloPromedio,
+    this.diasDesdeUltimaVenta,
+    this.cicloScore,
+    this.diaSemanaPreferido,
+    this.frecuenciasDiaSemana,
+    this.weekdayScore,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1709,6 +1873,24 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     map['kg_semana'] = Variable<double>(kgSemana);
     map['ventas_vuelta'] = Variable<double>(ventasVuelta);
     map['puntuacion'] = Variable<double>(puntuacion);
+    if (!nullToAbsent || intervaloPromedio != null) {
+      map['intervalo_promedio'] = Variable<double>(intervaloPromedio);
+    }
+    if (!nullToAbsent || diasDesdeUltimaVenta != null) {
+      map['dias_desde_ultima_venta'] = Variable<int>(diasDesdeUltimaVenta);
+    }
+    if (!nullToAbsent || cicloScore != null) {
+      map['ciclo_score'] = Variable<double>(cicloScore);
+    }
+    if (!nullToAbsent || diaSemanaPreferido != null) {
+      map['dia_semana_preferido'] = Variable<int>(diaSemanaPreferido);
+    }
+    if (!nullToAbsent || frecuenciasDiaSemana != null) {
+      map['frecuencias_dia_semana'] = Variable<String>(frecuenciasDiaSemana);
+    }
+    if (!nullToAbsent || weekdayScore != null) {
+      map['weekday_score'] = Variable<double>(weekdayScore);
+    }
     return map;
   }
 
@@ -1739,6 +1921,24 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       kgSemana: Value(kgSemana),
       ventasVuelta: Value(ventasVuelta),
       puntuacion: Value(puntuacion),
+      intervaloPromedio: intervaloPromedio == null && nullToAbsent
+          ? const Value.absent()
+          : Value(intervaloPromedio),
+      diasDesdeUltimaVenta: diasDesdeUltimaVenta == null && nullToAbsent
+          ? const Value.absent()
+          : Value(diasDesdeUltimaVenta),
+      cicloScore: cicloScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cicloScore),
+      diaSemanaPreferido: diaSemanaPreferido == null && nullToAbsent
+          ? const Value.absent()
+          : Value(diaSemanaPreferido),
+      frecuenciasDiaSemana: frecuenciasDiaSemana == null && nullToAbsent
+          ? const Value.absent()
+          : Value(frecuenciasDiaSemana),
+      weekdayScore: weekdayScore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weekdayScore),
     );
   }
 
@@ -1771,6 +1971,18 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       kgSemana: serializer.fromJson<double>(json['kgSemana']),
       ventasVuelta: serializer.fromJson<double>(json['ventasVuelta']),
       puntuacion: serializer.fromJson<double>(json['puntuacion']),
+      intervaloPromedio: serializer.fromJson<double?>(
+        json['intervaloPromedio'],
+      ),
+      diasDesdeUltimaVenta: serializer.fromJson<int?>(
+        json['diasDesdeUltimaVenta'],
+      ),
+      cicloScore: serializer.fromJson<double?>(json['cicloScore']),
+      diaSemanaPreferido: serializer.fromJson<int?>(json['diaSemanaPreferido']),
+      frecuenciasDiaSemana: serializer.fromJson<String?>(
+        json['frecuenciasDiaSemana'],
+      ),
+      weekdayScore: serializer.fromJson<double?>(json['weekdayScore']),
     );
   }
   @override
@@ -1800,6 +2012,12 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       'kgSemana': serializer.toJson<double>(kgSemana),
       'ventasVuelta': serializer.toJson<double>(ventasVuelta),
       'puntuacion': serializer.toJson<double>(puntuacion),
+      'intervaloPromedio': serializer.toJson<double?>(intervaloPromedio),
+      'diasDesdeUltimaVenta': serializer.toJson<int?>(diasDesdeUltimaVenta),
+      'cicloScore': serializer.toJson<double?>(cicloScore),
+      'diaSemanaPreferido': serializer.toJson<int?>(diaSemanaPreferido),
+      'frecuenciasDiaSemana': serializer.toJson<String?>(frecuenciasDiaSemana),
+      'weekdayScore': serializer.toJson<double?>(weekdayScore),
     };
   }
 
@@ -1827,6 +2045,12 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     double? kgSemana,
     double? ventasVuelta,
     double? puntuacion,
+    Value<double?> intervaloPromedio = const Value.absent(),
+    Value<int?> diasDesdeUltimaVenta = const Value.absent(),
+    Value<double?> cicloScore = const Value.absent(),
+    Value<int?> diaSemanaPreferido = const Value.absent(),
+    Value<String?> frecuenciasDiaSemana = const Value.absent(),
+    Value<double?> weekdayScore = const Value.absent(),
   }) => Cliente(
     id: id ?? this.id,
     nombre: nombre ?? this.nombre,
@@ -1851,6 +2075,20 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     kgSemana: kgSemana ?? this.kgSemana,
     ventasVuelta: ventasVuelta ?? this.ventasVuelta,
     puntuacion: puntuacion ?? this.puntuacion,
+    intervaloPromedio: intervaloPromedio.present
+        ? intervaloPromedio.value
+        : this.intervaloPromedio,
+    diasDesdeUltimaVenta: diasDesdeUltimaVenta.present
+        ? diasDesdeUltimaVenta.value
+        : this.diasDesdeUltimaVenta,
+    cicloScore: cicloScore.present ? cicloScore.value : this.cicloScore,
+    diaSemanaPreferido: diaSemanaPreferido.present
+        ? diaSemanaPreferido.value
+        : this.diaSemanaPreferido,
+    frecuenciasDiaSemana: frecuenciasDiaSemana.present
+        ? frecuenciasDiaSemana.value
+        : this.frecuenciasDiaSemana,
+    weekdayScore: weekdayScore.present ? weekdayScore.value : this.weekdayScore,
   );
   Cliente copyWithCompanion(ClientesCompanion data) {
     return Cliente(
@@ -1889,6 +2127,24 @@ class Cliente extends DataClass implements Insertable<Cliente> {
       puntuacion: data.puntuacion.present
           ? data.puntuacion.value
           : this.puntuacion,
+      intervaloPromedio: data.intervaloPromedio.present
+          ? data.intervaloPromedio.value
+          : this.intervaloPromedio,
+      diasDesdeUltimaVenta: data.diasDesdeUltimaVenta.present
+          ? data.diasDesdeUltimaVenta.value
+          : this.diasDesdeUltimaVenta,
+      cicloScore: data.cicloScore.present
+          ? data.cicloScore.value
+          : this.cicloScore,
+      diaSemanaPreferido: data.diaSemanaPreferido.present
+          ? data.diaSemanaPreferido.value
+          : this.diaSemanaPreferido,
+      frecuenciasDiaSemana: data.frecuenciasDiaSemana.present
+          ? data.frecuenciasDiaSemana.value
+          : this.frecuenciasDiaSemana,
+      weekdayScore: data.weekdayScore.present
+          ? data.weekdayScore.value
+          : this.weekdayScore,
     );
   }
 
@@ -1917,7 +2173,13 @@ class Cliente extends DataClass implements Insertable<Cliente> {
           ..write('kgEvento: $kgEvento, ')
           ..write('kgSemana: $kgSemana, ')
           ..write('ventasVuelta: $ventasVuelta, ')
-          ..write('puntuacion: $puntuacion')
+          ..write('puntuacion: $puntuacion, ')
+          ..write('intervaloPromedio: $intervaloPromedio, ')
+          ..write('diasDesdeUltimaVenta: $diasDesdeUltimaVenta, ')
+          ..write('cicloScore: $cicloScore, ')
+          ..write('diaSemanaPreferido: $diaSemanaPreferido, ')
+          ..write('frecuenciasDiaSemana: $frecuenciasDiaSemana, ')
+          ..write('weekdayScore: $weekdayScore')
           ..write(')'))
         .toString();
   }
@@ -1947,6 +2209,12 @@ class Cliente extends DataClass implements Insertable<Cliente> {
     kgSemana,
     ventasVuelta,
     puntuacion,
+    intervaloPromedio,
+    diasDesdeUltimaVenta,
+    cicloScore,
+    diaSemanaPreferido,
+    frecuenciasDiaSemana,
+    weekdayScore,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1974,7 +2242,13 @@ class Cliente extends DataClass implements Insertable<Cliente> {
           other.kgEvento == this.kgEvento &&
           other.kgSemana == this.kgSemana &&
           other.ventasVuelta == this.ventasVuelta &&
-          other.puntuacion == this.puntuacion);
+          other.puntuacion == this.puntuacion &&
+          other.intervaloPromedio == this.intervaloPromedio &&
+          other.diasDesdeUltimaVenta == this.diasDesdeUltimaVenta &&
+          other.cicloScore == this.cicloScore &&
+          other.diaSemanaPreferido == this.diaSemanaPreferido &&
+          other.frecuenciasDiaSemana == this.frecuenciasDiaSemana &&
+          other.weekdayScore == this.weekdayScore);
 }
 
 class ClientesCompanion extends UpdateCompanion<Cliente> {
@@ -2001,6 +2275,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
   final Value<double> kgSemana;
   final Value<double> ventasVuelta;
   final Value<double> puntuacion;
+  final Value<double?> intervaloPromedio;
+  final Value<int?> diasDesdeUltimaVenta;
+  final Value<double?> cicloScore;
+  final Value<int?> diaSemanaPreferido;
+  final Value<String?> frecuenciasDiaSemana;
+  final Value<double?> weekdayScore;
   const ClientesCompanion({
     this.id = const Value.absent(),
     this.nombre = const Value.absent(),
@@ -2025,6 +2305,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     this.kgSemana = const Value.absent(),
     this.ventasVuelta = const Value.absent(),
     this.puntuacion = const Value.absent(),
+    this.intervaloPromedio = const Value.absent(),
+    this.diasDesdeUltimaVenta = const Value.absent(),
+    this.cicloScore = const Value.absent(),
+    this.diaSemanaPreferido = const Value.absent(),
+    this.frecuenciasDiaSemana = const Value.absent(),
+    this.weekdayScore = const Value.absent(),
   });
   ClientesCompanion.insert({
     this.id = const Value.absent(),
@@ -2050,6 +2336,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     this.kgSemana = const Value.absent(),
     this.ventasVuelta = const Value.absent(),
     this.puntuacion = const Value.absent(),
+    this.intervaloPromedio = const Value.absent(),
+    this.diasDesdeUltimaVenta = const Value.absent(),
+    this.cicloScore = const Value.absent(),
+    this.diaSemanaPreferido = const Value.absent(),
+    this.frecuenciasDiaSemana = const Value.absent(),
+    this.weekdayScore = const Value.absent(),
   }) : nombre = Value(nombre),
        contacto = Value(contacto),
        tipoNegocio = Value(tipoNegocio),
@@ -2086,6 +2378,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     Expression<double>? kgSemana,
     Expression<double>? ventasVuelta,
     Expression<double>? puntuacion,
+    Expression<double>? intervaloPromedio,
+    Expression<int>? diasDesdeUltimaVenta,
+    Expression<double>? cicloScore,
+    Expression<int>? diaSemanaPreferido,
+    Expression<String>? frecuenciasDiaSemana,
+    Expression<double>? weekdayScore,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2111,6 +2409,15 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
       if (kgSemana != null) 'kg_semana': kgSemana,
       if (ventasVuelta != null) 'ventas_vuelta': ventasVuelta,
       if (puntuacion != null) 'puntuacion': puntuacion,
+      if (intervaloPromedio != null) 'intervalo_promedio': intervaloPromedio,
+      if (diasDesdeUltimaVenta != null)
+        'dias_desde_ultima_venta': diasDesdeUltimaVenta,
+      if (cicloScore != null) 'ciclo_score': cicloScore,
+      if (diaSemanaPreferido != null)
+        'dia_semana_preferido': diaSemanaPreferido,
+      if (frecuenciasDiaSemana != null)
+        'frecuencias_dia_semana': frecuenciasDiaSemana,
+      if (weekdayScore != null) 'weekday_score': weekdayScore,
     });
   }
 
@@ -2138,6 +2445,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     Value<double>? kgSemana,
     Value<double>? ventasVuelta,
     Value<double>? puntuacion,
+    Value<double?>? intervaloPromedio,
+    Value<int?>? diasDesdeUltimaVenta,
+    Value<double?>? cicloScore,
+    Value<int?>? diaSemanaPreferido,
+    Value<String?>? frecuenciasDiaSemana,
+    Value<double?>? weekdayScore,
   }) {
     return ClientesCompanion(
       id: id ?? this.id,
@@ -2163,6 +2476,12 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
       kgSemana: kgSemana ?? this.kgSemana,
       ventasVuelta: ventasVuelta ?? this.ventasVuelta,
       puntuacion: puntuacion ?? this.puntuacion,
+      intervaloPromedio: intervaloPromedio ?? this.intervaloPromedio,
+      diasDesdeUltimaVenta: diasDesdeUltimaVenta ?? this.diasDesdeUltimaVenta,
+      cicloScore: cicloScore ?? this.cicloScore,
+      diaSemanaPreferido: diaSemanaPreferido ?? this.diaSemanaPreferido,
+      frecuenciasDiaSemana: frecuenciasDiaSemana ?? this.frecuenciasDiaSemana,
+      weekdayScore: weekdayScore ?? this.weekdayScore,
     );
   }
 
@@ -2238,6 +2557,28 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
     if (puntuacion.present) {
       map['puntuacion'] = Variable<double>(puntuacion.value);
     }
+    if (intervaloPromedio.present) {
+      map['intervalo_promedio'] = Variable<double>(intervaloPromedio.value);
+    }
+    if (diasDesdeUltimaVenta.present) {
+      map['dias_desde_ultima_venta'] = Variable<int>(
+        diasDesdeUltimaVenta.value,
+      );
+    }
+    if (cicloScore.present) {
+      map['ciclo_score'] = Variable<double>(cicloScore.value);
+    }
+    if (diaSemanaPreferido.present) {
+      map['dia_semana_preferido'] = Variable<int>(diaSemanaPreferido.value);
+    }
+    if (frecuenciasDiaSemana.present) {
+      map['frecuencias_dia_semana'] = Variable<String>(
+        frecuenciasDiaSemana.value,
+      );
+    }
+    if (weekdayScore.present) {
+      map['weekday_score'] = Variable<double>(weekdayScore.value);
+    }
     return map;
   }
 
@@ -2266,7 +2607,13 @@ class ClientesCompanion extends UpdateCompanion<Cliente> {
           ..write('kgEvento: $kgEvento, ')
           ..write('kgSemana: $kgSemana, ')
           ..write('ventasVuelta: $ventasVuelta, ')
-          ..write('puntuacion: $puntuacion')
+          ..write('puntuacion: $puntuacion, ')
+          ..write('intervaloPromedio: $intervaloPromedio, ')
+          ..write('diasDesdeUltimaVenta: $diasDesdeUltimaVenta, ')
+          ..write('cicloScore: $cicloScore, ')
+          ..write('diaSemanaPreferido: $diaSemanaPreferido, ')
+          ..write('frecuenciasDiaSemana: $frecuenciasDiaSemana, ')
+          ..write('weekdayScore: $weekdayScore')
           ..write(')'))
         .toString();
   }
@@ -4016,6 +4363,12 @@ typedef $$ClientesTableCreateCompanionBuilder =
       Value<double> kgSemana,
       Value<double> ventasVuelta,
       Value<double> puntuacion,
+      Value<double?> intervaloPromedio,
+      Value<int?> diasDesdeUltimaVenta,
+      Value<double?> cicloScore,
+      Value<int?> diaSemanaPreferido,
+      Value<String?> frecuenciasDiaSemana,
+      Value<double?> weekdayScore,
     });
 typedef $$ClientesTableUpdateCompanionBuilder =
     ClientesCompanion Function({
@@ -4042,6 +4395,12 @@ typedef $$ClientesTableUpdateCompanionBuilder =
       Value<double> kgSemana,
       Value<double> ventasVuelta,
       Value<double> puntuacion,
+      Value<double?> intervaloPromedio,
+      Value<int?> diasDesdeUltimaVenta,
+      Value<double?> cicloScore,
+      Value<int?> diaSemanaPreferido,
+      Value<String?> frecuenciasDiaSemana,
+      Value<double?> weekdayScore,
     });
 
 class $$ClientesTableFilterComposer
@@ -4165,6 +4524,36 @@ class $$ClientesTableFilterComposer
 
   ColumnFilters<double> get puntuacion => $composableBuilder(
     column: $table.puntuacion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get intervaloPromedio => $composableBuilder(
+    column: $table.intervaloPromedio,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get diasDesdeUltimaVenta => $composableBuilder(
+    column: $table.diasDesdeUltimaVenta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get cicloScore => $composableBuilder(
+    column: $table.cicloScore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get diaSemanaPreferido => $composableBuilder(
+    column: $table.diaSemanaPreferido,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frecuenciasDiaSemana => $composableBuilder(
+    column: $table.frecuenciasDiaSemana,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get weekdayScore => $composableBuilder(
+    column: $table.weekdayScore,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4292,6 +4681,36 @@ class $$ClientesTableOrderingComposer
     column: $table.puntuacion,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get intervaloPromedio => $composableBuilder(
+    column: $table.intervaloPromedio,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get diasDesdeUltimaVenta => $composableBuilder(
+    column: $table.diasDesdeUltimaVenta,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get cicloScore => $composableBuilder(
+    column: $table.cicloScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get diaSemanaPreferido => $composableBuilder(
+    column: $table.diaSemanaPreferido,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frecuenciasDiaSemana => $composableBuilder(
+    column: $table.frecuenciasDiaSemana,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get weekdayScore => $composableBuilder(
+    column: $table.weekdayScore,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientesTableAnnotationComposer
@@ -4383,6 +4802,36 @@ class $$ClientesTableAnnotationComposer
     column: $table.puntuacion,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get intervaloPromedio => $composableBuilder(
+    column: $table.intervaloPromedio,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get diasDesdeUltimaVenta => $composableBuilder(
+    column: $table.diasDesdeUltimaVenta,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get cicloScore => $composableBuilder(
+    column: $table.cicloScore,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get diaSemanaPreferido => $composableBuilder(
+    column: $table.diaSemanaPreferido,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get frecuenciasDiaSemana => $composableBuilder(
+    column: $table.frecuenciasDiaSemana,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get weekdayScore => $composableBuilder(
+    column: $table.weekdayScore,
+    builder: (column) => column,
+  );
 }
 
 class $$ClientesTableTableManager
@@ -4436,6 +4885,12 @@ class $$ClientesTableTableManager
                 Value<double> kgSemana = const Value.absent(),
                 Value<double> ventasVuelta = const Value.absent(),
                 Value<double> puntuacion = const Value.absent(),
+                Value<double?> intervaloPromedio = const Value.absent(),
+                Value<int?> diasDesdeUltimaVenta = const Value.absent(),
+                Value<double?> cicloScore = const Value.absent(),
+                Value<int?> diaSemanaPreferido = const Value.absent(),
+                Value<String?> frecuenciasDiaSemana = const Value.absent(),
+                Value<double?> weekdayScore = const Value.absent(),
               }) => ClientesCompanion(
                 id: id,
                 nombre: nombre,
@@ -4460,6 +4915,12 @@ class $$ClientesTableTableManager
                 kgSemana: kgSemana,
                 ventasVuelta: ventasVuelta,
                 puntuacion: puntuacion,
+                intervaloPromedio: intervaloPromedio,
+                diasDesdeUltimaVenta: diasDesdeUltimaVenta,
+                cicloScore: cicloScore,
+                diaSemanaPreferido: diaSemanaPreferido,
+                frecuenciasDiaSemana: frecuenciasDiaSemana,
+                weekdayScore: weekdayScore,
               ),
           createCompanionCallback:
               ({
@@ -4486,6 +4947,12 @@ class $$ClientesTableTableManager
                 Value<double> kgSemana = const Value.absent(),
                 Value<double> ventasVuelta = const Value.absent(),
                 Value<double> puntuacion = const Value.absent(),
+                Value<double?> intervaloPromedio = const Value.absent(),
+                Value<int?> diasDesdeUltimaVenta = const Value.absent(),
+                Value<double?> cicloScore = const Value.absent(),
+                Value<int?> diaSemanaPreferido = const Value.absent(),
+                Value<String?> frecuenciasDiaSemana = const Value.absent(),
+                Value<double?> weekdayScore = const Value.absent(),
               }) => ClientesCompanion.insert(
                 id: id,
                 nombre: nombre,
@@ -4510,6 +4977,12 @@ class $$ClientesTableTableManager
                 kgSemana: kgSemana,
                 ventasVuelta: ventasVuelta,
                 puntuacion: puntuacion,
+                intervaloPromedio: intervaloPromedio,
+                diasDesdeUltimaVenta: diasDesdeUltimaVenta,
+                cicloScore: cicloScore,
+                diaSemanaPreferido: diaSemanaPreferido,
+                frecuenciasDiaSemana: frecuenciasDiaSemana,
+                weekdayScore: weekdayScore,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -534,6 +534,42 @@ class DatabaseService {
         .write(ClientesCompanion(puntuacion: Value(score)));
   }
 
+  /// Actualiza las métricas de ciclo de compra de un cliente
+  Future<void> updateClienteCicloMetrics({
+    required int clientId,
+    required double intervaloPromedio,
+    required int diasDesdeUltimaVenta,
+    required double cicloScore,
+  }) async {
+    _ensureInitialized();
+    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
+        .write(
+      ClientesCompanion(
+        intervaloPromedio: Value(intervaloPromedio),
+        diasDesdeUltimaVenta: Value(diasDesdeUltimaVenta),
+        cicloScore: Value(cicloScore),
+      ),
+    );
+  }
+
+  /// Actualiza las métricas de patrón semanal de un cliente
+  Future<void> updateClienteWeekdayMetrics({
+    required int clientId,
+    required int diaSemanaPreferido,
+    required String frecuenciasDiaSemana,
+    required double weekdayScore,
+  }) async {
+    _ensureInitialized();
+    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
+        .write(
+      ClientesCompanion(
+        diaSemanaPreferido: Value(diaSemanaPreferido),
+        frecuenciasDiaSemana: Value(frecuenciasDiaSemana),
+        weekdayScore: Value(weekdayScore),
+      ),
+    );
+  }
+
   // Métodos para obtener los valores máximos para la normalización
   Future<int?> getMaxEventos() async {
     _ensureInitialized();
@@ -591,6 +627,20 @@ class DatabaseService {
     return await query
         .map((row) => row.read(maxVentasVuelta))
         .getSingleOrNull();
+  }
+
+  Future<double?> getMaxCicloScore() async {
+    _ensureInitialized();
+    final maxCicloScore = _db!.clientes.cicloScore.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxCicloScore]);
+    return await query.map((row) => row.read(maxCicloScore)).getSingleOrNull();
+  }
+
+  Future<double?> getMaxIntervaloPromedio() async {
+    _ensureInitialized();
+    final maxIntervalo = _db!.clientes.intervaloPromedio.max();
+    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxIntervalo]);
+    return await query.map((row) => row.read(maxIntervalo)).getSingleOrNull();
   }
 
   // ===== SINCRONIZACIÓN CON GOOGLE SHEETS =====
@@ -797,6 +847,7 @@ class DatabaseService {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
+        // Aceptar filas con al menos 23 columnas (formato antiguo) o 29 (formato nuevo)
         if (row.isEmpty || row.length < 23 || row[0] == null) continue;
         try {
           final cliente = ClientesCompanion(
@@ -825,6 +876,25 @@ class DatabaseService {
             kgSemana: Value(double.tryParse(row[20].toString()) ?? 0.0),
             ventasVuelta: Value(double.tryParse(row[21].toString()) ?? 0.0),
             puntuacion: Value(double.tryParse(row[22].toString()) ?? 0.0),
+            // Nuevas columnas (si existen en el sheet)
+            intervaloPromedio: row.length > 23
+              ? Value(double.tryParse(row[23].toString()) ?? 0.0)
+              : Value.absent(),
+            diasDesdeUltimaVenta: row.length > 24
+              ? Value(int.tryParse(row[24].toString()) ?? 0)
+              : Value.absent(),
+            cicloScore: row.length > 25
+              ? Value(double.tryParse(row[25].toString()) ?? 0.0)
+              : Value.absent(),
+            diaSemanaPreferido: row.length > 26
+              ? Value(int.tryParse(row[26].toString()) ?? 0)
+              : Value.absent(),
+            frecuenciasDiaSemana: row.length > 27
+              ? Value(row[27].toString())
+              : Value.absent(),
+            weekdayScore: row.length > 28
+              ? Value(double.tryParse(row[28].toString()) ?? 0.0)
+              : Value.absent(),
           );
           await _db!.into(_db!.clientes).insertOnConflictUpdate(cliente);
         } catch (e) {
@@ -863,6 +933,13 @@ class DatabaseService {
           cliente.kgSemana,
           cliente.ventasVuelta,
           cliente.puntuacion,
+          // Nuevas columnas de ciclo de compra y patrón semanal
+          cliente.intervaloPromedio ?? 0.0,
+          cliente.diasDesdeUltimaVenta ?? 0,
+          cliente.cicloScore ?? 0.0,
+          cliente.diaSemanaPreferido ?? 0,
+          cliente.frecuenciasDiaSemana ?? '{}',
+          cliente.weekdayScore ?? 0.0,
         ]);
       }
 
