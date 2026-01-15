@@ -215,7 +215,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
         duration: Duration(seconds: _elapsedSeconds),
         avgPrice: stats.avgPricePerKilo,
         kilograms: stats.totalKilograms,
-        boxes: existingDelivery.boxes,
+        boxes: _initialBoxes > 0 ? _initialBoxes : existingDelivery.boxes,
         remaining: existingDelivery.remaining,
         seller: existingDelivery.seller,
         total: stats.totalAmount,
