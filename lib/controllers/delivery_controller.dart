@@ -140,7 +140,8 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
   }
 
   /// Reanuda un delivery específico
-  Future<void> resumeSpecificDelivery(int deliveryNumber) async {
+  /// Si se proporciona [boxesOverride], se usa ese valor en lugar del de la BD
+  Future<void> resumeSpecificDelivery(int deliveryNumber, {int? boxesOverride}) async {
     // Load accumulated time from database if delivery already exists
     try {
       final existingDelivery = await _deliveryService.getDeliveryByNumber(
@@ -148,19 +149,20 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
       );
       if (existingDelivery != null) {
         _elapsedSeconds = existingDelivery.durationSeconds;
-        _initialBoxes = existingDelivery.boxes;
+        // Si se proporciona boxesOverride, usarlo; sino usar el de la BD
+        _initialBoxes = boxesOverride ?? existingDelivery.boxes;
         debugPrint(
-          'Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds, boxes: $_initialBoxes',
+          'Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds, boxes: $_initialBoxes${boxesOverride != null ? ' (override)' : ''}',
         );
       } else {
         _elapsedSeconds = 0;
-        _initialBoxes = 0;
+        _initialBoxes = boxesOverride ?? 0;
         debugPrint('Starting new delivery #$deliveryNumber from 0 seconds');
       }
     } catch (e) {
       debugPrint('Error loading delivery time: $e');
       _elapsedSeconds = 0;
-      _initialBoxes = 0;
+      _initialBoxes = boxesOverride ?? 0;
     }
 
     _started = true;

@@ -58,9 +58,28 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
       });
       await _controller.loadDeliveryRecords();
 
-      // Si se está reanudando un reparto, iniciarlo automáticamente
+      // Si se está reanudando un reparto, verificar si necesita cajas
       if (widget.resumeDeliveryNumber != null) {
-        await _controller.resumeSpecificDelivery(widget.resumeDeliveryNumber!);
+        final existingDelivery = await _deliveryService.getDeliveryByNumber(
+          widget.resumeDeliveryNumber!,
+        );
+
+        // Si el delivery tiene 0 cajas, pedir al usuario que las ingrese
+        if (existingDelivery != null && existingDelivery.boxes == 0) {
+          final boxes = await _showBoxesDialog(isResume: true);
+          if (boxes != null && boxes > 0) {
+            await _controller.resumeSpecificDelivery(
+              widget.resumeDeliveryNumber!,
+              boxesOverride: boxes,
+            );
+          } else {
+            // Si el usuario cancela o ingresa 0, reanudar sin cajas
+            await _controller.resumeSpecificDelivery(widget.resumeDeliveryNumber!);
+          }
+        } else {
+          // Si el delivery tiene cajas, reanudar normalmente
+          await _controller.resumeSpecificDelivery(widget.resumeDeliveryNumber!);
+        }
       }
 
       /* ScaffoldMessenger.of(context).showSnackBar(
@@ -275,7 +294,8 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
   }
 
   /// Muestra un diálogo para preguntar el número de cajas
-  Future<int?> _showBoxesDialog() async {
+  /// [isResume] indica si se está reanudando un reparto existente
+  Future<int?> _showBoxesDialog({bool isResume = false}) async {
     final controller = TextEditingController(text: '0');
 
     return showDialog<int>(
@@ -283,13 +303,15 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
       barrierDismissible: false, // Usuario debe responder
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Iniciar Reparto'),
+          title: Text(isResume ? 'Reanudar Reparto' : 'Iniciar Reparto'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                '¿Con cuántas cajas inicias el reparto?',
-                style: TextStyle(fontSize: 16),
+              Text(
+                isResume
+                    ? 'Este reparto no tiene cajas registradas.\n¿Con cuántas cajas iniciaste el reparto?'
+                    : '¿Con cuántas cajas inicias el reparto?',
+                style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -318,7 +340,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                 final boxes = int.tryParse(controller.text) ?? 0;
                 Navigator.of(context).pop(boxes);
               },
-              child: const Text('Iniciar'),
+              child: Text(isResume ? 'Reanudar' : 'Iniciar'),
             ),
           ],
         );
