@@ -6,6 +6,7 @@ import '../services/database_service.dart';
 import 'nuevo_cliente_page.dart';
 import 'logs_page.dart';
 import '../widgets/notes_container.dart';
+import 'section_delivery/widgets/history_view.dart';
 
 class EditarClientesPage extends StatefulWidget {
   final int? preloadClientId;
@@ -35,6 +36,8 @@ class _EditarClientesPageState extends State<EditarClientesPage> {
   int _horaInicio = 8;
   int _horaCierre = 18;
   final List<bool> _diasSeleccionados = List.filled(7, false);
+  List<Map<String, dynamic>> _clientHistory = [];
+  bool _isLoadingHistory = false;
 
   @override
   void initState() {
@@ -59,6 +62,31 @@ class _EditarClientesPageState extends State<EditarClientesPage> {
         orElse: () => clientes.first,
       );
       _onClientSelected(cliente);
+    }
+  }
+
+  Future<void> _loadClientHistory() async {
+    if (_selectedClient?.id == null) return;
+
+    setState(() {
+      _isLoadingHistory = true;
+    });
+
+    try {
+      final databaseService = DatabaseService();
+      await databaseService.init();
+      final history = await databaseService.getHistoryForClient(
+        _selectedClient!.id!,
+      );
+      setState(() {
+        _clientHistory = history;
+        _isLoadingHistory = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading client history: $e');
+      setState(() {
+        _isLoadingHistory = false;
+      });
     }
   }
 
@@ -91,6 +119,8 @@ class _EditarClientesPageState extends State<EditarClientesPage> {
           }
         }
       });
+      // Cargar historial del cliente
+      _loadClientHistory();
     }
   }
 
@@ -408,6 +438,67 @@ class _EditarClientesPageState extends State<EditarClientesPage> {
                         onPressed: _saveForm,
                         child: const Text('Guardar cliente'),
                       ),
+                      // History section - only show when a client is selected
+                      if (_selectedClient != null) ...[
+                        const SizedBox(height: 24),
+                        const Divider(),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(Icons.history, color: Theme.of(context).primaryColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Historial del cliente',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        if (_isLoadingHistory)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        else if (_clientHistory.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.history,
+                                    size: 48,
+                                    color: Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No hay historial para este cliente',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          SizedBox(
+                            height: 400,
+                            child: HistoryView(
+                              historyData: _clientHistory,
+                              onRefresh: _loadClientHistory,
+                              showSearchBox: false,
+                              showRefreshButton: false,
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                      ],
                     ],
                   ],
                 ),

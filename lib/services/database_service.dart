@@ -232,6 +232,17 @@ class DatabaseService {
     return result.map((d) => d.deliveryNumber).toList();
   }
 
+  /// Obtiene los números de los últimos X deliveries ordenados por fecha
+  Future<List<int>> getLatestDeliveryNumbersByDate(int limit) async {
+    _ensureInitialized();
+    final query = _db!.select(_db!.deliveries)
+      ..orderBy([(d) => OrderingTerm.desc(d.date)])
+      ..limit(limit);
+
+    final result = await query.get();
+    return result.map((d) => d.deliveryNumber).toList();
+  }
+
   /// Obtiene la fecha del delivery más antiguo
   Future<DateTime?> getOldestDeliveryDate() async {
     _ensureInitialized();
@@ -1136,6 +1147,148 @@ class DatabaseService {
   Future<List<Interaccione>> getAllInteracciones() async {
     _ensureInitialized();
     return await _db!.select(_db!.interacciones).get();
+  }
+
+  /// Obtiene el historial de ventas e interacciones de los últimos N repartos
+  /// Devuelve una lista de mapas con información combinada
+  /// Los repartos se ordenan por fecha (más recientes primero)
+  Future<List<Map<String, dynamic>>> getHistoryForLastDeliveries(
+    int deliveryCount,
+  ) async {
+    _ensureInitialized();
+
+    // Obtener los números de los últimos N repartos ordenados por fecha
+    final deliveryNumbers = await getLatestDeliveryNumbersByDate(deliveryCount);
+
+    if (deliveryNumbers.isEmpty) {
+      return [];
+    }
+
+    final history = <Map<String, dynamic>>[];
+
+    // Para cada reparto, obtener sus ventas e interacciones
+    for (final deliveryNumber in deliveryNumbers) {
+      // Obtener el delivery completo para tener la fecha
+      final delivery = await getDeliveryByNumber(deliveryNumber);
+      if (delivery == null) continue;
+
+      // Obtener ventas de este reparto
+      final sales = await getSalesByDeliveryNumber(deliveryNumber);
+      for (final sale in sales) {
+        final cliente = await getClienteById(sale.clientId);
+        if (cliente != null) {
+          history.add({
+            'type': 'sale',
+            'saleId': sale.id,
+            'deliveryNumber': deliveryNumber,
+            'deliveryDate': delivery.date,
+            'clientId': cliente.id,
+            'clientName': cliente.nombre,
+            'contactName': cliente.contacto,
+            'businessName': cliente.tipoNegocio,
+            'quantity': sale.quantity,
+            'timestamp': sale.date,
+          });
+        }
+      }
+
+      // Obtener interacciones de este reparto
+      final interacciones = await getInteraccionesByDeliveryNumber(
+        deliveryNumber,
+      );
+      for (final interaccion in interacciones) {
+        // Omitir interacciones de tipo "Venta" porque ya están en las ventas
+        if (interaccion.result == 'Venta') {
+          continue;
+        }
+
+        final cliente = await getClienteById(interaccion.clientId);
+        if (cliente != null) {
+          history.add({
+            'type': 'interaction',
+            'deliveryNumber': deliveryNumber,
+            'deliveryDate': delivery.date,
+            'clientId': cliente.id,
+            'clientName': cliente.nombre,
+            'contactName': cliente.contacto,
+            'businessName': cliente.tipoNegocio,
+            'interactionType': interaccion.result,
+            'timestamp': interaccion.timestamp,
+          });
+        }
+      }
+    }
+
+    // Ordenar por fecha descendente (más reciente primero)
+    history.sort((a, b) => (b['timestamp'] as DateTime)
+        .compareTo(a['timestamp'] as DateTime));
+
+    return history;
+  }
+
+  /// Obtiene el historial de ventas e interacciones de un cliente específico
+  /// Devuelve una lista de mapas con información combinada
+  Future<List<Map<String, dynamic>>> getHistoryForClient(int clientId) async {
+    _ensureInitialized();
+
+    final history = <Map<String, dynamic>>[];
+    final cliente = await getClienteById(clientId);
+
+    if (cliente == null) {
+      return [];
+    }
+
+    // Obtener todas las ventas del cliente
+    final sales = await getVentasByClientId(clientId);
+    for (final sale in sales) {
+      if (sale.deliveryNumber != null) {
+        final delivery = await getDeliveryByNumber(sale.deliveryNumber!);
+        history.add({
+          'type': 'sale',
+          'saleId': sale.id,
+          'deliveryNumber': sale.deliveryNumber,
+          'deliveryDate': delivery?.date ?? sale.date,
+          'clientId': cliente.id,
+          'clientName': cliente.nombre,
+          'contactName': cliente.contacto,
+          'businessName': cliente.tipoNegocio,
+          'quantity': sale.quantity,
+          'timestamp': sale.date,
+        });
+      }
+    }
+
+    // Obtener todas las interacciones del cliente
+    final allInteracciones = await getAllInteracciones();
+    final clientInteracciones = allInteracciones
+        .where((interaccion) => interaccion.clientId == clientId)
+        .toList();
+
+    for (final interaccion in clientInteracciones) {
+      // Omitir interacciones de tipo "Venta" porque ya están en las ventas
+      if (interaccion.result == 'Venta') {
+        continue;
+      }
+
+      final delivery = await getDeliveryByNumber(interaccion.deliveryId);
+      history.add({
+        'type': 'interaction',
+        'deliveryNumber': interaccion.deliveryId,
+        'deliveryDate': delivery?.date ?? interaccion.timestamp,
+        'clientId': cliente.id,
+        'clientName': cliente.nombre,
+        'contactName': cliente.contacto,
+        'businessName': cliente.tipoNegocio,
+        'interactionType': interaccion.result,
+        'timestamp': interaccion.timestamp,
+      });
+    }
+
+    // Ordenar por fecha descendente (más reciente primero)
+    history.sort((a, b) => (b['timestamp'] as DateTime)
+        .compareTo(a['timestamp'] as DateTime));
+
+    return history;
   }
 
   /// Guarda el estado persistente del delivery

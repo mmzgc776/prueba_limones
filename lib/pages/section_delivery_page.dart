@@ -3,9 +3,11 @@ import 'nuevo_cliente_page.dart';
 import '../data/database.dart';
 import '../controllers/delivery_controller.dart';
 import '../services/delivery_service.dart';
+import '../services/database_service.dart';
 import 'section_delivery/delivery_record.dart';
 import 'section_delivery/widgets/active_delivery_view.dart';
 import 'section_delivery/widgets/delivery_records_table.dart';
+import 'section_delivery/widgets/history_view.dart';
 import 'section_delivery/widgets/fabs.dart';
 import 'section_delivery/widgets/interaccion_options_sheet.dart';
 import 'section_delivery/widgets/timer_display.dart';
@@ -21,25 +23,59 @@ class SectionDeliveryPage extends StatefulWidget {
   State<SectionDeliveryPage> createState() => _SectionDeliveryPageState();
 }
 
-class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
+class _SectionDeliveryPageState extends State<SectionDeliveryPage>
+    with SingleTickerProviderStateMixin {
   late DeliveryController _controller;
   late DeliveryService _deliveryService;
+  late DatabaseService _databaseService;
   List<Cliente> _clientes = [];
   late BuildContext rootContext;
   bool _isResumedDelivery = false;
+  late TabController _tabController;
+  List<Map<String, dynamic>> _historyData = [];
+  bool _isLoadingHistory = false;
 
   @override
   void initState() {
     super.initState();
     _controller = DeliveryController();
     _deliveryService = DeliveryService();
+    _databaseService = DatabaseService();
     _isResumedDelivery = widget.resumeDeliveryNumber != null;
+    _tabController = TabController(length: 2, vsync: this);
+
+    // Listener para detectar cambios de tab
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
 
     // Registrar el observer del ciclo de vida
     WidgetsBinding.instance.addObserver(_controller);
 
     // Load data
     _loadData();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() {
+      _isLoadingHistory = true;
+    });
+
+    try {
+      final history = await _databaseService.getHistoryForLastDeliveries(4);
+      setState(() {
+        _historyData = history;
+        _isLoadingHistory = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading history: $e');
+      setState(() {
+        _isLoadingHistory = false;
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -156,6 +192,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
   void dispose() {
     // Remover el observer del ciclo de vida
     WidgetsBinding.instance.removeObserver(_controller);
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -222,21 +259,57 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                         onShowInteraccionSheet: _showInteraccionSheet,
                         onResumeDelivery: _controller.resumeDelivery,
                       )
-                    : DeliveryRecordsTable(
-                        deliveryRecords: _controller.deliveryRecords,
-                        onLoadRecords: _controller.loadDeliveryRecords,
-                        onDeleteRecords: _controller.deleteDeliveryRecords,
-                        onDebugInteracciones: _controller.debugInteracciones,
+                    : Column(
+                        children: [
+                          TabBar(
+                            controller: _tabController,
+                            labelColor: Theme.of(context).primaryColor,
+                            unselectedLabelColor: Colors.grey,
+                            indicatorColor: Theme.of(context).primaryColor,
+                            tabs: const [
+                              Tab(
+                                icon: Icon(Icons.local_shipping),
+                                text: 'Repartos',
+                              ),
+                              Tab(
+                                icon: Icon(Icons.history),
+                                text: 'Historial',
+                              ),
+                            ],
+                          ),
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                DeliveryRecordsTable(
+                                  deliveryRecords: _controller.deliveryRecords,
+                                  onLoadRecords: _controller.loadDeliveryRecords,
+                                  onDeleteRecords: _controller.deleteDeliveryRecords,
+                                  onDebugInteracciones: _controller.debugInteracciones,
+                                ),
+                                _isLoadingHistory
+                                    ? const Center(
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    : HistoryView(
+                                        historyData: _historyData,
+                                        onRefresh: _loadHistory,
+                                      ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    floatingActionButton: FABs(
-                      started: _controller.started,
-                      paused: _controller.paused,
-                      elapsedSeconds: _controller.elapsedSeconds,
-                      clientesContactados: List<bool>.from(
-                        _controller.clientesContactados,
-                      ),
-                      selectedClienteIndex: _controller.selectedClienteIndex,
-                      onStartDelivery: () async {
+                    floatingActionButton: (_controller.started || _tabController.index == 0)
+                        ? FABs(
+                            started: _controller.started,
+                            paused: _controller.paused,
+                            elapsedSeconds: _controller.elapsedSeconds,
+                            clientesContactados: List<bool>.from(
+                              _controller.clientesContactados,
+                            ),
+                            selectedClienteIndex: _controller.selectedClienteIndex,
+                            onStartDelivery: () async {
                         // Mostrar diálogo para preguntar número de cajas
                         final boxes = await _showBoxesDialog();
                         if (boxes != null) {
@@ -278,8 +351,9 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage> {
                           }
                         });
                       },
-                      onDebugInteracciones: _controller.debugInteracciones,
-                    ),
+                            onDebugInteracciones: _controller.debugInteracciones,
+                          )
+                        : null,
                     floatingActionButtonLocation: const _CustomFABLocation(
                       offsetY: 80,
                     ),

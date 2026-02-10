@@ -6,6 +6,7 @@ import 'pages/nuevo_cliente_page.dart';
 import 'pages/synchronization_page.dart';
 import 'pages/editar_clientes_page.dart';
 import 'pages/logs_page.dart';
+import 'pages/edit_sale_page.dart';
 import 'data/delivery_state.dart';
 import 'widgets/notes_overview_widget.dart';
 import 'services/sniim_scraper_service.dart';
@@ -40,6 +41,15 @@ class MyApp extends StatelessWidget {
         '/synchronization': (context) => const SynchronizationPage(),
         '/editar_clientes': (context) => const EditarClientesPage(),
         '/logs': (context) => const LogsPage(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/edit_sale') {
+          final saleId = settings.arguments as int;
+          return MaterialPageRoute(
+            builder: (context) => EditSalePage(saleId: saleId),
+          );
+        }
+        return null;
       },
     );
   }

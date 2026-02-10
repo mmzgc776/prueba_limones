@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../services/database_service.dart';
-import '../../data/database.dart';
+import '../services/database_service.dart';
+import '../data/database.dart';
 import 'logs_page.dart';
-import '../../widgets/notes_container.dart';
+import '../widgets/notes_container.dart';
+import 'section_delivery/widgets/history_view.dart';
 
 class NuevoClientePage extends StatefulWidget {
   final String? nombreCliente;
@@ -38,6 +39,8 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
   int _horaInicio = 8;
   int _horaCierre = 18;
   final List<bool> _diasSeleccionados = List.filled(7, false);
+  List<Map<String, dynamic>> _clientHistory = [];
+  bool _isLoadingHistory = false;
 
   @override
   void initState() {
@@ -70,6 +73,35 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
     if (widget.focusOnNotas) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         FocusScope.of(context).requestFocus(_notasFocusNode);
+      });
+    }
+
+    // Cargar historial si es un cliente existente
+    if (widget.cliente != null) {
+      _loadClientHistory();
+    }
+  }
+
+  Future<void> _loadClientHistory() async {
+    if (widget.cliente?.id == null) return;
+
+    setState(() {
+      _isLoadingHistory = true;
+    });
+
+    try {
+      final databaseService = DatabaseService();
+      final history = await databaseService.getHistoryForClient(
+        widget.cliente!.id!,
+      );
+      setState(() {
+        _clientHistory = history;
+        _isLoadingHistory = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading client history: $e');
+      setState(() {
+        _isLoadingHistory = false;
       });
     }
   }
@@ -455,6 +487,70 @@ class _NuevoClientePageState extends State<NuevoClientePage> {
                     )
                     .toList(),
               ),
+              // History section - only show for existing clients
+              if (widget.cliente != null) ...[
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(Icons.history, color: Theme.of(context).primaryColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Historial del cliente',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (_isLoadingHistory)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_clientHistory.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.history,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No hay historial para este cliente',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    height: 400,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: HistoryView(
+                      historyData: _clientHistory,
+                      onRefresh: _loadClientHistory,
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                const Divider(),
+              ],
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _saveForm,
