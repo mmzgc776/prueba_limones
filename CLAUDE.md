@@ -129,25 +129,110 @@ The app uses a Google Cloud service account for authentication:
 3. The Google Sheet must be shared with the service account email
 4. Required API: Google Sheets API must be enabled in Google Cloud Console
 
+## Mecanismo de Población de la Lista de Clientes (Reparto Activo)
+
+### Flujo completo
+
+Cuando se abre `SectionDeliveryPage` (o cuando un cliente rechaza), se llama `_loadData()`, que desencadena el siguiente proceso:
+
+```
+section_delivery_page.dart :: _loadData()
+│
+│  currentDeliveryNumber =
+│     started? controller.getCurrentDeliveryNumber()
+│            : widget.resumeDeliveryNumber
+│
+▼
+DeliveryService.loadClientes(excludeDeliveryNumber)   [delivery_service.dart]
+│
+├─ PASO 1 — Pool candidato
+│   getTop30ClientesByPuntuacion()     [database_service.dart]
+│   ┌─────────────────────────────────────────────────────┐
+│   │ SELECT * FROM clientes                              │
+│   │ ORDER BY puntuacion DESC LIMIT 60                   │
+│   │                                                     │
+│   │ Nota: la puntuación es ESTÁTICA — sólo se           │
+│   │ actualiza al ejecutar SyncType.rateClients.         │
+│   └─────────────────────────────────────────────────────┘
+│
+├─ PASO 2 — Última venta real por cliente (tiempo de ejecución)
+│   getLastSaleDatePerClient(candidateIds)  [database_service.dart]
+│   ┌─────────────────────────────────────────────────────┐
+│   │ SELECT * FROM sales                                 │
+│   │ WHERE client_id IN (candidateIds)                   │
+│   │ ORDER BY date DESC                                  │
+│   │ → Map<clientId, DateTime> con la venta más reciente │
+│   └─────────────────────────────────────────────────────┘
+│
+├─ PASO 3 — Exclusión por intervalo propio del cliente
+│   ┌─────────────────────────────────────────────────────┐
+│   │ Para cada cliente candidato:                        │
+│   │   diasDesde = hoy - ultimaVenta (en tiempo real)    │
+│   │   intervalo = intervaloPromedio ?? 7 días           │
+│   │                                                     │
+│   │   EXCLUIR si: diasDesde < intervalo × 0.8           │
+│   │                                                     │
+│   │ Ejemplos:                                           │
+│   │   Compra semanal (7d) → excluido hasta día 6        │
+│   │   Compra quincenal (14d) → excluido hasta día 12    │
+│   │   Sin historial → no excluir (aparece en lista)     │
+│   └─────────────────────────────────────────────────────┘
+│
+├─ PASO 4 — Exclusiones del reparto activo (si hay uno)
+│   getSalesByDeliveryNumber(N)              → ventas del día → excluir
+│   getRejectedClientIdsByDeliveryNumber(N)  → rechazos del día → excluir
+│
+└─ PASO 5 — Filtrado final
+    top60.where((c) => !todosExcluidos.contains(c.id))
+    → Lista definitiva que se muestra durante el reparto
+```
+
+### Parámetros de la heurística de exclusión
+
+| Constante | Valor | Efecto |
+|---|---|---|
+| `umbral` | 0.8 | El cliente aparece cuando ha transcurrido el 80% de su intervalo habitual |
+| `fallbackDias` | 7.0 | Para clientes sin `intervaloPromedio` calculado (nuevos o sin historial suficiente) |
+
+### Relación con cicloScore y weekdayBoost
+
+La `puntuacion` incluye `cicloScore` (qué tan cerca estamos del momento esperado de compra) y `weekdayBoost` (multiplicador si hoy es el día preferido del cliente). Ambos afectan el **ranking** del pool candidato (PASO 1).
+
+La exclusión por intervalo del PASO 3 y el ranking por puntuación del PASO 1 ahora trabajan en la misma dirección: un cliente semanal en su día tendrá `cicloScore` alto (sube en el ranking) **y** habrá superado el umbral de días (no se excluirá).
+
+**Limitación que persiste:** la `puntuacion` (incluyendo `cicloScore`) es estática — se actualiza solo al correr `SyncType.rateClients`. El PASO 3 no depende de ella y usa tiempo real, pero el ranking del pool sí puede ser ligeramente desactualizado.
+
 ## Client Scoring System
 
 The application includes an intelligent client scoring algorithm that calculates a `puntuacion` for each client based on:
 
-**Consistency Factors (35%):**
+**Consistency Factors (30%):**
 - `eventos` - Total number of interactions
 - `moda` - Most frequently purchased quantity
 - `kgEvento` - Average kg per visit
 
-**Volume Factors (35%):**
+**Volume Factors (30%):**
 - `kgTotal` - Total historical volume
 - `maximo` - Largest single purchase
 - `kgSemana` - Average weekly volume
 
-**Recency Factors (30%):**
+**Frequency Factors (10%):**
 - `ventasVuelta` - Sales frequency per delivery
+
+**Recency Factors (15%):**
 - `ultimas10` - Participation in last 10 deliveries
 
-Score calculation is triggered via `SyncType.rateClients` and updates all client scores based on their sales/contact history.
+**Purchase Cycle Factors (15%):**
+- `cicloScore` - How close today is to the client's expected purchase interval
+
+**Weekday Boost (multiplicative, up to ×1.15):**
+- `weekdayScore` - Whether today matches the client's preferred day of the week
+  - Same day: 1.0 → ×1.15 boost
+  - 1 day off: 0.7 → ×1.105 boost
+  - 2 days off: 0.4 → ×1.06 boost
+  - 3+ days off: 0.0 → no boost
+
+Score calculation is triggered via `SyncType.rateClients` and updates all client scores based on their sales/contact history. **Note:** scores are static until the next manual sync — `cicloScore` and `diasDesdeUltimaVenta` do not update in real time.
 
 ## Database Migrations
 

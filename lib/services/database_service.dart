@@ -1034,6 +1034,25 @@ class DatabaseService {
     return result.map((sale) => sale.clientId).toList();
   }
 
+  /// Devuelve un mapa clientId → fecha de la venta más reciente,
+  /// para los IDs proporcionados. Solo incluye clientes con al menos una venta.
+  Future<Map<int, DateTime>> getLastSaleDatePerClient(
+    List<int> clientIds,
+  ) async {
+    _ensureInitialized();
+    if (clientIds.isEmpty) return {};
+    final query = _db!.select(_db!.sales)
+      ..where((tbl) => tbl.clientId.isIn(clientIds))
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)]);
+    final sales = await query.get();
+    final Map<int, DateTime> result = {};
+    for (final sale in sales) {
+      // Al estar ordenado DESC, el primer hit por cliente es el más reciente.
+      result.putIfAbsent(sale.clientId, () => sale.date);
+    }
+    return result;
+  }
+
   /// Obtiene los 60 clientes con mayor puntuación
   Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
     _ensureInitialized();

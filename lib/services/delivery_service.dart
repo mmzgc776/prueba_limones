@@ -12,38 +12,62 @@ class DeliveryService {
     await _dbService.init();
   }
 
-  // Load clients for delivery, filtered by heuristic and excluding recent sales
+  // Load clients for delivery, filtered by per-client interval heuristic
   Future<List<Cliente>> loadClientes({int? excludeDeliveryNumber}) async {
     try {
       await init();
-      // Obtener los IDs de los clientes de las últimas 10 ventas
-      final lastSalesClientIds = await _dbService.getLast10SalesClientIds();
 
-      // Si se especifica un deliveryNumber, obtener también los clientes de ese reparto
-      List<int> excludedClientIds = List.from(lastSalesClientIds);
+      // Paso 1: Pool candidato — top 60 por puntuación
+      final topClientes = await _dbService.getTop30ClientesByPuntuacion();
+      final candidateIds = topClientes.map((c) => c.id).toList();
+
+      // Paso 2: Última fecha de venta real por cliente (tiempo de ejecución)
+      final lastSaleDates = await _dbService.getLastSaleDatePerClient(
+        candidateIds,
+      );
+
+      // Paso 3: Exclusión por intervalo propio del cliente
+      // Se excluye si compró hace menos de (intervaloPromedio × umbral) días.
+      // Fallback de 7 días para clientes sin intervaloPromedio definido.
+      const double umbral = 0.8;
+      const double fallbackDias = 7.0;
+      final now = DateTime.now();
+
+      final intervalExcluidos = topClientes
+          .where((cliente) {
+            final ultimaVenta = lastSaleDates[cliente.id];
+            if (ultimaVenta == null) return false; // sin ventas → no excluir
+            final diasDesde = now.difference(ultimaVenta).inDays;
+            final intervalo =
+                (cliente.intervaloPromedio != null &&
+                    cliente.intervaloPromedio! > 0)
+                ? cliente.intervaloPromedio!
+                : fallbackDias;
+            return diasDesde < (intervalo * umbral);
+          })
+          .map((c) => c.id)
+          .toSet();
+
+      // Paso 4: Exclusiones del reparto activo (ventas y rechazos de hoy)
+      final Set<int> deliveryExcluidos = {};
       if (excludeDeliveryNumber != null) {
         final deliverySales = await _dbService.getSalesByDeliveryNumber(
           excludeDeliveryNumber,
         );
-        final deliveryClientIds = deliverySales
-            .map((sale) => sale.clientId)
-            .toList();
-        excludedClientIds.addAll(deliveryClientIds);
+        deliveryExcluidos.addAll(deliverySales.map((s) => s.clientId));
 
-        // Excluir también los clientes que rechazaron en este delivery
-        final rejectedClientIds = await _dbService.getRejectedClientIdsByDeliveryNumber(
+        final rechazados =
+            await _dbService.getRejectedClientIdsByDeliveryNumber(
           excludeDeliveryNumber,
         );
-        excludedClientIds.addAll(rejectedClientIds);
+        deliveryExcluidos.addAll(rechazados);
       }
 
-      // Obtener los 30 clientes con mayor puntuación
-      final topClientes = await _dbService.getTop30ClientesByPuntuacion();
-      // Filtrar los clientes, excluyendo aquellos en las últimas ventas y del reparto especificado
-      final filteredClientes = topClientes
-          .where((cliente) => !excludedClientIds.contains(cliente.id))
+      // Paso 5: Filtrar y devolver
+      final todosExcluidos = {...intervalExcluidos, ...deliveryExcluidos};
+      return topClientes
+          .where((c) => !todosExcluidos.contains(c.id))
           .toList();
-      return filteredClientes;
     } catch (e) {
       debugPrint('Error loading clientes from database: $e');
       throw Exception('Error al cargar los clientes');

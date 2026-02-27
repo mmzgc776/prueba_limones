@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Limones el Patito'),
       navigatorObservers: [routeObserver], // Add RouteObserver
       routes: {
         '/section1': (context) => const Section1Page(),
