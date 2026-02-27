@@ -234,6 +234,22 @@ The application includes an intelligent client scoring algorithm that calculates
 
 Score calculation is triggered via `SyncType.rateClients` and updates all client scores based on their sales/contact history. **Note:** scores are static until the next manual sync — `cicloScore` and `diasDesdeUltimaVenta` do not update in real time.
 
+### Actualización Automática de Puntuaciones (Estrategias A+B)
+
+Dos estrategias complementarias mantienen las puntuaciones frescas sin intervención del usuario:
+
+**Estrategia B — Re-orden en memoria al cargar el reparto** (`delivery_service.dart :: _sortByFreshScore`)
+- Se ejecuta al final de `loadClientes()`, después del filtrado.
+- Calcula `cicloScore` y `weekdayScore` frescos (tiempo real) para cada cliente en la lista resultado.
+- Re-ordena la lista en memoria usando una puntuación aproximada que reemplaza los componentes estáticos almacenados por los frescos.
+- **Sin escrituras a BD**; O(n) operaciones de aritmética pura.
+
+**Estrategia A — Recálculo completo por cliente tras cada venta** (`sync_service.dart :: refreshSingleClientScore`)
+- Se llama en `venta_form.dart` como `unawaited(_syncService.refreshSingleClientScore(clientId))` inmediatamente después de `insertSale()`.
+- Recalcula **todas** las métricas del cliente afectado (kgTotal, moda, intervaloPromedio, cicloScore, weekdayScore, puntuación final) y las persiste en BD.
+- Fire-and-forget: no bloquea la UI ni el flujo de guardado de la venta.
+- Usa las mismas fórmulas que `updateClientScores()` pero para un único cliente.
+
 ## Database Migrations
 
 When modifying the database schema:

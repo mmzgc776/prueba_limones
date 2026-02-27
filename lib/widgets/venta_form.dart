@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import '../services/database_service.dart';
+import '../services/sync_service.dart';
 import '../data/database.dart';
 import '../data/delivery_state.dart';
 import '../pages/logs_page.dart';
@@ -527,6 +530,7 @@ class _VentaFormState extends State<VentaForm> {
   bool isSyncing = false;
 
   final DatabaseService _dbService = DatabaseService();
+  late final SyncService _syncService = SyncService(_dbService);
 
   @override
   void initState() {
@@ -664,6 +668,9 @@ class _VentaFormState extends State<VentaForm> {
       notesId: null,
       deliveryNumber: deliveryNum,
     );
+
+    // Estrategia A: actualizar puntuación del cliente en background
+    unawaited(_syncService.refreshSingleClientScore(clientId));
 
     // Associate any notes that were added during sale creation with this sale
     await _dbService.updateNotasVentaId(clientId, saleId);

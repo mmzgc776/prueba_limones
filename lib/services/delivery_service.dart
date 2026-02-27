@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../data/database.dart';
@@ -65,13 +67,76 @@ class DeliveryService {
 
       // Paso 5: Filtrar y devolver
       final todosExcluidos = {...intervalExcluidos, ...deliveryExcluidos};
-      return topClientes
+      final result = topClientes
           .where((c) => !todosExcluidos.contains(c.id))
           .toList();
+
+      // Estrategia B: re-ordenar por scores frescos calculados en tiempo real
+      _sortByFreshScore(result, lastSaleDates);
+      return result;
     } catch (e) {
       debugPrint('Error loading clientes from database: $e');
       throw Exception('Error al cargar los clientes');
     }
+  }
+
+  /// Estrategia B: re-ordena los clientes usando cicloScore y weekdayScore
+  /// calculados en tiempo real, sin escrituras a BD.
+  void _sortByFreshScore(
+    List<Cliente> clientes,
+    Map<int, DateTime> lastSaleDates,
+  ) {
+    final now = DateTime.now();
+    final todayWeekday = now.weekday - 1; // 0-6
+
+    final scores = <int, double>{};
+    for (final c in clientes) {
+      // cicloScore fresco
+      double freshCiclo = 0.0;
+      final lastSale = lastSaleDates[c.id];
+      final intervalo = c.intervaloPromedio ?? 0.0;
+      if (intervalo > 0 && lastSale != null) {
+        final diasDesde = now.difference(lastSale).inDays.toDouble();
+        final deviation = (diasDesde - intervalo).abs() / intervalo;
+        freshCiclo = (1.0 - deviation).clamp(0.0, 1.0);
+      }
+
+      // weekdayScore fresco
+      double freshWeekday = 0.0;
+      final preferredDay = c.diaSemanaPreferido ?? 0;
+      if (c.frecuenciasDiaSemana != null &&
+          c.frecuenciasDiaSemana!.isNotEmpty) {
+        try {
+          final freqs =
+              json.decode(c.frecuenciasDiaSemana!) as Map<String, dynamic>;
+          final count =
+              (freqs[preferredDay.toString()] as num?)?.toInt() ?? 0;
+          if (count >= 2) {
+            final diff = (todayWeekday - preferredDay).abs();
+            if (diff == 0) {
+              freshWeekday = 1.0;
+            } else if (diff == 1) {
+              freshWeekday = 0.7;
+            } else if (diff == 2) {
+              freshWeekday = 0.4;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Puntuación aproximada fresca:
+      // Extrae el base score eliminando el weekday boost almacenado,
+      // reemplaza el cicloScore almacenado por el fresco y aplica boost fresco.
+      final storedWeekdayBoost = 1.0 + ((c.weekdayScore ?? 0.0) * 0.15);
+      final freshWeekdayBoost = 1.0 + (freshWeekday * 0.15);
+      final baseWithoutCiclo =
+          (c.puntuacion / (storedWeekdayBoost > 0 ? storedWeekdayBoost : 1.0)) -
+          0.15 * (c.cicloScore ?? 0.0);
+      scores[c.id] =
+          (baseWithoutCiclo + 0.15 * freshCiclo) * freshWeekdayBoost;
+    }
+
+    clientes.sort((a, b) => (scores[b.id] ?? 0).compareTo(scores[a.id] ?? 0));
   }
 
   // Get a specific delivery by number

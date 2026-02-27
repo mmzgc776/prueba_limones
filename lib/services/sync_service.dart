@@ -411,4 +411,212 @@ class SyncService {
       return SyncResult.error('Error al puntuar clientes: ${e.toString()}');
     }
   }
+
+  /// Recalcula y persiste la puntuación de un único cliente.
+  /// Diseñado para llamarse de forma unawaited tras registrar una venta.
+  Future<void> refreshSingleClientScore(int clientId) async {
+    try {
+      await _databaseService.init();
+
+      final cliente = await _databaseService.getClienteById(clientId);
+      if (cliente == null) return;
+
+      final ventasCliente =
+          await _databaseService.getVentasByClientId(clientId);
+      final numeroVentas = ventasCliente.length;
+
+      if (ventasCliente.isNotEmpty) {
+        final double kgTotales = ventasCliente.fold(
+          0.0,
+          (sum, v) => sum + v.quantity,
+        );
+        await _databaseService.updateClienteKgTotal(clientId, kgTotales);
+
+        final double maximo = ventasCliente
+            .map((v) => v.quantity)
+            .reduce((a, b) => a > b ? a : b);
+
+        final counts = <double, int>{};
+        for (var v in ventasCliente) {
+          counts[v.quantity] = (counts[v.quantity] ?? 0) + 1;
+        }
+        final double moda = counts.entries
+            .reduce((a, b) => a.value > b.value ? a : b)
+            .key;
+
+        final allDeliveries = await _databaseService.getAllDeliveries();
+        final latestDeliveries = (allDeliveries
+              ..sort((a, b) => b.date.compareTo(a.date)))
+            .take(10)
+            .map((d) => d.deliveryNumber)
+            .toSet();
+        final highestDeliveryNumber = allDeliveries.isEmpty
+            ? 1
+            : allDeliveries
+                .map((d) => d.deliveryNumber)
+                .reduce((a, b) => a > b ? a : b);
+
+        final ventasEnUltimos10 = ventasCliente
+            .where(
+              (v) =>
+                  v.deliveryNumber != null &&
+                  latestDeliveries.contains(v.deliveryNumber),
+            )
+            .length
+            .toDouble();
+        final double ultimas10 = ventasEnUltimos10 / 10.0;
+
+        final double ventasVuelta = highestDeliveryNumber > 0
+            ? numeroVentas.toDouble() / highestDeliveryNumber
+            : 0.0;
+
+        final double kgEvento = kgTotales / numeroVentas;
+
+        await _databaseService.updateClientePuntuacion(
+          clientId: clientId,
+          moda: moda,
+          maximo: maximo,
+          ventasVuelta: ventasVuelta,
+          ultimas10: ultimas10,
+          kgEvento: kgEvento,
+        );
+
+        // kgSemana
+        final salesDatesAll = ventasCliente.map((v) => v.date).toList()..sort();
+        if (salesDatesAll.length >= 2) {
+          final weeksSinceFirst =
+              DateTime.now().difference(salesDatesAll.first).inDays / 7.0;
+          if (weeksSinceFirst > 0) {
+            await _databaseService.updateClienteKgSemana(
+              clientId,
+              kgTotales / weeksSinceFirst,
+            );
+          }
+        }
+
+        // ── Ciclo de compra ────────────────────────────────────────────────
+        double intervaloPromedio = 0.0;
+        int diasDesdeUltimaVenta = 0;
+        double cicloScore = 0.0;
+
+        if (ventasCliente.length >= 2) {
+          final salesDatesAll =
+              ventasCliente.map((v) => v.date).toList()..sort();
+          final recentDates = salesDatesAll.length > 10
+              ? salesDatesAll.sublist(salesDatesAll.length - 10)
+              : salesDatesAll;
+          final intervals = <double>[];
+          for (int i = 1; i < recentDates.length; i++) {
+            intervals.add(
+              recentDates[i].difference(recentDates[i - 1]).inDays.toDouble(),
+            );
+          }
+          if (intervals.isNotEmpty) {
+            intervaloPromedio =
+                intervals.reduce((a, b) => a + b) / intervals.length;
+          }
+          final salesAll = ventasCliente.map((v) => v.date).toList()..sort();
+          diasDesdeUltimaVenta =
+              DateTime.now().difference(salesAll.last).inDays;
+          if (intervaloPromedio > 0) {
+            final deviation =
+                (diasDesdeUltimaVenta - intervaloPromedio).abs() /
+                intervaloPromedio;
+            cicloScore = (1.0 - deviation).clamp(0.0, 1.0);
+          }
+        }
+        await _databaseService.updateClienteCicloMetrics(
+          clientId: clientId,
+          intervaloPromedio: intervaloPromedio,
+          diasDesdeUltimaVenta: diasDesdeUltimaVenta,
+          cicloScore: cicloScore,
+        );
+
+        // ── Patrón semanal ────────────────────────────────────────────────
+        int diaSemanaPreferido = 0;
+        String frecuenciasDiaSemana = '{}';
+        double weekdayScore = 0.0;
+
+        final weekdayCounts = <int, int>{};
+        for (var v in ventasCliente) {
+          final wd = v.date.weekday - 1;
+          weekdayCounts[wd] = (weekdayCounts[wd] ?? 0) + 1;
+        }
+        int maxCount = 0;
+        weekdayCounts.forEach((wd, count) {
+          if (count > maxCount) {
+            maxCount = count;
+            diaSemanaPreferido = wd;
+          }
+        });
+        final weekdayCountsStr = weekdayCounts.map(
+          (k, v) => MapEntry(k.toString(), v),
+        );
+        frecuenciasDiaSemana = json.encode(weekdayCountsStr);
+        if (maxCount >= 2) {
+          final today = DateTime.now().weekday - 1;
+          final diff = (today - diaSemanaPreferido).abs();
+          if (diff == 0) {
+            weekdayScore = 1.0;
+          } else if (diff == 1) {
+            weekdayScore = 0.7;
+          } else if (diff == 2) {
+            weekdayScore = 0.4;
+          }
+        }
+        await _databaseService.updateClienteWeekdayMetrics(
+          clientId: clientId,
+          diaSemanaPreferido: diaSemanaPreferido,
+          frecuenciasDiaSemana: frecuenciasDiaSemana,
+          weekdayScore: weekdayScore,
+        );
+      }
+
+      await _databaseService.updateClienteEventos(clientId, numeroVentas);
+
+      // ── Puntuación final (normalizada contra el resto de la BD) ──────────
+      final maxEventos =
+          (await _databaseService.getMaxEventos())?.toDouble() ?? 1.0;
+      final maxModa = await _databaseService.getMaxModa() ?? 1.0;
+      final maxKgEvento = await _databaseService.getMaxKgEvento() ?? 1.0;
+      final maxKgTotal = await _databaseService.getMaxKgTotal() ?? 1.0;
+      final maxMaximo = await _databaseService.getMaxMaximo() ?? 1.0;
+      final maxKgSemana = await _databaseService.getMaxKgSemana() ?? 1.0;
+      final maxVentasVuelta =
+          await _databaseService.getMaxVentasVuelta() ?? 1.0;
+      final maxUltimas10 = await _databaseService.getMaxUltimas10() ?? 1.0;
+      final maxCicloScore = await _databaseService.getMaxCicloScore() ?? 1.0;
+
+      // Recargar cliente con métricas actualizadas
+      final updated = await _databaseService.getClienteById(clientId);
+      if (updated == null) return;
+
+      final co =
+          0.4 * (updated.eventos / (maxEventos > 0 ? maxEventos : 1)) +
+          0.4 * (updated.moda / (maxModa > 0 ? maxModa : 1)) +
+          0.2 * (updated.kgEvento / (maxKgEvento > 0 ? maxKgEvento : 1));
+
+      final v =
+          0.4 * (updated.kgTotal / (maxKgTotal > 0 ? maxKgTotal : 1)) +
+          0.4 * (updated.maximo / (maxMaximo > 0 ? maxMaximo : 1)) +
+          0.2 * (updated.kgSemana / (maxKgSemana > 0 ? maxKgSemana : 1));
+
+      final kr =
+          updated.ventasVuelta / (maxVentasVuelta > 0 ? maxVentasVuelta : 1);
+      final c10 =
+          updated.ultimas10 / (maxUltimas10 > 0 ? maxUltimas10 : 1);
+      final cs =
+          (updated.cicloScore ?? 0.0) /
+          (maxCicloScore > 0 ? maxCicloScore : 1);
+
+      final baseScore =
+          0.30 * co + 0.30 * v + 0.10 * kr + 0.15 * c10 + 0.15 * cs;
+      final weekdayBoost = 1.0 + ((updated.weekdayScore ?? 0.0) * 0.15);
+      final puntuacion = baseScore * weekdayBoost;
+
+      await _databaseService.updateClienteFinalScore(clientId, puntuacion);
+    } catch (e) {
+      debugPrint('refreshSingleClientScore error for client $clientId: $e');
+    }
+  }
 }
