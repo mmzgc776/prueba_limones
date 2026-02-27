@@ -109,9 +109,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _precioSugeridoController.addListener(() {
-      setState(() {
-        // Update the value when the text changes
-      });
+      if (_precioGuardado) {
+        _calcularPrecio4();
+      } else {
+        setState(() {});
+      }
     });
     _cargarPrecioAnterior();
   }
