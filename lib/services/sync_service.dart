@@ -264,9 +264,11 @@ class SyncService {
               if (daysBetween > 0) intervals.add(daysBetween);
             }
 
-            // Intervalo promedio
+            // Intervalo promedio (excluye gaps ≥ 3× el promedio bruto)
             if (intervals.isNotEmpty) {
-              intervaloPromedio = intervals.reduce((a, b) => a + b) / intervals.length;
+              intervaloPromedio = _calcIntervaloPromedio(
+                intervals.map((i) => i.toDouble()).toList(),
+              );
             }
 
             // Días desde última venta (usar todas las ventas para esto)
@@ -512,8 +514,7 @@ class SyncService {
             );
           }
           if (intervals.isNotEmpty) {
-            intervaloPromedio =
-                intervals.reduce((a, b) => a + b) / intervals.length;
+            intervaloPromedio = _calcIntervaloPromedio(intervals);
           }
           final salesAll = ventasCliente.map((v) => v.date).toList()..sort();
           diasDesdeUltimaVenta =
@@ -618,5 +619,21 @@ class SyncService {
     } catch (e) {
       debugPrint('refreshSingleClientScore error for client $clientId: $e');
     }
+  }
+
+  /// Calcula el intervalo promedio descartando gaps atípicos (pausas estacionales).
+  /// Usa la mediana como umbral base (inmune a outliers) para evitar que un gap
+  /// grande infle el propio umbral que debería filtrarlo.
+  /// Un intervalo se descarta si supera 3× la mediana del lote.
+  static double _calcIntervaloPromedio(List<double> intervals) {
+    if (intervals.isEmpty) return 0.0;
+    final sorted = [...intervals]..sort();
+    final mid = sorted.length ~/ 2;
+    final median = sorted.length.isOdd
+        ? sorted[mid]
+        : (sorted[mid - 1] + sorted[mid]) / 2.0;
+    final clean = intervals.where((i) => i <= median * 3.0).toList();
+    if (clean.isEmpty) return median;
+    return clean.reduce((a, b) => a + b) / clean.length;
   }
 }

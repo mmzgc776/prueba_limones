@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/section1_page.dart';
 import 'pages/ventas_page.dart';
 import 'pages/section_delivery_page.dart';
@@ -11,12 +12,29 @@ import 'data/delivery_state.dart';
 import 'widgets/notes_overview_widget.dart';
 import 'services/sniim_scraper_service.dart';
 import 'services/database_service.dart';
+import 'theme/app_theme.dart';
 
 // Global RouteObserver to track navigation changes
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
-void main() {
+// Global theme notifier — controls light/dark mode across the whole app
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+
+Future<void> _loadThemePreference() async {
+  final prefs = await SharedPreferences.getInstance();
+  final isDark = prefs.getBool('isDarkMode') ?? false;
+  themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+}
+
+Future<void> _saveThemePreference(bool isDark) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('isDarkMode', isDark);
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _loadThemePreference();
   appLog('Application started');
   runApp(const MyApp());
 }
@@ -26,30 +44,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Limones el Patito'),
-      navigatorObservers: [routeObserver], // Add RouteObserver
-      routes: {
-        '/section1': (context) => const Section1Page(),
-        '/ventas': (context) => const VentasPage(),
-        '/section_delivery': (context) => const SectionDeliveryPage(),
-        '/nuevo_cliente': (context) => const NuevoClientePage(),
-        '/synchronization': (context) => const SynchronizationPage(),
-        '/editar_clientes': (context) => const EditarClientesPage(),
-        '/logs': (context) => const LogsPage(),
-      },
-      onGenerateRoute: (settings) {
-        if (settings.name == '/edit_sale') {
-          final saleId = settings.arguments as int;
-          return MaterialPageRoute(
-            builder: (context) => EditSalePage(saleId: saleId),
-          );
-        }
-        return null;
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, themeMode, _) {
+        return MaterialApp(
+          title: 'Flutter Demo',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          home: const MyHomePage(title: 'Limones el Patito'),
+          navigatorObservers: [routeObserver],
+          routes: {
+            '/section1': (context) => const Section1Page(),
+            '/ventas': (context) => const VentasPage(),
+            '/section_delivery': (context) => const SectionDeliveryPage(),
+            '/nuevo_cliente': (context) => const NuevoClientePage(),
+            '/synchronization': (context) => const SynchronizationPage(),
+            '/editar_clientes': (context) => const EditarClientesPage(),
+            '/logs': (context) => const LogsPage(),
+          },
+          onGenerateRoute: (settings) {
+            if (settings.name == '/edit_sale') {
+              final saleId = settings.arguments as int;
+              return MaterialPageRoute(
+                builder: (context) => EditSalePage(saleId: saleId),
+              );
+            }
+            return null;
+          },
+        );
       },
     );
   }
@@ -248,17 +271,28 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _toggleTheme(bool isDark) {
+    themeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+    _saveThemePreference(isDark);
+  }
+
   @override
   Widget build(BuildContext context) {
-    double precioSugerido =
-        double.tryParse(_precioSugeridoController.text) ?? 0.0;
-    final buttonColor = Colors.deepPurple;
-    final buttonTextStyle = const TextStyle(
+    final colorScheme = Theme.of(context).colorScheme;
+    final buttonColor = colorScheme.primary;
+    final buttonTextStyle = TextStyle(
       fontSize: 14,
       fontWeight: FontWeight.bold,
-      color: Colors.white,
+      color: colorScheme.onPrimary,
     );
     final buttonSize = MediaQuery.of(context).size.width * 0.418;
+
+    // Colores del card de precios adaptados al tema
+    final cardSurface = colorScheme.surfaceContainerLow;
+    final innerSurface = colorScheme.surfaceContainerLowest;
+    final labelColor = colorScheme.onSurfaceVariant;
+    final outlineColor = colorScheme.outlineVariant;
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -267,7 +301,46 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title: Text(widget.title),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset('assets/icon/icon.png', height: 32),
+              const SizedBox(width: 8),
+              Text(widget.title),
+            ],
+          ),
+          actions: [
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: themeNotifier,
+              builder: (context, mode, _) {
+                final isDarkMode = mode == ThemeMode.dark;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                        size: 18,
+                        color: colorScheme.onInverseSurface,
+                      ),
+                      Switch(
+                        value: isDarkMode,
+                        onChanged: _toggleTheme,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        thumbColor: WidgetStateProperty.all(
+                          isDarkMode
+                              ? colorScheme.primary
+                              : colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ),
         body: SingleChildScrollView(
           child: Center(
@@ -286,14 +359,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Card(
-                      color: Colors.red.shade50,
+                      color: colorScheme.errorContainer,
                       child: Padding(
                         padding: const EdgeInsets.all(12.0),
                         child: Text(
                           _errorMessage,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.red.shade900,
+                            color: colorScheme.onErrorContainer,
                             fontSize: 12,
                           ),
                         ),
@@ -308,7 +381,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Card(
                     elevation: 2,
-                    color: Colors.grey.shade50,
+                    color: cardSurface,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -318,7 +391,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               Icon(
                                 Icons.attach_money,
                                 size: 18,
-                                color: Colors.grey.shade600,
+                                color: labelColor,
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -326,7 +399,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.grey.shade700,
+                                  color: labelColor,
                                 ),
                               ),
                             ],
@@ -340,10 +413,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: innerSurface,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.deepPurple.shade100,
+                                      color: colorScheme.primary.withValues(alpha: 0.3),
                                     ),
                                   ),
                                   child: Column(
@@ -355,7 +428,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade600,
+                                          color: labelColor,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -367,8 +440,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: _mediaNacional != null
-                                              ? Colors.deepPurple
-                                              : Colors.grey,
+                                              ? colorScheme.primary
+                                              : labelColor,
                                         ),
                                       ),
                                     ],
@@ -381,10 +454,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: innerSurface,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.green.shade100,
+                                      color: Colors.green.withValues(alpha: 0.4),
                                     ),
                                   ),
                                   child: Column(
@@ -396,7 +469,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade600,
+                                          color: labelColor,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -408,8 +481,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: _mediaLocal != null
-                                              ? Colors.green.shade700
-                                              : Colors.grey,
+                                              ? Colors.green.shade400
+                                              : labelColor,
                                         ),
                                       ),
                                     ],
@@ -419,7 +492,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Divider(height: 1),
+                          Divider(height: 1, color: outlineColor),
                           const SizedBox(height: 12),
                           // Segunda fila: Precio deseado y Precio calculado
                           Row(
@@ -429,10 +502,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: innerSurface,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.orange.shade100,
+                                      color: Colors.orange.withValues(alpha: 0.4),
                                     ),
                                   ),
                                   child: Column(
@@ -444,15 +517,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade600,
+                                          color: labelColor,
                                         ),
                                       ),
                                       TextField(
                                         controller: _precioSugeridoController,
                                         keyboardType:
                                             const TextInputType.numberWithOptions(
-                                              decimal: true,
-                                            ),
+                                          decimal: true,
+                                        ),
                                         textAlign: TextAlign.left,
                                         style: const TextStyle(
                                           fontSize: 18,
@@ -481,10 +554,10 @@ class _MyHomePageState extends State<MyHomePage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: innerSurface,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.blue.shade100,
+                                      color: colorScheme.secondary.withValues(alpha: 0.4),
                                     ),
                                   ),
                                   child: Column(
@@ -496,7 +569,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.grey.shade600,
+                                          color: labelColor,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -504,16 +577,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                         _precioCalculado != null
                                             ? '\$$_precioCalculado'
                                             : _precioAnterior > 0
-                                            ? '\$$_precioAnterior'
-                                            : '-- --',
+                                                ? '\$$_precioAnterior'
+                                                : '-- --',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: _precioCalculado != null
-                                              ? Colors.blue.shade700
+                                              ? colorScheme.secondary
                                               : (_precioAnterior > 0
-                                                    ? Colors.grey.shade600
-                                                    : Colors.grey),
+                                                  ? labelColor
+                                                  : labelColor),
                                         ),
                                       ),
                                       if (_precioAnterior > 0 &&
@@ -523,7 +596,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           style: TextStyle(
                                             fontSize: 8,
                                             fontStyle: FontStyle.italic,
-                                            color: Colors.grey.shade500,
+                                            color: labelColor,
                                           ),
                                         ),
                                     ],
@@ -550,9 +623,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             onPressed: _isLoadingPrecios
                                 ? null
                                 : _consultarPrecios,
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.sync,
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                               size: 18,
                             ),
                             label: Text(
@@ -563,6 +636,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green.shade700,
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 vertical: 12,
                                 horizontal: 12,
@@ -577,9 +651,9 @@ class _MyHomePageState extends State<MyHomePage> {
                               // Calcular Precio4 después de guardar el precio deseado
                               _calcularPrecio4();
                             },
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.check,
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                               size: 18,
                             ),
                             label: Text(
@@ -588,6 +662,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: buttonColor,
+                              foregroundColor: colorScheme.onPrimary,
                               padding: const EdgeInsets.symmetric(
                                 vertical: 12,
                                 horizontal: 12,
@@ -645,7 +720,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: buttonColor,
-                                      shape: RoundedRectangleBorder(
+                                      foregroundColor: colorScheme.onPrimary,
+                                      shape: const RoundedRectangleBorder(
                                         borderRadius: BorderRadius.only(
                                           topLeft: Radius.circular(16),
                                           bottomLeft: Radius.circular(16),
@@ -657,15 +733,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                       height: buttonSize,
                                       child: Icon(
                                         Icons.add,
-                                        color: Colors.white,
+                                        color: colorScheme.onPrimary,
                                         size: 32,
                                       ),
                                     ),
                                   ),
                                 ),
-                                SizedBox(
-                                  width: 8,
-                                ), // Small separation between buttons
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: () {
@@ -679,7 +753,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: buttonColor,
-                                      shape: RoundedRectangleBorder(
+                                      foregroundColor: colorScheme.onPrimary,
+                                      shape: const RoundedRectangleBorder(
                                         borderRadius: BorderRadius.only(
                                           topRight: Radius.circular(16),
                                           bottomRight: Radius.circular(16),
@@ -691,7 +766,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       height: buttonSize,
                                       child: Icon(
                                         Icons.edit,
-                                        color: Colors.white,
+                                        color: colorScheme.onPrimary,
                                         size: 32,
                                       ),
                                     ),
@@ -735,6 +810,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -759,6 +835,7 @@ class _HomeSquareButton extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: size,
       height: size,
@@ -766,6 +843,7 @@ class _HomeSquareButton extends StatelessWidget {
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -774,12 +852,12 @@ class _HomeSquareButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 32),
+            Icon(icon, color: colorScheme.onPrimary, size: 32),
             const SizedBox(height: 8),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: Colors.white),
+              style: TextStyle(fontSize: 13, color: colorScheme.onPrimary),
             ),
           ],
         ),
