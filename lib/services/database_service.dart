@@ -1053,12 +1053,12 @@ class DatabaseService {
     return result;
   }
 
-  /// Obtiene los 60 clientes con mayor puntuación
+  /// Obtiene los 120 clientes con mayor puntuación
   Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
     _ensureInitialized();
     final query = _db!.select(_db!.clientes)
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
-      ..limit(60);
+      ..limit(120);
     return await query.get();
   }
 

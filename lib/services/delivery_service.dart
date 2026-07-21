@@ -19,7 +19,7 @@ class DeliveryService {
     try {
       await init();
 
-      // Paso 1: Pool candidato — top 60 por puntuación
+      // Paso 1: Pool candidato — top 120 por puntuación
       final topClientes = await _dbService.getTop30ClientesByPuntuacion();
       final candidateIds = topClientes.map((c) => c.id).toList();
 
