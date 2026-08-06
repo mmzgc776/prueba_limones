@@ -360,6 +360,13 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Deselecciona el cliente actual (oculta la ficha de datos)
+  void deselectCliente() {
+    _selectedClienteIndex = null;
+    _stateManager.updateSelectedClienteIndex(null);
+    notifyListeners();
+  }
+
   /// Actualiza el estado de contacto de un cliente
   void updateContactoStatus(int index, bool contactado, String estado) {
     if (index < 0 || index >= _clientesContactados.length) return;

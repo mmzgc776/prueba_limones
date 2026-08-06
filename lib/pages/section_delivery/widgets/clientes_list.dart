@@ -58,7 +58,8 @@ class ClientesList extends StatelessWidget {
                     final contactado = clientesContactados[index];
                     return ListTile(
                       onTap: () {
-                        onClienteSelected(index);
+                        if (paused) onResumeDelivery();
+                        onShowInteraccionSheet(index);
                       },
                       title: Text(cliente.nombre),
                       trailing: Row(
@@ -66,8 +67,7 @@ class ClientesList extends StatelessWidget {
                         children: [
                           GestureDetector(
                             onTap: () {
-                              if (paused) onResumeDelivery();
-                              onShowInteraccionSheet(index);
+                              onClienteSelected(index);
                             },
                             child: Icon(
                               clientesEstado[index] == 'Rechazó'
@@ -76,7 +76,7 @@ class ClientesList extends StatelessWidget {
                                   ? Icons.help_outline
                                   : contactado
                                   ? Icons.check_circle_outline
-                                  : Icons.hourglass_empty,
+                                  : Icons.search,
                               color: clientesEstado[index] == 'Rechazó'
                                   ? Colors.red
                                   : clientesEstado[index] == 'Pendiente'

@@ -16,6 +16,7 @@ class ActiveDeliveryView extends StatefulWidget {
   final Function(int) onClienteSelected;
   final Function(int) onShowInteraccionSheet;
   final VoidCallback onResumeDelivery;
+  final VoidCallback? onDeselectCliente;
 
   const ActiveDeliveryView({
     Key? key,
@@ -29,6 +30,7 @@ class ActiveDeliveryView extends StatefulWidget {
     required this.onClienteSelected,
     required this.onShowInteraccionSheet,
     required this.onResumeDelivery,
+    this.onDeselectCliente,
   }) : super(key: key);
 
   @override
@@ -89,6 +91,7 @@ class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
                     selectedClienteIndex: widget.selectedClienteIndex,
                     started: widget.started,
                     clientes: widget.clientes,
+                    onClose: widget.onDeselectCliente,
                   ),
                   // Lista de clientes (expandida)
                   Expanded(

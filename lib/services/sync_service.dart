@@ -41,43 +41,43 @@ class SyncService {
 
       switch (type) {
         case SyncType.deliveries:
-          await _databaseService.syncDeliveriesUnified(
-            context: context,
-            spreadsheetId: _spreadsheetId,
-            range: 'Repartos!A1:I',
-          );
+      await _databaseService.syncDeliveriesUnified(
+        context: context,
+        spreadsheetId: _spreadsheetId,
+        range: 'Repartos!A:I',
+      );
           return SyncResult.success('Repartos sincronizados exitosamente');
 
         case SyncType.sales:
-          await _databaseService.syncSalesUnified(
-            context: context,
-            spreadsheetId: _spreadsheetId,
-            range: 'Ventas!A1:H',
-          );
+      await _databaseService.syncSalesUnified(
+        context: context,
+        spreadsheetId: _spreadsheetId,
+        range: 'Ventas!A:H',
+      );
           return SyncResult.success('Ventas sincronizados exitosamente');
 
         case SyncType.clients:
-          await _databaseService.syncClientesUnified(
-            context: context,
-            spreadsheetId: _spreadsheetId,
-            range: 'Clientes!A1:AC',
-          );
+      await _databaseService.syncClientesUnified(
+        context: context,
+        spreadsheetId: _spreadsheetId,
+        range: 'Clientes!A:AC',
+      );
           return SyncResult.success('Clientes sincronizados exitosamente');
 
         case SyncType.notas:
-          await _databaseService.syncNotasUnified(
-            context: context,
-            spreadsheetId: _spreadsheetId,
-            range: 'Notas!A1:E',
-          );
+      await _databaseService.syncNotasUnified(
+        context: context,
+        spreadsheetId: _spreadsheetId,
+        range: 'Notas!A:E',
+      );
           return SyncResult.success('Notas sincronizadas exitosamente');
 
         case SyncType.interacciones:
-          await _databaseService.syncInteraccionesUnified(
-            context: context,
-            spreadsheetId: _spreadsheetId,
-            range: 'Interacciones!A1:E',
-          );
+      await _databaseService.syncInteraccionesUnified(
+        context: context,
+        spreadsheetId: _spreadsheetId,
+        range: 'Interacciones!A:E',
+      );
           return SyncResult.success('Interacciones sincronizadas exitosamente');
 
         case SyncType.expenses:

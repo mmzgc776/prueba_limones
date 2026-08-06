@@ -258,6 +258,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
                         onClienteSelected: _controller.selectCliente,
                         onShowInteraccionSheet: _showInteraccionSheet,
                         onResumeDelivery: _controller.resumeDelivery,
+                        onDeselectCliente: _controller.deselectCliente,
                       )
                     : Column(
                         children: [

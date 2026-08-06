@@ -4,12 +4,14 @@ class ClienteInfoCard extends StatefulWidget {
   final int? selectedClienteIndex;
   final bool started;
   final List<dynamic> clientes;
+  final VoidCallback? onClose;
 
   const ClienteInfoCard({
     Key? key,
     required this.selectedClienteIndex,
     required this.started,
     required this.clientes,
+    this.onClose,
   }) : super(key: key);
 
   @override
@@ -58,6 +60,11 @@ class _ClienteInfoCardState extends State<ClienteInfoCard> {
                       fontSize: 20,
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: widget.onClose,
+                  tooltip: 'Cerrar ficha',
                 ),
                 IconButton(
                   icon: Icon(
