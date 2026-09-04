@@ -200,7 +200,7 @@ class _NotesOverviewWidgetState extends State<NotesOverviewWidget> with RouteAwa
           kilograms: targetDelivery.kilograms,
           boxes: targetDelivery.boxes,
           remaining: targetDelivery.remaining,
-          seller: targetDelivery.seller,
+          sellerId: targetDelivery.sellerId,
           total: targetDelivery.total,
         );
 
@@ -447,6 +447,8 @@ class _NotesOverviewWidgetState extends State<NotesOverviewWidget> with RouteAwa
                                     final icon = _getIconFromColor(note.color);
                                     final ventaTotal = noteData['ventaTotal'] as double?;
                                     final deliveryNumber = noteData['deliveryNumber'] as int?;
+                                    final ventaDate = noteData['ventaDate'] as DateTime?;
+                                    final ventaQuantity = noteData['ventaQuantity'] as double?;
 
                                     return InkWell(
                                       onTap: () => _handleNoteTap(noteData),
@@ -485,7 +487,7 @@ class _NotesOverviewWidgetState extends State<NotesOverviewWidget> with RouteAwa
                                                       fontSize: 14,
                                                     ),
                                                   ),
-                                                  if (note.ventaId != null && ventaTotal != null && deliveryNumber != null)
+                                                  if (note.ventaId != null)
                                                     Padding(
                                                       padding:
                                                           const EdgeInsets.only(
@@ -495,6 +497,29 @@ class _NotesOverviewWidgetState extends State<NotesOverviewWidget> with RouteAwa
                                                         spacing: 8,
                                                         runSpacing: 4,
                                                         children: [
+                                                          if (ventaDate != null)
+                                                            Container(
+                                                              padding: const EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.green[100],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                  4,
+                                                                ),
+                                                              ),
+                                                              child: Text(
+                                                                DateFormat('dd/MM/yyyy').format(ventaDate),
+                                                                style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors.green[900],
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
+                                                              ),
+                                                            ),
                                                           Container(
                                                             padding: const EdgeInsets
                                                                 .symmetric(
@@ -516,50 +541,75 @@ class _NotesOverviewWidgetState extends State<NotesOverviewWidget> with RouteAwa
                                                               ),
                                                             ),
                                                           ),
-                                                          Container(
-                                                            padding: const EdgeInsets
-                                                                .symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 2,
-                                                            ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.blue[100],
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                4,
+                                                          if (deliveryNumber != null)
+                                                            Container(
+                                                              padding: const EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.blue[100],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                  4,
+                                                                ),
+                                                              ),
+                                                              child: Text(
+                                                                'Reparto #$deliveryNumber',
+                                                                style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors.blue[900],
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
                                                               ),
                                                             ),
-                                                            child: Text(
-                                                              'Reparto #$deliveryNumber',
-                                                              style: TextStyle(
-                                                                fontSize: 10,
-                                                                color: Colors.blue[900],
-                                                                fontWeight: FontWeight.bold,
+                                                          if (ventaQuantity != null)
+                                                            Container(
+                                                              padding: const EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.teal[100],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                  4,
+                                                                ),
+                                                              ),
+                                                              child: Text(
+                                                                '${ventaQuantity.toStringAsFixed(1)} kg',
+                                                                style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors.teal[900],
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
-                                                          Container(
-                                                            padding: const EdgeInsets
-                                                                .symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 2,
-                                                            ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.red[100],
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                4,
+                                                          if (ventaTotal != null)
+                                                            Container(
+                                                              padding: const EdgeInsets
+                                                                  .symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.red[100],
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                  4,
+                                                                ),
+                                                              ),
+                                                              child: Text(
+                                                                '\$${ventaTotal.toStringAsFixed(2)}',
+                                                                style: TextStyle(
+                                                                  fontSize: 10,
+                                                                  color: Colors.red[900],
+                                                                  fontWeight: FontWeight.bold,
+                                                                ),
                                                               ),
                                                             ),
-                                                            child: Text(
-                                                              '\$${ventaTotal.toStringAsFixed(2)}',
-                                                              style: TextStyle(
-                                                                fontSize: 10,
-                                                                color: Colors.red[900],
-                                                                fontWeight: FontWeight.bold,
-                                                              ),
-                                                            ),
-                                                          ),
                                                         ],
                                                       ),
                                                     ),

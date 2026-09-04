@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../data/database.dart';
 import 'google_sheets_service.dart';
+import 'user_session_service.dart';
 
 /// Servicio principal para operaciones de base de datos
 /// Maneja todas las operaciones CRUD y sincronización con Google Sheets
@@ -54,6 +55,7 @@ class DatabaseService {
     required double total,
     int? notesId,
     int? deliveryNumber,
+    int? sellerId,
   }) async {
     _ensureInitialized();
     return await _db!.insertSale(
@@ -65,45 +67,60 @@ class DatabaseService {
       total: total,
       notesId: notesId,
       deliveryNumber: deliveryNumber,
+      sellerId: sellerId ?? UserSessionService().currentSellerId,
     );
   }
 
-  /// Obtiene todas las ventas
+  /// Obtiene todas las ventas del usuario actual
   Future<List<Sale>> getAllSales() async {
     _ensureInitialized();
-    return await _db!.select(_db!.sales).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(
+      _db!.sales,
+    )..where((tbl) => tbl.sellerId.equals(sellerId))).get();
   }
 
   /// Obtiene ventas sin asignar a un delivery
   Future<List<Sale>> getUnassignedSales() async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.sales,
-    )..where((tbl) => tbl.deliveryNumber.isNull())).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.sales)..where(
+          (tbl) => tbl.deliveryNumber.isNull() & tbl.sellerId.equals(sellerId),
+        ))
+        .get();
   }
 
   /// Obtiene ventas por número de delivery
   Future<List<Sale>> getSalesByDeliveryNumber(int deliveryNumber) async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.sales,
-    )..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber))).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.sales)..where(
+          (tbl) =>
+              tbl.deliveryNumber.equals(deliveryNumber) &
+              tbl.sellerId.equals(sellerId),
+        ))
+        .get();
   }
 
   /// Obtiene ventas por ID de cliente
   Future<List<Sale>> getVentasByClientId(int clientId) async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.sales,
-    )..where((tbl) => tbl.clientId.equals(clientId))).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.sales)..where(
+          (tbl) =>
+              tbl.clientId.equals(clientId) & tbl.sellerId.equals(sellerId),
+        ))
+        .get();
   }
 
   /// Obtiene una venta específica por ID
   Future<Sale?> getSaleById(int saleId) async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.sales,
-    )..where((tbl) => tbl.id.equals(saleId))).getSingleOrNull();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.sales)..where(
+          (tbl) => tbl.id.equals(saleId) & tbl.sellerId.equals(sellerId),
+        ))
+        .getSingleOrNull();
   }
 
   /// Actualiza una venta existente
@@ -198,7 +215,7 @@ class DatabaseService {
     required double kilograms,
     required int boxes,
     required double remaining,
-    required String seller,
+    required int sellerId,
     required double total,
   }) async {
     _ensureInitialized();
@@ -210,21 +227,26 @@ class DatabaseService {
       kilograms: kilograms,
       boxes: boxes,
       remaining: remaining,
-      seller: seller,
+      sellerId: sellerId,
       total: total,
     );
   }
 
-  /// Obtiene todos los deliveries
+  /// Obtiene todos los deliveries del usuario actual
   Future<List<Delivery>> getAllDeliveries() async {
     _ensureInitialized();
-    return await _db!.select(_db!.deliveries).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(
+      _db!.deliveries,
+    )..where((tbl) => tbl.sellerId.equals(sellerId))).get();
   }
 
   /// Obtiene los números de los últimos X deliveries
   Future<List<int>> getLatestDeliveryNumbers(int limit) async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.deliveries)
+      ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(d) => OrderingTerm.desc(d.deliveryNumber)])
       ..limit(limit);
 
@@ -235,7 +257,9 @@ class DatabaseService {
   /// Obtiene los números de los últimos X deliveries ordenados por fecha
   Future<List<int>> getLatestDeliveryNumbersByDate(int limit) async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.deliveries)
+      ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(d) => OrderingTerm.desc(d.date)])
       ..limit(limit);
 
@@ -246,7 +270,9 @@ class DatabaseService {
   /// Obtiene la fecha del delivery más antiguo
   Future<DateTime?> getOldestDeliveryDate() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.deliveries)
+      ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(d) => OrderingTerm.asc(d.date)])
       ..limit(1);
 
@@ -257,7 +283,9 @@ class DatabaseService {
   /// Obtiene el número de delivery más alto
   Future<int?> getHighestDeliveryNumber() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.deliveries)
+      ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(d) => OrderingTerm.desc(d.deliveryNumber)])
       ..limit(1);
 
@@ -268,8 +296,12 @@ class DatabaseService {
   /// Obtiene un delivery específico por número
   Future<Delivery?> getDeliveryByNumber(int deliveryNumber) async {
     _ensureInitialized();
-    return await (_db!.select(_db!.deliveries)
-          ..where((tbl) => tbl.deliveryNumber.equals(deliveryNumber)))
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.deliveries)..where(
+          (tbl) =>
+              tbl.deliveryNumber.equals(deliveryNumber) &
+              tbl.sellerId.equals(sellerId),
+        ))
         .getSingleOrNull();
   }
 
@@ -307,7 +339,7 @@ class DatabaseService {
     required double kilograms,
     required int boxes,
     required double remaining,
-    required String seller,
+    required int sellerId,
     required double total,
   }) async {
     _ensureInitialized();
@@ -321,7 +353,7 @@ class DatabaseService {
         kilograms: Value(kilograms),
         boxes: Value(boxes),
         remaining: Value(remaining),
-        seller: Value(seller),
+        sellerId: Value(sellerId),
         total: Value(total),
       ),
     );
@@ -433,6 +465,7 @@ class DatabaseService {
       kgSemana: kgSemana,
       ventasVuelta: ventasVuelta,
       puntuacion: puntuacion,
+      sellerId: UserSessionService().currentSellerId,
     );
   }
 
@@ -474,18 +507,22 @@ class DatabaseService {
     );
   }
 
-  /// Obtiene todos los clientes
+  /// Obtiene todos los clientes del usuario actual
   Future<List<Cliente>> getAllClientes() async {
     _ensureInitialized();
-    return await _db!.select(_db!.clientes).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(
+      _db!.clientes,
+    )..where((tbl) => tbl.sellerId.equals(sellerId))).get();
   }
 
   /// Obtiene un cliente por ID
   Future<Cliente?> getClienteById(int id) async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.clientes,
-    )..where((tbl) => tbl.id.equals(id))).getSingleOrNull();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.clientes)
+          ..where((tbl) => tbl.id.equals(id) & tbl.sellerId.equals(sellerId)))
+        .getSingleOrNull();
   }
 
   /// Actualiza el campo eventos de un cliente
@@ -553,8 +590,9 @@ class DatabaseService {
     required double cicloScore,
   }) async {
     _ensureInitialized();
-    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
-        .write(
+    await (_db!.update(
+      _db!.clientes,
+    )..where((tbl) => tbl.id.equals(clientId))).write(
       ClientesCompanion(
         intervaloPromedio: Value(intervaloPromedio),
         diasDesdeUltimaVenta: Value(diasDesdeUltimaVenta),
@@ -571,8 +609,9 @@ class DatabaseService {
     required double weekdayScore,
   }) async {
     _ensureInitialized();
-    await (_db!.update(_db!.clientes)..where((tbl) => tbl.id.equals(clientId)))
-        .write(
+    await (_db!.update(
+      _db!.clientes,
+    )..where((tbl) => tbl.id.equals(clientId))).write(
       ClientesCompanion(
         diaSemanaPreferido: Value(diaSemanaPreferido),
         frecuenciasDiaSemana: Value(frecuenciasDiaSemana),
@@ -584,57 +623,81 @@ class DatabaseService {
   // Métodos para obtener los valores máximos para la normalización
   Future<int?> getMaxEventos() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxEventos = _db!.clientes.eventos.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxEventos]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxEventos])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxEventos)).getSingleOrNull();
   }
 
   Future<double?> getMaxKgTotal() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxKgTotal = _db!.clientes.kgTotal.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxKgTotal]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxKgTotal])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxKgTotal)).getSingleOrNull();
   }
 
   Future<double?> getMaxModa() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxModa = _db!.clientes.moda.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxModa]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxModa])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxModa)).getSingleOrNull();
   }
 
   Future<double?> getMaxMaximo() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxMaximo = _db!.clientes.maximo.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxMaximo]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxMaximo])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxMaximo)).getSingleOrNull();
   }
 
   Future<double?> getMaxUltimas10() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxUltimas10 = _db!.clientes.ultimas10.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxUltimas10]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxUltimas10])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxUltimas10)).getSingleOrNull();
   }
 
   Future<double?> getMaxKgEvento() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxKgEvento = _db!.clientes.kgEvento.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxKgEvento]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxKgEvento])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxKgEvento)).getSingleOrNull();
   }
 
   Future<double?> getMaxKgSemana() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxKgSemana = _db!.clientes.kgSemana.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxKgSemana]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxKgSemana])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxKgSemana)).getSingleOrNull();
   }
 
   Future<double?> getMaxVentasVuelta() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxVentasVuelta = _db!.clientes.ventasVuelta.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxVentasVuelta]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxVentasVuelta])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query
         .map((row) => row.read(maxVentasVuelta))
         .getSingleOrNull();
@@ -642,15 +705,21 @@ class DatabaseService {
 
   Future<double?> getMaxCicloScore() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxCicloScore = _db!.clientes.cicloScore.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxCicloScore]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxCicloScore])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxCicloScore)).getSingleOrNull();
   }
 
   Future<double?> getMaxIntervaloPromedio() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final maxIntervalo = _db!.clientes.intervaloPromedio.max();
-    final query = _db!.selectOnly(_db!.clientes)..addColumns([maxIntervalo]);
+    final query = _db!.selectOnly(_db!.clientes)
+      ..addColumns([maxIntervalo])
+      ..where(_db!.clientes.sellerId.equals(sellerId));
     return await query.map((row) => row.read(maxIntervalo)).getSingleOrNull();
   }
 
@@ -738,10 +807,14 @@ class DatabaseService {
 
     if (localDeliveries.isEmpty && sheetData.length > 1) {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final sellerId = UserSessionService().currentSellerId;
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
         if (row.isEmpty || row.length < 9 || row[0] == null) continue;
         try {
+          // Solo importar filas del usuario actual
+          final rowSellerId = int.tryParse(row[7].toString()) ?? 0;
+          if (rowSellerId != sellerId) continue;
           final delivery = DeliveriesCompanion(
             deliveryNumber: Value(int.parse(row[0].toString())),
             date: Value(DateTime.tryParse(row[1].toString()) ?? DateTime.now()),
@@ -750,7 +823,7 @@ class DatabaseService {
             kilograms: Value(double.tryParse(row[4].toString()) ?? 0.0),
             boxes: Value(int.tryParse(row[5].toString()) ?? 0),
             remaining: Value(double.tryParse(row[6].toString()) ?? 0.0),
-            seller: Value(row[7].toString()),
+            sellerId: Value(rowSellerId),
             total: Value(double.tryParse(row[8].toString()) ?? 0.0),
           );
           await _db!.into(_db!.deliveries).insertOnConflictUpdate(delivery);
@@ -774,7 +847,7 @@ class DatabaseService {
           delivery.kilograms,
           delivery.boxes,
           delivery.remaining,
-          delivery.seller,
+          delivery.sellerId,
           delivery.total,
         ]);
       }
@@ -798,10 +871,14 @@ class DatabaseService {
 
     if (localSales.isEmpty && sheetData.length > 1) {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final sellerId = UserSessionService().currentSellerId;
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
-        if (row.isEmpty || row.length < 8 || row[0] == null) continue;
+        if (row.isEmpty || row.length < 9 || row[0] == null) continue;
         try {
+          // Solo importar filas del usuario actual
+          final rowSellerId = int.tryParse(row[8].toString()) ?? 0;
+          if (rowSellerId != sellerId) continue;
           final sale = SalesCompanion(
             id: Value(int.parse(row[0].toString())),
             date: Value(DateTime.tryParse(row[1].toString()) ?? DateTime.now()),
@@ -811,6 +888,7 @@ class DatabaseService {
             total: Value(double.parse(row[5].toString())),
             notesId: Value(int.tryParse(row[6].toString())),
             deliveryNumber: Value(int.tryParse(row[7].toString())),
+            sellerId: Value(rowSellerId),
           );
           await _db!.into(_db!.sales).insertOnConflictUpdate(sale);
         } catch (e) {
@@ -834,6 +912,7 @@ class DatabaseService {
           sale.total,
           sale.notesId ?? '',
           sale.deliveryNumber ?? '',
+          sale.sellerId,
         ]);
       }
 
@@ -889,23 +968,23 @@ class DatabaseService {
             puntuacion: Value(double.tryParse(row[22].toString()) ?? 0.0),
             // Nuevas columnas (si existen en el sheet)
             intervaloPromedio: row.length > 23
-              ? Value(double.tryParse(row[23].toString()) ?? 0.0)
-              : Value.absent(),
+                ? Value(double.tryParse(row[23].toString()) ?? 0.0)
+                : Value.absent(),
             diasDesdeUltimaVenta: row.length > 24
-              ? Value(int.tryParse(row[24].toString()) ?? 0)
-              : Value.absent(),
+                ? Value(int.tryParse(row[24].toString()) ?? 0)
+                : Value.absent(),
             cicloScore: row.length > 25
-              ? Value(double.tryParse(row[25].toString()) ?? 0.0)
-              : Value.absent(),
+                ? Value(double.tryParse(row[25].toString()) ?? 0.0)
+                : Value.absent(),
             diaSemanaPreferido: row.length > 26
-              ? Value(int.tryParse(row[26].toString()) ?? 0)
-              : Value.absent(),
+                ? Value(int.tryParse(row[26].toString()) ?? 0)
+                : Value.absent(),
             frecuenciasDiaSemana: row.length > 27
-              ? Value(row[27].toString())
-              : Value.absent(),
+                ? Value(row[27].toString())
+                : Value.absent(),
             weekdayScore: row.length > 28
-              ? Value(double.tryParse(row[28].toString()) ?? 0.0)
-              : Value.absent(),
+                ? Value(double.tryParse(row[28].toString()) ?? 0.0)
+                : Value.absent(),
           );
           await _db!.into(_db!.clientes).insertOnConflictUpdate(cliente);
         } catch (e) {
@@ -988,14 +1067,16 @@ class DatabaseService {
       result: result,
       deliveryId: deliveryId,
       timestamp: timestamp,
+      sellerId: UserSessionService().currentSellerId,
     );
   }
 
-  /// Obtiene los últimos 10 registros de interacción
+  /// Obtiene los últimos 10 registros de interacción del usuario actual
   Future<List<Interaccione>> getLast10Interacciones() async {
     _ensureInitialized();
-    // Si no existe en AppDatabase, implementa aquí la consulta
+    final sellerId = UserSessionService().currentSellerId;
     return await (_db!.select(_db!.interacciones)
+          ..where((tbl) => tbl.sellerId.equals(sellerId))
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.id)])
           ..limit(10))
         .get();
@@ -1006,9 +1087,14 @@ class DatabaseService {
     int deliveryNumber,
   ) async {
     _ensureInitialized();
-    return await (_db!.select(
-      _db!.interacciones,
-    )..where((tbl) => tbl.deliveryId.equals(deliveryNumber))).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.interacciones)
+          ..where(
+            (tbl) =>
+                tbl.deliveryId.equals(deliveryNumber) &
+                tbl.sellerId.equals(sellerId),
+          ))
+        .get();
   }
 
   /// Obtiene los IDs de los clientes que rechazaron en un delivery específico
@@ -1016,10 +1102,14 @@ class DatabaseService {
     int deliveryNumber,
   ) async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.interacciones)
-      ..where((tbl) =>
-        tbl.deliveryId.equals(deliveryNumber) &
-        tbl.result.equals('Rechazó'));
+      ..where(
+        (tbl) =>
+            tbl.deliveryId.equals(deliveryNumber) &
+            tbl.result.equals('Rechazó') &
+            tbl.sellerId.equals(sellerId),
+      );
     final result = await query.get();
     return result.map((interaccion) => interaccion.clientId).toList();
   }
@@ -1027,7 +1117,9 @@ class DatabaseService {
   /// Obtiene los IDs de los clientes de las últimas 20 ventas
   Future<List<int>> getLast10SalesClientIds() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.sales)
+      ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)])
       ..limit(20);
     final result = await query.get();
@@ -1041,8 +1133,12 @@ class DatabaseService {
   ) async {
     _ensureInitialized();
     if (clientIds.isEmpty) return {};
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.sales)
-      ..where((tbl) => tbl.clientId.isIn(clientIds))
+      ..where(
+        (tbl) =>
+            tbl.clientId.isIn(clientIds) & tbl.sellerId.equals(sellerId),
+      )
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.date)]);
     final sales = await query.get();
     final Map<int, DateTime> result = {};
@@ -1053,10 +1149,12 @@ class DatabaseService {
     return result;
   }
 
-  /// Obtiene los 120 clientes con mayor puntuación
+  /// Obtiene los 120 clientes con mayor puntuación del usuario actual
   Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
     _ensureInitialized();
+    final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.clientes)
+      ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
       ..limit(120);
     return await query.get();
@@ -1077,19 +1175,31 @@ class DatabaseService {
       clientId: clientId,
       ventaId: ventaId,
       color: color,
+      sellerId: UserSessionService().currentSellerId,
     );
   }
 
   /// Obtiene todas las notas de un cliente
   Future<List<Nota>> getNotasByClientId(int clientId) async {
     _ensureInitialized();
-    return await _db!.getNotasByClientId(clientId);
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.notas)
+          ..where(
+            (tbl) =>
+                tbl.clientId.equals(clientId) & tbl.sellerId.equals(sellerId),
+          ))
+        .get();
   }
 
   /// Obtiene todas las notas de una venta
   Future<List<Nota>> getNotasByVentaId(int ventaId) async {
     _ensureInitialized();
-    return await _db!.getNotasByVentaId(ventaId);
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(_db!.notas)
+          ..where(
+            (tbl) => tbl.ventaId.equals(ventaId) & tbl.sellerId.equals(sellerId),
+          ))
+        .get();
   }
 
   /// Elimina una nota por ID
@@ -1126,14 +1236,26 @@ class DatabaseService {
         };
 
         // Si la nota tiene una venta asociada, obtener sus datos
-        if (nota.ventaId != null) {
-          final venta = await (_db!.select(
-            _db!.sales,
-          )..where((tbl) => tbl.id.equals(nota.ventaId!))).getSingleOrNull();
-          if (venta != null) {
-            map['venta'] = venta;
-            map['ventaTotal'] = venta.total;
-            map['deliveryNumber'] = venta.deliveryNumber;
+        if (nota.ventaId != null && nota.ventaId! > 0) {
+          try {
+            // Usar get() + limit(1) en lugar de getSingleOrNull() para evitar
+            // excepciones si hay datos duplicados o corruptos
+            final ventas = await (_db!.select(_db!.sales)
+                  ..where((tbl) => tbl.id.equals(nota.ventaId!))
+                  ..limit(1))
+                .get();
+            if (ventas.isNotEmpty) {
+              final venta = ventas.first;
+              map['venta'] = venta;
+              map['ventaTotal'] = venta.total;
+              map['ventaDate'] = venta.date;
+              map['ventaQuantity'] = venta.quantity;
+              map['deliveryNumber'] = venta.deliveryNumber;
+            } else {
+              debugPrint('Nota ${nota.id}: ventaId ${nota.ventaId} no encontrada en BD local');
+            }
+          } catch (e) {
+            debugPrint('Error al obtener venta ${nota.ventaId} para nota ${nota.id}: $e');
           }
         }
 
@@ -1144,10 +1266,13 @@ class DatabaseService {
     return result;
   }
 
-  /// Obtiene todas las notas
+  /// Obtiene todas las notas del usuario actual
   Future<List<Nota>> getAllNotas() async {
     _ensureInitialized();
-    return await _db!.select(_db!.notas).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(
+      _db!.notas,
+    )..where((tbl) => tbl.sellerId.equals(sellerId))).get();
   }
 
   /// Elimina todas las notas
@@ -1162,10 +1287,13 @@ class DatabaseService {
     await _db!.delete(_db!.interacciones).go();
   }
 
-  /// Obtiene todas las interacciones
+  /// Obtiene todas las interacciones del usuario actual
   Future<List<Interaccione>> getAllInteracciones() async {
     _ensureInitialized();
-    return await _db!.select(_db!.interacciones).get();
+    final sellerId = UserSessionService().currentSellerId;
+    return await (_db!.select(
+      _db!.interacciones,
+    )..where((tbl) => tbl.sellerId.equals(sellerId))).get();
   }
 
   /// Obtiene el historial de ventas e interacciones de los últimos N repartos
@@ -1239,8 +1367,10 @@ class DatabaseService {
     }
 
     // Ordenar por fecha descendente (más reciente primero)
-    history.sort((a, b) => (b['timestamp'] as DateTime)
-        .compareTo(a['timestamp'] as DateTime));
+    history.sort(
+      (a, b) =>
+          (b['timestamp'] as DateTime).compareTo(a['timestamp'] as DateTime),
+    );
 
     return history;
   }
@@ -1304,8 +1434,10 @@ class DatabaseService {
     }
 
     // Ordenar por fecha descendente (más reciente primero)
-    history.sort((a, b) => (b['timestamp'] as DateTime)
-        .compareTo(a['timestamp'] as DateTime));
+    history.sort(
+      (a, b) =>
+          (b['timestamp'] as DateTime).compareTo(a['timestamp'] as DateTime),
+    );
 
     return history;
   }
@@ -1336,9 +1468,10 @@ class DatabaseService {
   /// Carga el estado persistente del delivery
   Future<Map<String, dynamic>?> loadPersistentDeliveryState() async {
     _ensureInitialized();
+    final stateId = UserSessionService().persistentStateId;
     final result = await (_db!.select(
       _db!.persistentDeliveryStates,
-    )..where((tbl) => tbl.id.equals('current'))).getSingleOrNull();
+    )..where((tbl) => tbl.id.equals(stateId))).getSingleOrNull();
     if (result != null) {
       return {
         'id': result.id,
@@ -1356,9 +1489,10 @@ class DatabaseService {
   /// Elimina el estado persistente del delivery
   Future<void> clearPersistentDeliveryState() async {
     _ensureInitialized();
+    final stateId = UserSessionService().persistentStateId;
     await (_db!.delete(
       _db!.persistentDeliveryStates,
-    )..where((tbl) => tbl.id.equals('current'))).go();
+    )..where((tbl) => tbl.id.equals(stateId))).go();
   }
 
   /// Sincroniza notas con Google Sheets
@@ -1394,6 +1528,7 @@ class DatabaseService {
 
     if (localNotas.isEmpty && sheetData.length > 1) {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final sellerId = UserSessionService().currentSellerId;
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
         if (row.isEmpty || row.length < 5 || row[0] == null) continue;
@@ -1404,6 +1539,7 @@ class DatabaseService {
             clientId: Value(int.parse(row[2].toString())),
             ventaId: Value(int.tryParse(row[3].toString())),
             color: Value(row[4].toString()),
+            sellerId: Value(sellerId),
           );
           await _db!.into(_db!.notas).insertOnConflictUpdate(nota);
         } catch (e) {
@@ -1462,6 +1598,257 @@ class DatabaseService {
       );
     } catch (e) {
       throw Exception('Error al sincronizar interacciones: $e');
+    }
+  }
+
+  // ===== OPERACIONES DE USUARIOS =====
+
+  /// Obtiene todos los usuarios activos
+  Future<List<Usuario>> getAllUsuarios() async {
+    _ensureInitialized();
+    return await _db!.getAllUsuarios();
+  }
+
+  /// Obtiene un usuario por ID
+  Future<Usuario?> getUsuarioById(int id) async {
+    _ensureInitialized();
+    return await _db!.getUsuarioById(id);
+  }
+
+  /// Inserta o actualiza un usuario
+  Future<int> insertUsuario({
+    required int id,
+    required String nombre,
+    String? ciudad,
+    bool activo = true,
+  }) async {
+    _ensureInitialized();
+    return await _db!.insertUsuario(
+      id: id,
+      nombre: nombre,
+      ciudad: ciudad,
+      activo: activo,
+    );
+  }
+
+  // ===== OPERACIONES DE GASTOS =====
+
+  /// Inserta un nuevo gasto
+  Future<int> insertGasto({
+    int? id,
+    required DateTime fecha,
+    required String concepto,
+    required double monto,
+    required String categoria,
+  }) async {
+    _ensureInitialized();
+    return await _db!.insertGasto(
+      id: id,
+      sellerId: UserSessionService().currentSellerId,
+      fecha: fecha,
+      concepto: concepto,
+      monto: monto,
+      categoria: categoria,
+    );
+  }
+
+  /// Obtiene todos los gastos del usuario actual
+  Future<List<Gasto>> getAllGastos() async {
+    _ensureInitialized();
+    return await _db!.getAllGastosBySeller(
+      UserSessionService().currentSellerId,
+    );
+  }
+
+  /// Obtiene un gasto por ID
+  Future<Gasto?> getGastoById(int id) async {
+    _ensureInitialized();
+    return await _db!.getGastoById(id);
+  }
+
+  /// Actualiza un gasto existente
+  Future<int> updateGasto({
+    required int id,
+    required DateTime fecha,
+    required String concepto,
+    required double monto,
+    required String categoria,
+  }) async {
+    _ensureInitialized();
+    return await _db!.updateGasto(
+      id: id,
+      fecha: fecha,
+      concepto: concepto,
+      monto: monto,
+      categoria: categoria,
+    );
+  }
+
+  /// Elimina un gasto por ID
+  Future<int> deleteGasto(int id) async {
+    _ensureInitialized();
+    return await _db!.deleteGasto(id);
+  }
+
+  /// Elimina todos los gastos
+  Future<void> deleteAllGastos() async {
+    _ensureInitialized();
+    await _db!.delete(_db!.gastos).go();
+  }
+
+  /// Sincroniza gastos con Google Sheets
+  Future<void> syncGastosUnified({
+    required BuildContext context,
+    required String spreadsheetId,
+    required String range,
+  }) async {
+    _ensureInitialized();
+    final googleSheetsService = GoogleSheetsService();
+
+    try {
+      final localGastos = await getAllGastos();
+      final sheetData = await googleSheetsService.getSheetData(
+        spreadsheetId,
+        range,
+      );
+
+      await _syncGastosData(localGastos, sheetData, spreadsheetId, range);
+    } catch (e) {
+      throw Exception('Error al sincronizar gastos: $e');
+    }
+  }
+
+  /// Método privado para sincronizar datos de gastos
+  Future<void> _syncGastosData(
+    List<Gasto> localGastos,
+    List<List<Object?>> sheetData,
+    String spreadsheetId,
+    String range,
+  ) async {
+    final googleSheetsService = GoogleSheetsService();
+
+    if (localGastos.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final sellerId = UserSessionService().currentSellerId;
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 6 || row[0] == null) continue;
+        try {
+          // Solo importar filas del usuario actual
+          final rowSellerId = int.tryParse(row[1].toString()) ?? 0;
+          if (rowSellerId != sellerId) continue;
+          final gasto = GastosCompanion(
+            id: Value(int.parse(row[0].toString())),
+            sellerId: Value(rowSellerId),
+            fecha: Value(DateTime.tryParse(row[2].toString()) ?? DateTime.now()),
+            concepto: Value(row[3].toString()),
+            monto: Value(double.tryParse(row[4].toString()) ?? 0.0),
+            categoria: Value(row[5].toString()),
+          );
+          await _db!.into(_db!.gastos).insertOnConflictUpdate(gasto);
+        } catch (e) {
+          print('Error procesando fila de gasto: $row, error: $e');
+        }
+      }
+    } else if (localGastos.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      } else {
+        updatedData.add(['id', 'seller_id', 'fecha', 'concepto', 'monto', 'categoria']);
+      }
+
+      for (var gasto in localGastos) {
+        updatedData.add([
+          gasto.id,
+          gasto.sellerId,
+          gasto.fecha.toString(),
+          gasto.concepto,
+          gasto.monto,
+          gasto.categoria,
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
+    }
+  }
+
+  /// Sincroniza usuarios con Google Sheets
+  Future<void> syncUsuariosUnified({
+    required BuildContext context,
+    required String spreadsheetId,
+    required String range,
+  }) async {
+    _ensureInitialized();
+    final googleSheetsService = GoogleSheetsService();
+
+    try {
+      final localUsuarios = await getAllUsuarios();
+      final sheetData = await googleSheetsService.getSheetData(
+        spreadsheetId,
+        range,
+      );
+
+      await _syncUsuariosData(localUsuarios, sheetData, spreadsheetId, range);
+    } catch (e) {
+      throw Exception('Error al sincronizar usuarios: $e');
+    }
+  }
+
+  /// Método privado para sincronizar datos de usuarios
+  Future<void> _syncUsuariosData(
+    List<Usuario> localUsuarios,
+    List<List<Object?>> sheetData,
+    String spreadsheetId,
+    String range,
+  ) async {
+    final googleSheetsService = GoogleSheetsService();
+
+    if (localUsuarios.isEmpty && sheetData.length > 1) {
+      // PULL: La base de datos local está vacía, pero la remota tiene datos
+      final dataRows = sheetData.skip(1);
+      for (final row in dataRows) {
+        if (row.isEmpty || row.length < 4 || row[0] == null) continue;
+        try {
+          final usuario = UsuariosCompanion(
+            id: Value(int.parse(row[0].toString())),
+            nombre: Value(row[1].toString()),
+            ciudad: Value(row[2].toString().isEmpty ? null : row[2].toString()),
+            activo: Value(row[3].toString().toLowerCase() == 'true'),
+          );
+          await _db!.into(_db!.usuarios).insertOnConflictUpdate(usuario);
+        } catch (e) {
+          print('Error procesando fila de usuario: $row, error: $e');
+        }
+      }
+    } else if (localUsuarios.isNotEmpty) {
+      // PUSH: La base de datos local tiene datos, se envían a la remota
+      final updatedData = <List<Object?>>[];
+      if (sheetData.isNotEmpty) {
+        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
+      } else {
+        updatedData.add(['id', 'nombre', 'ciudad', 'activo']);
+      }
+
+      for (var usuario in localUsuarios) {
+        updatedData.add([
+          usuario.id,
+          usuario.nombre,
+          usuario.ciudad ?? '',
+          usuario.activo,
+        ]);
+      }
+
+      await googleSheetsService.updateSheetData(
+        spreadsheetId,
+        range,
+        updatedData,
+      );
     }
   }
 

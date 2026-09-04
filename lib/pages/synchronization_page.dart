@@ -93,6 +93,14 @@ class _SynchronizationPageState extends State<SynchronizationPage> {
                     syncService: syncService,
                   ),
                   SyncActionButton(
+                    label: 'Usuarios',
+                    icon: Icons.people,
+                    color: Colors.deepPurple,
+                    size: buttonSize,
+                    syncType: SyncType.usuarios,
+                    syncService: syncService,
+                  ),
+                  SyncActionButton(
                     label: 'Limpiar Base de Datos',
                     icon: Icons.delete_forever,
                     color: Colors.redAccent,

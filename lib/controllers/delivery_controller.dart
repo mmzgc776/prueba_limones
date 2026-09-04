@@ -5,6 +5,7 @@ import '../data/delivery_state.dart';
 import '../data/database.dart';
 import '../pages/section_delivery/delivery_record.dart';
 import '../services/delivery_service.dart';
+import '../services/user_session_service.dart';
 
 /// Controlador principal para la gestión de repartos
 /// Maneja el estado del delivery, temporizador y estadísticas
@@ -219,7 +220,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
         kilograms: stats.totalKilograms,
         boxes: _initialBoxes > 0 ? _initialBoxes : existingDelivery.boxes,
         remaining: existingDelivery.remaining,
-        seller: existingDelivery.seller,
+        sellerId: UserSessionService().currentSellerId,
         total: stats.totalAmount,
       );
       await _deliveryService.saveDeliveryToDatabase(record);
@@ -234,7 +235,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
         kilograms: stats.totalKilograms,
         boxes: _initialBoxes,
         remaining: 0.0,
-        seller: "Default Seller",
+        sellerId: UserSessionService().currentSellerId,
         total: stats.totalAmount,
       );
       await _deliveryService.saveDeliveryToDatabase(record);
@@ -266,7 +267,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
         kilograms: stats.totalKilograms,
         boxes: _initialBoxes,
         remaining: 0.0,
-        seller: "Default Seller",
+        sellerId: UserSessionService().currentSellerId,
         total: stats.totalAmount,
       );
 
@@ -331,7 +332,7 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
       kilograms: 0.0,
       boxes: _initialBoxes,
       remaining: 0.0,
-      seller: "Default Seller",
+      sellerId: UserSessionService().currentSellerId,
       total: 0.0,
     );
 

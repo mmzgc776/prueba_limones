@@ -6,6 +6,7 @@ import '../data/database.dart';
 import '../data/delivery_state.dart';
 import '../pages/section_delivery/delivery_record.dart';
 import 'database_service.dart';
+import 'user_session_service.dart';
 
 class DeliveryService {
   final DatabaseService _dbService = DatabaseService();
@@ -20,7 +21,9 @@ class DeliveryService {
       await init();
 
       // Paso 1: Pool candidato — top 120 por puntuación
-      final topClientes = await _dbService.getTop30ClientesByPuntuacion();
+      final topClientesRaw = await _dbService.getTop30ClientesByPuntuacion();
+      // Cambio B: Filtrar clientes con insuficiente historial (< 3 ventas)
+      final topClientes = topClientesRaw.where((c) => c.eventos >= 3).toList();
       final candidateIds = topClientes.map((c) => c.id).toList();
 
       // Paso 2: Última fecha de venta real por cliente (tiempo de ejecución)
@@ -73,6 +76,10 @@ class DeliveryService {
 
       // Estrategia B: re-ordenar por scores frescos calculados en tiempo real
       _sortByFreshScore(result, lastSaleDates);
+      // Cambio D: Limitar lista generada a 60 clientes
+      if (result.length > 60) {
+        result.removeRange(60, result.length);
+      }
       return result;
     } catch (e) {
       debugPrint('Error loading clientes from database: $e');
@@ -127,13 +134,29 @@ class DeliveryService {
       // Puntuación aproximada fresca:
       // Extrae el base score eliminando el weekday boost almacenado,
       // reemplaza el cicloScore almacenado por el fresco y aplica boost fresco.
+      // Cambio A: peso de cicloScore reducido de 0.15 a 0.08
       final storedWeekdayBoost = 1.0 + ((c.weekdayScore ?? 0.0) * 0.15);
       final freshWeekdayBoost = 1.0 + (freshWeekday * 0.15);
       final baseWithoutCiclo =
           (c.puntuacion / (storedWeekdayBoost > 0 ? storedWeekdayBoost : 1.0)) -
-          0.15 * (c.cicloScore ?? 0.0);
+          0.08 * (c.cicloScore ?? 0.0);
+
+      // Cambio C: Penalización por silencio prolongado (> 120 días)
+      double silenceFactor = 1.0;
+      final lastSaleSilence = lastSaleDates[c.id];
+      if (lastSaleSilence != null) {
+        final diasDesde = now.difference(lastSaleSilence).inDays;
+        const double maxSilenceDays = 120.0;
+        if (diasDesde > maxSilenceDays) {
+          silenceFactor =
+              (1.0 - ((diasDesde - maxSilenceDays) / maxSilenceDays))
+                  .clamp(0.0, 1.0);
+        }
+      }
+
       scores[c.id] =
-          (baseWithoutCiclo + 0.15 * freshCiclo) * freshWeekdayBoost;
+          (baseWithoutCiclo + 0.08 * freshCiclo) * freshWeekdayBoost *
+          silenceFactor;
     }
 
     clientes.sort((a, b) => (scores[b.id] ?? 0).compareTo(scores[a.id] ?? 0));
@@ -171,7 +194,7 @@ class DeliveryService {
           final boxes = int.tryParse(raw['boxes']?.toString() ?? '') ?? 0;
           final remaining =
               double.tryParse(raw['remaining']?.toString() ?? '') ?? 0.0;
-          final seller = raw['seller']?.toString() ?? '';
+          final sellerId = int.tryParse(raw['seller_id']?.toString() ?? '') ?? 1;
           final total = double.tryParse(raw['total']?.toString() ?? '') ?? 0.0;
 
           return Delivery(
@@ -182,7 +205,7 @@ class DeliveryService {
             kilograms: kilograms,
             boxes: boxes,
             remaining: remaining,
-            seller: seller,
+            sellerId: sellerId,
             total: total,
           );
         } catch (e2) {
@@ -211,7 +234,7 @@ class DeliveryService {
               kilograms: delivery.kilograms,
               boxes: delivery.boxes,
               remaining: delivery.remaining,
-              seller: delivery.seller,
+              sellerId: delivery.sellerId,
               total: delivery.total,
             ),
           )
@@ -250,7 +273,7 @@ class DeliveryService {
           kilograms: record.kilograms,
           boxes: record.boxes,
           remaining: record.remaining,
-          seller: record.seller,
+          sellerId: UserSessionService().currentSellerId,
           total: record.total,
         );
       } else {
@@ -264,7 +287,7 @@ class DeliveryService {
           kilograms: record.kilograms,
           boxes: record.boxes,
           remaining: record.remaining,
-          seller: record.seller,
+          sellerId: UserSessionService().currentSellerId,
           total: record.total,
         );
       }
@@ -399,7 +422,7 @@ class DeliveryService {
     try {
       await init();
       final stateMap = state.toMap();
-      stateMap['id'] = 'current'; // ID fijo para el estado persistente
+      stateMap['id'] = UserSessionService().persistentStateId;
       await _dbService.savePersistentDeliveryState(stateMap);
       debugPrint(
         'Estado persistente guardado: ${state.isActive ? 'Activo' : 'Inactivo'}',

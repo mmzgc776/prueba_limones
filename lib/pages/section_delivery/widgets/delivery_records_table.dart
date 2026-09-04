@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../delivery_record.dart';
+import '../../../services/user_session_service.dart';
 import 'delivery_detail_view.dart';
 
 class DeliveryRecordsTable extends StatelessWidget {
@@ -111,7 +112,19 @@ class DeliveryRecordsTable extends StatelessWidget {
                               DataCell(
                                 Text(record.remaining.toStringAsFixed(2)),
                               ),
-                              DataCell(Text(record.seller)),
+                              DataCell(
+                                Text(
+                                  UserSessionService().currentSellerId ==
+                                          record.sellerId
+                                      ? (UserSessionService()
+                                                  .currentSellerName
+                                                  .isNotEmpty
+                                          ? UserSessionService()
+                                              .currentSellerName
+                                          : 'Vendedor ${record.sellerId}')
+                                      : 'Vendedor ${record.sellerId}',
+                                ),
+                              ),
                               DataCell(Text(record.total.toStringAsFixed(2))),
                             ],
                           );

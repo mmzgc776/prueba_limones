@@ -12,6 +12,7 @@ class Sales extends Table {
   IntColumn get notesId => integer().nullable()(); // FK a tabla de notas
   IntColumn get deliveryNumber =>
       integer().nullable()(); // FK a tabla de entregas
+  IntColumn get sellerId => integer()(); // FK a tabla de usuarios
 
   @override
   Set<Column> get primaryKey => {id};
@@ -25,7 +26,7 @@ class Deliveries extends Table {
   RealColumn get kilograms => real()();
   IntColumn get boxes => integer()();
   RealColumn get remaining => real()();
-  TextColumn get seller => text()();
+  IntColumn get sellerId => integer()(); // FK a tabla de usuarios (reemplaza seller TEXT)
   RealColumn get total => real()();
 
   @override
@@ -68,6 +69,8 @@ class Clientes extends Table {
   IntColumn get diaSemanaPreferido => integer().nullable().withDefault(const Constant(0))();
   TextColumn get frecuenciasDiaSemana => text().nullable().withDefault(const Constant('{}'))();
   RealColumn get weekdayScore => real().nullable().withDefault(const Constant(0.0))();
+
+  IntColumn get sellerId => integer().withDefault(const Constant(1))(); // FK a tabla de usuarios
 }
 
 class Interacciones extends Table {
@@ -77,6 +80,7 @@ class Interacciones extends Table {
       text()(); // "Venta", "Rechazó", "Pendiente", "Encargó"
   IntColumn get deliveryId => integer()(); // FK a tabla de entregas
   DateTimeColumn get timestamp => dateTime()();
+  IntColumn get sellerId => integer().withDefault(const Constant(1))(); // FK a tabla de usuarios
 }
 
 class Notas extends Table {
@@ -86,10 +90,30 @@ class Notas extends Table {
   IntColumn get ventaId =>
       integer().nullable()(); // FK a tabla de ventas, opcional
   TextColumn get color => text()(); // Color de la etiqueta
+  IntColumn get sellerId => integer().withDefault(const Constant(1))(); // FK a tabla de usuarios
+}
+
+class Usuarios extends Table {
+  IntColumn get id => integer()();
+  TextColumn get nombre => text()();
+  TextColumn get ciudad => text().nullable()();
+  BoolColumn get activo => boolean().withDefault(const Constant(true))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+class Gastos extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get sellerId => integer()();
+  DateTimeColumn get fecha => dateTime()();
+  TextColumn get concepto => text()();
+  RealColumn get monto => real()();
+  TextColumn get categoria => text()();
 }
 
 class PersistentDeliveryStates extends Table {
-  TextColumn get id => text()(); // Usaremos un ID fijo como 'current'
+  TextColumn get id => text()(); // Usaremos un ID compuesto 'current_{sellerId}'
   DateTimeColumn get startTime => dateTime().nullable()();
   BoolColumn get isPaused => boolean()();
   IntColumn get elapsedSeconds => integer()();
@@ -108,6 +132,8 @@ class PersistentDeliveryStates extends Table {
     Clientes,
     Interacciones,
     Notas,
+    Usuarios,
+    Gastos,
     PersistentDeliveryStates,
   ],
 )
@@ -115,7 +141,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -197,9 +223,58 @@ class AppDatabase extends _$AppDatabase {
           "ALTER TABLE clientes ADD COLUMN weekday_score REAL DEFAULT 0.0;",
         );
       }
+
+      if (from == 18) {
+        // Migration v18 -> v19: Multi-tenant support
+        // 1) Create Usuarios table
+        await migrator.createTable(usuarios);
+        // 2) Create Gastos table
+        await migrator.createTable(gastos);
+        // 3) Agregar columna seller_id a tablas existentes
+        await migrator.issueCustomQuery(
+          "ALTER TABLE sales ADD COLUMN seller_id INTEGER NOT NULL DEFAULT 1;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE clientes ADD COLUMN seller_id INTEGER NOT NULL DEFAULT 1;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE interacciones ADD COLUMN seller_id INTEGER NOT NULL DEFAULT 1;",
+        );
+        await migrator.issueCustomQuery(
+          "ALTER TABLE notas ADD COLUMN seller_id INTEGER NOT NULL DEFAULT 1;",
+        );
+        // 4) Migrar deliverie: reemplazar seller TEXT por seller_id INT
+        await migrator.issueCustomQuery(
+          "ALTER TABLE deliveries RENAME TO _deliveries_old_v18;",
+        );
+        await migrator.createTable(deliveries);
+        await migrator.issueCustomQuery(
+          'INSERT INTO deliveries (delivery_number, date, duration_seconds, avg_price, kilograms, boxes, remaining, seller_id, total) '
+          "SELECT delivery_number, date, duration_seconds, avg_price, kilograms, boxes, remaining, CASE WHEN seller IN ('Moy', 'Default Seller') THEN 1 ELSE 2 END, total FROM _deliveries_old_v18;",
+        );
+        await migrator.issueCustomQuery('DROP TABLE _deliveries_old_v18;');
+        // 5) Poblar usuarios
+        await migrator.issueCustomQuery(
+          "INSERT OR IGNORE INTO usuarios (id, nombre, activo) VALUES (1, 'Moy', 1);",
+        );
+        await migrator.issueCustomQuery(
+          "INSERT OR IGNORE INTO usuarios (id, nombre, activo) VALUES (2, 'Manuel', 1);",
+        );
+        // 6) Migrar el estado persistente ID 'current' -> 'current_1'
+        await migrator.issueCustomQuery(
+          "UPDATE persistent_delivery_states SET id = 'current_1' WHERE id = 'current';",
+        );
+      }
     },
     onCreate: (migrator) async {
       await migrator.createAll();
+      // Poblar usuarios por defecto en BD nueva
+      await migrator.issueCustomQuery(
+        "INSERT OR IGNORE INTO usuarios (id, nombre, activo) VALUES (1, 'Moy', 1);",
+      );
+      await migrator.issueCustomQuery(
+        "INSERT OR IGNORE INTO usuarios (id, nombre, activo) VALUES (2, 'Manuel', 1);",
+      );
     },
   );
 
@@ -212,6 +287,7 @@ class AppDatabase extends _$AppDatabase {
     required double total,
     int? notesId,
     int? deliveryNumber,
+    int? sellerId,
   }) {
     return into(sales).insert(
       SalesCompanion(
@@ -223,6 +299,7 @@ class AppDatabase extends _$AppDatabase {
         total: Value(total),
         notesId: Value(notesId),
         deliveryNumber: Value(deliveryNumber),
+        sellerId: Value(sellerId ?? 1),
       ),
       mode: id != null ? InsertMode.replace : InsertMode.insert,
     );
@@ -236,7 +313,7 @@ class AppDatabase extends _$AppDatabase {
     required double kilograms,
     required int boxes,
     required double remaining,
-    required String seller,
+    required int sellerId,
     required double total,
   }) async {
     return into(deliveries).insert(
@@ -248,7 +325,7 @@ class AppDatabase extends _$AppDatabase {
         kilograms: Value(kilograms),
         boxes: Value(boxes),
         remaining: Value(remaining),
-        seller: Value(seller),
+        sellerId: Value(sellerId),
         total: Value(total),
       ),
     );
@@ -278,6 +355,7 @@ class AppDatabase extends _$AppDatabase {
     double? kgSemana,
     double? ventasVuelta,
     double? puntuacion,
+    int? sellerId,
   }) {
     return into(clientes).insert(
       ClientesCompanion(
@@ -306,6 +384,7 @@ class AppDatabase extends _$AppDatabase {
             ? Value(ventasVuelta)
             : Value.absent(),
         puntuacion: puntuacion != null ? Value(puntuacion) : Value.absent(),
+        sellerId: Value(sellerId ?? 1),
       ),
     );
   }
@@ -368,6 +447,7 @@ class AppDatabase extends _$AppDatabase {
     required String result,
     required int deliveryId,
     DateTime? timestamp,
+    int? sellerId,
   }) {
     return into(interacciones).insert(
       InteraccionesCompanion(
@@ -375,6 +455,7 @@ class AppDatabase extends _$AppDatabase {
         result: Value(result),
         deliveryId: Value(deliveryId),
         timestamp: Value(timestamp ?? DateTime.now()),
+        sellerId: Value(sellerId ?? 1),
       ),
     );
   }
@@ -384,6 +465,7 @@ class AppDatabase extends _$AppDatabase {
     required int clientId,
     int? ventaId,
     required String color,
+    int? sellerId,
   }) {
     return into(notas).insert(
       NotasCompanion(
@@ -391,6 +473,7 @@ class AppDatabase extends _$AppDatabase {
         clientId: Value(clientId),
         ventaId: Value(ventaId),
         color: Value(color),
+        sellerId: Value(sellerId ?? 1),
       ),
     );
   }
@@ -405,5 +488,90 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteNota(int id) {
     return (delete(notas)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  // ===== OPERACIONES DE USUARIOS =====
+
+  Future<int> insertUsuario({
+    required int id,
+    required String nombre,
+    String? ciudad,
+    bool activo = true,
+  }) {
+    return into(usuarios).insert(
+      UsuariosCompanion(
+        id: Value(id),
+        nombre: Value(nombre),
+        ciudad: Value(ciudad),
+        activo: Value(activo),
+      ),
+      mode: InsertMode.replace,
+    );
+  }
+
+  Future<List<Usuario>> getAllUsuarios() {
+    return (select(usuarios)..where((tbl) => tbl.activo.equals(true))).get();
+  }
+
+  Future<Usuario?> getUsuarioById(int id) {
+    return (select(usuarios)..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  // ===== OPERACIONES DE GASTOS =====
+
+  Future<int> insertGasto({
+    int? id,
+    required int sellerId,
+    required DateTime fecha,
+    required String concepto,
+    required double monto,
+    required String categoria,
+  }) {
+    return into(gastos).insert(
+      GastosCompanion(
+        id: id != null ? Value(id) : Value.absent(),
+        sellerId: Value(sellerId),
+        fecha: Value(fecha),
+        concepto: Value(concepto),
+        monto: Value(monto),
+        categoria: Value(categoria),
+      ),
+      mode: id != null ? InsertMode.replace : InsertMode.insert,
+    );
+  }
+
+  Future<List<Gasto>> getAllGastosBySeller(int sellerId) {
+    return (select(gastos)..where((tbl) => tbl.sellerId.equals(sellerId))).get();
+  }
+
+  Future<List<Gasto>> getAllGastos() {
+    return select(gastos).get();
+  }
+
+  Future<Gasto?> getGastoById(int id) {
+    return (select(gastos)..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<int> updateGasto({
+    required int id,
+    required DateTime fecha,
+    required String concepto,
+    required double monto,
+    required String categoria,
+  }) {
+    return (update(gastos)..where((tbl) => tbl.id.equals(id))).write(
+      GastosCompanion(
+        fecha: Value(fecha),
+        concepto: Value(concepto),
+        monto: Value(monto),
+        categoria: Value(categoria),
+      ),
+    );
+  }
+
+  Future<int> deleteGasto(int id) {
+    return (delete(gastos)..where((tbl) => tbl.id.equals(id))).go();
   }
 }

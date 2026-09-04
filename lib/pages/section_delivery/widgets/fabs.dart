@@ -15,6 +15,11 @@ class FABs extends StatelessWidget {
   final Function() onEndDelivery;
   final Function() onDebugInteracciones;
 
+  /// Callback que registra la interacción "Venta" para el cliente
+  /// seleccionado antes de navegar al formulario de ventas.
+  /// Si no hay cliente seleccionado, no hace nada (no-op).
+  final Future<void> Function()? onRegistrarVenta;
+
   const FABs({
     Key? key,
     required this.started,
@@ -27,6 +32,7 @@ class FABs extends StatelessWidget {
     required this.onResumeDelivery,
     required this.onEndDelivery,
     required this.onDebugInteracciones,
+    this.onRegistrarVenta,
   }) : super(key: key);
 
   @override
@@ -61,17 +67,27 @@ class FABs extends StatelessWidget {
             bottom: 14,
             child: FloatingActionButton(
               heroTag: 'registrar_venta',
-              onPressed: () {
+              onPressed: () async {
                 if (paused) onResumeDelivery();
+
+                // Registrar la interacción "Venta" para el cliente
+                // seleccionado antes de abrir el formulario de ventas,
+                // consistente con el flujo de _handleInteraccionAction.
+                if (onRegistrarVenta != null) {
+                  await onRegistrarVenta!();
+                }
+
                 // Navigate to sales form with current delivery number
                 final deliveryNumber = DeliveryStateManager()
                     .getCurrentDeliveryNumber();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        VentasPage(deliveryNumber: deliveryNumber),
-                  ),
-                );
+                if (context.mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          VentasPage(deliveryNumber: deliveryNumber),
+                    ),
+                  );
+                }
               },
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,

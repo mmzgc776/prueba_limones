@@ -5,7 +5,7 @@ import '../data/database.dart';
 import '../services/database_service.dart';
 
 /// Tipos de sincronización disponibles
-enum SyncType { deliveries, sales, clients, notas, interacciones, expenses, database, rateClients }
+enum SyncType { deliveries, sales, clients, notas, interacciones, expenses, usuarios, database, rateClients }
 
 /// Resultado de una operación de sincronización
 class SyncResult {
@@ -81,7 +81,20 @@ class SyncService {
           return SyncResult.success('Interacciones sincronizadas exitosamente');
 
         case SyncType.expenses:
-          return SyncResult.error('Sincronización de gastos no implementada');
+          await _databaseService.syncGastosUnified(
+            context: context,
+            spreadsheetId: _spreadsheetId,
+            range: 'Gastos!A:F',
+          );
+          return SyncResult.success('Gastos sincronizados exitosamente');
+
+        case SyncType.usuarios:
+          await _databaseService.syncUsuariosUnified(
+            context: context,
+            spreadsheetId: _spreadsheetId,
+            range: 'Usuarios!A:D',
+          );
+          return SyncResult.success('Usuarios sincronizados exitosamente');
 
         case SyncType.database:
           return SyncResult.error('Operación no válida para sincronización');
@@ -121,7 +134,11 @@ class SyncService {
           return SyncResult.success('Interacciones eliminadas exitosamente');
 
         case SyncType.expenses:
-          return SyncResult.error('Eliminación de gastos no implementada');
+          await _databaseService.deleteAllGastos();
+          return SyncResult.success('Gastos eliminados exitosamente');
+
+        case SyncType.usuarios:
+          return SyncResult.error('Operación no válida para eliminación');
 
         case SyncType.database:
           await _databaseService.deleteAllSales();
@@ -394,7 +411,10 @@ class SyncService {
         // - Frecuencia: 10% (sin cambio)
         // - Recencia: 15% (reducido de 20%)
         // - Ciclo: 15% (nuevo)
-        final baseScore = 0.30 * co + 0.30 * v + 0.10 * kr + 0.15 * c10 + 0.15 * cs;
+        // ===== FÓRMULA ACTUALIZADA v2 =====
+        // cicloScore reducido de 0.15 a 0.08 para suavizar penalización en pausas.
+        // El 0.07 restante redistribuido: kr 0.10→0.13, c10 0.15→0.19
+        final baseScore = 0.30 * co + 0.30 * v + 0.13 * kr + 0.19 * c10 + 0.08 * cs;
 
         // Aplicar boost multiplicativo por día de semana
         // Boost máximo: 15% (multiplicador 1.15)
@@ -610,8 +630,11 @@ class SyncService {
           (updated.cicloScore ?? 0.0) /
           (maxCicloScore > 0 ? maxCicloScore : 1);
 
+      // ===== FÓRMULA ACTUALIZADA v2 =====
+      // cicloScore reducido de 0.15 a 0.08 para suavizar penalización en pausas.
+      // El 0.07 restante redistribuido: kr 0.10→0.13, c10 0.15→0.19
       final baseScore =
-          0.30 * co + 0.30 * v + 0.10 * kr + 0.15 * c10 + 0.15 * cs;
+          0.30 * co + 0.30 * v + 0.13 * kr + 0.19 * c10 + 0.08 * cs;
       final weekdayBoost = 1.0 + ((updated.weekdayScore ?? 0.0) * 0.15);
       final puntuacion = baseScore * weekdayBoost;
 

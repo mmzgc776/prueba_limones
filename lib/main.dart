@@ -8,10 +8,13 @@ import 'pages/synchronization_page.dart';
 import 'pages/editar_clientes_page.dart';
 import 'pages/logs_page.dart';
 import 'pages/edit_sale_page.dart';
+import 'pages/user_selection_page.dart';
+import 'pages/gastos_page.dart';
 import 'data/delivery_state.dart';
 import 'widgets/notes_overview_widget.dart';
 import 'services/sniim_scraper_service.dart';
 import 'services/database_service.dart';
+import 'services/user_session_service.dart';
 import 'theme/app_theme.dart';
 
 // Global RouteObserver to track navigation changes
@@ -35,6 +38,8 @@ Future<void> _saveThemePreference(bool isDark) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _loadThemePreference();
+  // Cargar la sesión del usuario/repartidor
+  await UserSessionService().loadSession();
   appLog('Application started');
   runApp(const MyApp());
 }
@@ -52,7 +57,9 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
-          home: const MyHomePage(title: 'Limones el Patito'),
+          home: UserSessionService().hasSession
+              ? const MyHomePage(title: 'Limones el Patito')
+              : const UserSelectionPage(),
           navigatorObservers: [routeObserver],
           routes: {
             '/section1': (context) => const Section1Page(),
@@ -62,6 +69,7 @@ class MyApp extends StatelessWidget {
             '/synchronization': (context) => const SynchronizationPage(),
             '/editar_clientes': (context) => const EditarClientesPage(),
             '/logs': (context) => const LogsPage(),
+            '/gastos': (context) => const GastosPage(),
           },
           onGenerateRoute: (settings) {
             if (settings.name == '/edit_sale') {
@@ -310,6 +318,35 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           actions: [
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value == 'change_user') {
+                  await UserSessionService().clearSession();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const UserSelectionPage(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'change_user',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.swap_horiz, size: 20),
+                      const SizedBox(width: 8),
+                      Text(UserSessionService().currentSellerName.isNotEmpty
+                          ? 'Usuario: ${UserSessionService().currentSellerName}'
+                          : 'Cambiar usuario'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             ValueListenableBuilder<ThemeMode>(
               valueListenable: themeNotifier,
               builder: (context, mode, _) {
@@ -791,7 +828,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       icon: Icons.attach_money,
                       color: buttonColor,
                       size: buttonSize,
-                      onTap: () {},
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/gastos'),
                     ),
                     _HomeSquareButton(
                       label: 'Sincronización',

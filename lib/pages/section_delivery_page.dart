@@ -145,6 +145,42 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
     );
   }
 
+  /// Registra una interacción tipo "Venta" para el cliente seleccionado
+  /// actualmente en el reparto activo. Se usa desde el botón "$" del FAB
+  /// para mantener la consistencia con el flujo de _handleInteraccionAction.
+  Future<void> _registrarInteraccionVenta() async {
+    final selectedIndex = _controller.selectedClienteIndex;
+    if (selectedIndex == null || selectedIndex >= _clientes.length) {
+      debugPrint(
+        'registrarInteraccionVenta: no hay cliente seleccionado, '
+        'se omite el registro de interacción',
+      );
+      return;
+    }
+
+    try {
+      final deliveryNumber = _controller.getCurrentDeliveryNumber();
+      final cliente = _clientes[selectedIndex];
+
+      // Marcar al cliente como contactado con estado "Venta"
+      _controller.updateContactoStatus(selectedIndex, true, 'Venta');
+
+      // Insertar la interacción inmediatamente en la base de datos
+      await _deliveryService.insertInteraccionImmediate(
+        deliveryId: deliveryNumber,
+        clientId: cliente.id,
+        result: 'Venta',
+      );
+      debugPrint(
+        'Interacción de venta registrada desde FAB: '
+        'delivery #$deliveryNumber, cliente ${cliente.id}',
+      );
+    } catch (e) {
+      // No bloqueamos la navegación UX por errores de inserción; sólo logueamos
+      debugPrint('Error al insertar interacción de venta desde FAB: $e');
+    }
+  }
+
   void _handleInteraccionAction(String action, int index) {
     _controller.updateContactoStatus(index, true, action);
     // Insertar la interacción de forma inmediata en la base de datos
@@ -310,6 +346,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
                               _controller.clientesContactados,
                             ),
                             selectedClienteIndex: _controller.selectedClienteIndex,
+                            onRegistrarVenta: _registrarInteraccionVenta,
                             onStartDelivery: () async {
                         // Mostrar diálogo para preguntar número de cajas
                         final boxes = await _showBoxesDialog();

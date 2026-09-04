@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../delivery_record.dart';
 import '../../../services/database_service.dart'; // Adjust path as necessary
+import '../../../services/user_session_service.dart';
 import 'unassigned_sales_view.dart';
 import '../../edit_sale_page.dart';
 import '../../section_delivery_page.dart';
@@ -45,7 +46,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       kilograms: delivery.kilograms,
       boxes: delivery.boxes,
       remaining: delivery.remaining,
-      seller: delivery.seller,
+      sellerId: delivery.sellerId,
       total: delivery.total,
     );
   }
@@ -152,7 +153,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                 Text(
                   'Restante: ${deliveryRecord.remaining.toStringAsFixed(0)}',
                 ),
-                Text('Vendedor: ${deliveryRecord.seller}'),
+                Text('Vendedor: ${_getSellerName(deliveryRecord.sellerId)}'),
                 Text('Total: ${deliveryRecord.total.toStringAsFixed(0)}'),
                 const SizedBox(height: 20),
                 const Text(
@@ -167,6 +168,17 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
         },
       ),
     );
+  }
+
+  String _getSellerName(int sellerId) {
+    // Intentar obtener el nombre desde la sesión actual
+    final session = UserSessionService();
+    if (session.currentSellerId == sellerId) {
+      return session.currentSellerName.isNotEmpty
+          ? session.currentSellerName
+          : 'Vendedor $sellerId';
+    }
+    return 'Vendedor $sellerId';
   }
 
   Widget _buildSalesList() {

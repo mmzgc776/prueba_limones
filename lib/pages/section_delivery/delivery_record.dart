@@ -6,7 +6,7 @@ class DeliveryRecord {
   final double kilograms;
   final int boxes;
   final double remaining;
-  final String seller;
+  final int sellerId;
   final double total;
 
   DeliveryRecord({
@@ -17,7 +17,7 @@ class DeliveryRecord {
     required this.kilograms,
     required this.boxes,
     required this.remaining,
-    required this.seller,
+    required this.sellerId,
     required this.total,
   });
 }
