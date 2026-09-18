@@ -632,8 +632,28 @@ class _VentaFormState extends State<VentaForm> {
     return selectedClient!.id;
   }
 
+  bool _isSaving = false;
+
   Future<void> _saveSale() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      await _persistSale();
+    } catch (e) {
+      appLog('Error al guardar la venta: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo guardar la venta. Intenta nuevamente.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _persistSale() async {
     final clientId = await _getClientId();
+    if (!mounted) return;
     if (clientId == null) {
       ScaffoldMessenger.of(
         context,
@@ -659,27 +679,46 @@ class _VentaFormState extends State<VentaForm> {
       'Registrando venta - Cliente: $clientName, Cantidad: $cantidad, Precio: \$$precio, Total: \$$total, Fecha: $selectedDate, Reparto: $deliveryNum',
     );
 
-    final saleId = await _dbService.insertSale(
-      date: selectedDate,
-      clientId: clientId,
-      quantity: cantidad,
-      price: precio,
-      total: total,
-      notesId: null,
-      deliveryNumber: deliveryNum,
-    );
+    // El flujo desde candidatos ya registra su interacción antes de navegar.
+    // Por búsqueda, el comprador solo se conoce al confirmar el formulario.
+    final int saleId;
+    if (widget.cliente == null) {
+      saleId = await _dbService.insertSaleWithInteraction(
+        date: selectedDate,
+        clientId: clientId,
+        quantity: cantidad,
+        price: precio,
+        total: total,
+        deliveryNumber: deliveryNum,
+      );
+      if (deliveryNum != null) {
+        appLog(
+          'Interacción Venta guardada por búsqueda - '
+          'Venta: $saleId, Cliente: $clientId, Reparto: $deliveryNum',
+        );
+      }
+    } else {
+      saleId = await _dbService.insertSale(
+        date: selectedDate,
+        clientId: clientId,
+        quantity: cantidad,
+        price: precio,
+        total: total,
+        notesId: null,
+        deliveryNumber: deliveryNum,
+      );
+      await _dbService.updateNotasVentaId(clientId, saleId);
+    }
 
     // Estrategia A: actualizar puntuación del cliente en background
     unawaited(_syncService.refreshSingleClientScore(clientId));
-
-    // Associate any notes that were added during sale creation with this sale
-    await _dbService.updateNotasVentaId(clientId, saleId);
 
     // Confirmar que la venta fue guardada
     appLog('Venta guardada exitosamente - ID: $saleId');
 
     // Store the price in global state
     DeliveryStateManager().setCurrentPrice(precio);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Venta guardada en la base de datos')),
     );
@@ -941,7 +980,7 @@ class _VentaFormState extends State<VentaForm> {
             ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _saveSale,
+            onPressed: _isSaving ? null : _saveSale,
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Guardar'),
           ),

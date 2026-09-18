@@ -384,6 +384,18 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
     notifyListeners();
   }
 
+  /// Una lista regenerada contiene sólo clientes pendientes. Nunca restaurar
+  /// marcas por índice: el mismo índice puede corresponder a otro cliente.
+  void resetPendingClients(int length) {
+    _clientesContactados = List<bool>.filled(length, false);
+    _clientesEstado = List<String>.filled(length, '');
+    _selectedClienteIndex = null;
+    _stateManager.updateClientesContactados(_clientesContactados);
+    _stateManager.updateClientesEstado(_clientesEstado);
+    _stateManager.selectedClienteIndex = null;
+    notifyListeners();
+  }
+
   /// Inicializa las listas de clientes
   void initializeClients(int length) {
     if (_stateManager.clientesContactados.isEmpty ||
@@ -408,8 +420,8 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
   /// Carga la lista de clientes
   Future<void> loadClientes() async {
     try {
-      final clientes = await _deliveryService.loadClientes();
-      initializeClients(clientes.length);
+      final result = await _deliveryService.loadClientes();
+      initializeClients(result.clientes.length);
     } catch (e) {
       debugPrint('Error al cargar clientes: $e');
     }

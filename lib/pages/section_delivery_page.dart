@@ -29,6 +29,9 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
   late DeliveryService _deliveryService;
   late DatabaseService _databaseService;
   List<Cliente> _clientes = [];
+  List<bool> _clientesEsRelleno = [];
+  List<String> _clientesMotivos = [];
+  int _loadGeneration = 0;
   late BuildContext rootContext;
   bool _isResumedDelivery = false;
   late TabController _tabController;
@@ -79,18 +82,22 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
   }
 
   Future<void> _loadData() async {
+    final generation = ++_loadGeneration;
     try {
       // Obtener el número del delivery actual si hay uno activo
       final currentDeliveryNumber = _controller.started
           ? _controller.getCurrentDeliveryNumber()
           : widget.resumeDeliveryNumber;
 
-      final clientes = await _deliveryService.loadClientes(
+      final result = await _deliveryService.loadClientes(
         excludeDeliveryNumber: currentDeliveryNumber,
       );
+      if (!mounted || generation != _loadGeneration) return;
       setState(() {
-        _clientes = clientes;
-        _controller.initializeClients(clientes.length);
+        _clientes = result.clientes;
+        _clientesEsRelleno = result.esRelleno;
+        _clientesMotivos = result.motivos;
+        _controller.resetPendingClients(result.clientes.length);
       });
       await _controller.loadDeliveryRecords();
 
@@ -181,46 +188,51 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
     }
   }
 
-  void _handleInteraccionAction(String action, int index) {
+  Future<void> _handleInteraccionAction(String action, int index) async {
+    final cliente = _clientes[index];
     _controller.updateContactoStatus(index, true, action);
     // Insertar la interacción de forma inmediata en la base de datos
     try {
       final deliveryNumber = _controller.getCurrentDeliveryNumber();
-      _deliveryService.insertInteraccionImmediate(
+      await _deliveryService.insertInteraccionImmediate(
         deliveryId: deliveryNumber,
-        clientId: _clientes[index].id,
+        clientId: cliente.id,
         result: action,
       );
+      if (!mounted) return;
 
-      // Si el cliente rechazó, recargar la lista para excluirlo
-      if (action == 'Rechazó') {
-        _loadData();
+      // Esperar la escritura antes de recargar, para que no reaparezca.
+      if (action != 'Venta' && action != 'Encargó') {
+        await _loadData();
       }
     } catch (e) {
       // No bloqueamos la navegación UX por errores de inserción; sólo logueamos
       debugPrint('Error al insertar interacción inmediata: $e');
     }
+    if (!mounted) return;
     if (action == 'Venta') {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => Scaffold(
             appBar: AppBar(title: const Text('Registrar Venta')),
             body: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: VentaForm(cliente: _clientes[index]),
+              child: VentaForm(cliente: cliente),
             ),
           ),
         ),
       );
+      if (mounted) await _loadData();
     } else if (action == 'Encargó') {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) =>
-              NuevoClientePage(cliente: _clientes[index], focusOnNotas: true),
+              NuevoClientePage(cliente: cliente, focusOnNotas: true),
         ),
       );
+      if (mounted) await _loadData();
     }
   }
 
@@ -286,6 +298,8 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
                         paused: _controller.paused,
                         formattedTime: _controller.formattedTime,
                         clientes: _clientes,
+                        esRelleno: _clientesEsRelleno,
+                        motivos: _clientesMotivos,
                         clientesContactados: List<bool>.from(
                           _controller.clientesContactados,
                         ),
@@ -347,6 +361,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
                             ),
                             selectedClienteIndex: _controller.selectedClienteIndex,
                             onRegistrarVenta: _registrarInteraccionVenta,
+                            onSalesReturned: _loadData,
                             onStartDelivery: () async {
                         // Mostrar diálogo para preguntar número de cajas
                         final boxes = await _showBoxesDialog();

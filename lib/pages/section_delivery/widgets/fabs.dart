@@ -15,10 +15,10 @@ class FABs extends StatelessWidget {
   final Function() onEndDelivery;
   final Function() onDebugInteracciones;
 
-  /// Callback que registra la interacción "Venta" para el cliente
-  /// seleccionado antes de navegar al formulario de ventas.
-  /// Si no hay cliente seleccionado, no hace nada (no-op).
+  /// Conservado por compatibilidad con la página de reparto.
+  /// El FAB ya no lo invoca: la interacción se guarda al confirmar la venta.
   final Future<void> Function()? onRegistrarVenta;
+  final Future<void> Function()? onSalesReturned;
 
   const FABs({
     Key? key,
@@ -33,6 +33,7 @@ class FABs extends StatelessWidget {
     required this.onEndDelivery,
     required this.onDebugInteracciones,
     this.onRegistrarVenta,
+    this.onSalesReturned,
   }) : super(key: key);
 
   @override
@@ -70,23 +71,20 @@ class FABs extends StatelessWidget {
               onPressed: () async {
                 if (paused) onResumeDelivery();
 
-                // Registrar la interacción "Venta" para el cliente
-                // seleccionado antes de abrir el formulario de ventas,
-                // consistente con el flujo de _handleInteraccionAction.
-                if (onRegistrarVenta != null) {
-                  await onRegistrarVenta!();
-                }
+                // La interacción se guarda con el cliente elegido por búsqueda,
+                // junto con la venta, no con la selección de candidatos.
 
                 // Navigate to sales form with current delivery number
                 final deliveryNumber = DeliveryStateManager()
                     .getCurrentDeliveryNumber();
                 if (context.mounted) {
-                  Navigator.of(context).push(
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) =>
                           VentasPage(deliveryNumber: deliveryNumber),
                     ),
                   );
+                  if (context.mounted) await onSalesReturned?.call();
                 }
               },
               backgroundColor: Colors.blue,

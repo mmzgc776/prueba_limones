@@ -6,6 +6,8 @@ class ClientesList extends StatelessWidget {
   final bool started;
   final bool paused;
   final List<Cliente> clientes;
+  final List<bool> esRelleno;
+  final List<String> motivos;
   final List<bool> clientesContactados;
   final List<String> clientesEstado; // Estado: 'Rechazó', 'Pendiente', or ''
   final int? selectedClienteIndex;
@@ -18,6 +20,8 @@ class ClientesList extends StatelessWidget {
     required this.started,
     required this.paused,
     required this.clientes,
+    required this.esRelleno,
+    this.motivos = const [],
     required this.clientesContactados,
     required this.clientesEstado,
     required this.selectedClienteIndex,
@@ -57,11 +61,19 @@ class ClientesList extends StatelessWidget {
                     final cliente = clientes[index];
                     final contactado = clientesContactados[index];
                     return ListTile(
+                      key: ValueKey(cliente.id),
+                      subtitle: index < motivos.length ? Text(motivos[index]) : null,
                       onTap: () {
                         if (paused) onResumeDelivery();
                         onShowInteraccionSheet(index);
                       },
-                      title: Text(cliente.nombre),
+                      title: Row(
+                        children: [
+                          Flexible(
+                            child: Text(cliente.nombre, overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [

@@ -10,6 +10,8 @@ class ActiveDeliveryView extends StatefulWidget {
   final bool paused;
   final String formattedTime;
   final List<Cliente> clientes;
+  final List<bool> esRelleno;
+  final List<String> motivos;
   final List<bool> clientesContactados;
   final List<String> clientesEstado;
   final int? selectedClienteIndex;
@@ -24,6 +26,8 @@ class ActiveDeliveryView extends StatefulWidget {
     required this.paused,
     required this.formattedTime,
     required this.clientes,
+    required this.esRelleno,
+    this.motivos = const [],
     required this.clientesContactados,
     required this.clientesEstado,
     required this.selectedClienteIndex,
@@ -99,6 +103,8 @@ class _ActiveDeliveryViewState extends State<ActiveDeliveryView>
                       started: widget.started,
                       paused: widget.paused,
                       clientes: widget.clientes,
+                      esRelleno: widget.esRelleno,
+                      motivos: widget.motivos,
                       clientesContactados: widget.clientesContactados,
                       clientesEstado: widget.clientesEstado,
                       selectedClienteIndex: widget.selectedClienteIndex,

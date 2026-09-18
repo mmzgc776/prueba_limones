@@ -1,165 +1,45 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../data/database.dart';
 import '../data/delivery_state.dart';
 import '../pages/section_delivery/delivery_record.dart';
 import 'database_service.dart';
+import 'client_recommendation_service.dart';
 import 'user_session_service.dart';
 
 class DeliveryService {
-  final DatabaseService _dbService = DatabaseService();
+  final DatabaseService _dbService;
+  final DateTime Function() _clock;
+
+  DeliveryService({DatabaseService? databaseService, DateTime Function()? clock})
+      : _dbService = databaseService ?? DatabaseService(),
+        _clock = clock ?? DateTime.now;
 
   Future<void> init() async {
     await _dbService.init();
   }
 
-  // Load clients for delivery, filtered by per-client interval heuristic
-  Future<List<Cliente>> loadClientes({int? excludeDeliveryNumber}) async {
-    try {
-      await init();
+  static const int targetSize = ClientRecommendationService.targetSize;
 
-      // Paso 1: Pool candidato — top 120 por puntuación
-      final topClientesRaw = await _dbService.getTop30ClientesByPuntuacion();
-      // Cambio B: Filtrar clientes con insuficiente historial (< 3 ventas)
-      final topClientes = topClientesRaw.where((c) => c.eventos >= 3).toList();
-      final candidateIds = topClientes.map((c) => c.id).toList();
-
-      // Paso 2: Última fecha de venta real por cliente (tiempo de ejecución)
-      final lastSaleDates = await _dbService.getLastSaleDatePerClient(
-        candidateIds,
-      );
-
-      // Paso 3: Exclusión por intervalo propio del cliente
-      // Se excluye si compró hace menos de (intervaloPromedio × umbral) días.
-      // Fallback de 7 días para clientes sin intervaloPromedio definido.
-      const double umbral = 0.8;
-      const double fallbackDias = 7.0;
-      final now = DateTime.now();
-
-      final intervalExcluidos = topClientes
-          .where((cliente) {
-            final ultimaVenta = lastSaleDates[cliente.id];
-            if (ultimaVenta == null) return false; // sin ventas → no excluir
-            final diasDesde = now.difference(ultimaVenta).inDays;
-            final intervalo =
-                (cliente.intervaloPromedio != null &&
-                    cliente.intervaloPromedio! > 0)
-                ? cliente.intervaloPromedio!
-                : fallbackDias;
-            return diasDesde < (intervalo * umbral);
-          })
-          .map((c) => c.id)
-          .toSet();
-
-      // Paso 4: Exclusiones del reparto activo (ventas y rechazos de hoy)
-      final Set<int> deliveryExcluidos = {};
-      if (excludeDeliveryNumber != null) {
-        final deliverySales = await _dbService.getSalesByDeliveryNumber(
-          excludeDeliveryNumber,
-        );
-        deliveryExcluidos.addAll(deliverySales.map((s) => s.clientId));
-
-        final rechazados =
-            await _dbService.getRejectedClientIdsByDeliveryNumber(
-          excludeDeliveryNumber,
-        );
-        deliveryExcluidos.addAll(rechazados);
-      }
-
-      // Paso 5: Filtrar y devolver
-      final todosExcluidos = {...intervalExcluidos, ...deliveryExcluidos};
-      final result = topClientes
-          .where((c) => !todosExcluidos.contains(c.id))
-          .toList();
-
-      // Estrategia B: re-ordenar por scores frescos calculados en tiempo real
-      _sortByFreshScore(result, lastSaleDates);
-      // Cambio D: Limitar lista generada a 60 clientes
-      if (result.length > 60) {
-        result.removeRange(60, result.length);
-      }
-      return result;
-    } catch (e) {
-      debugPrint('Error loading clientes from database: $e');
-      throw Exception('Error al cargar los clientes');
-    }
-  }
-
-  /// Estrategia B: re-ordena los clientes usando cicloScore y weekdayScore
-  /// calculados en tiempo real, sin escrituras a BD.
-  void _sortByFreshScore(
-    List<Cliente> clientes,
-    Map<int, DateTime> lastSaleDates,
-  ) {
-    final now = DateTime.now();
-    final todayWeekday = now.weekday - 1; // 0-6
-
-    final scores = <int, double>{};
-    for (final c in clientes) {
-      // cicloScore fresco
-      double freshCiclo = 0.0;
-      final lastSale = lastSaleDates[c.id];
-      final intervalo = c.intervaloPromedio ?? 0.0;
-      if (intervalo > 0 && lastSale != null) {
-        final diasDesde = now.difference(lastSale).inDays.toDouble();
-        final deviation = (diasDesde - intervalo).abs() / intervalo;
-        freshCiclo = (1.0 - deviation).clamp(0.0, 1.0);
-      }
-
-      // weekdayScore fresco
-      double freshWeekday = 0.0;
-      final preferredDay = c.diaSemanaPreferido ?? 0;
-      if (c.frecuenciasDiaSemana != null &&
-          c.frecuenciasDiaSemana!.isNotEmpty) {
-        try {
-          final freqs =
-              json.decode(c.frecuenciasDiaSemana!) as Map<String, dynamic>;
-          final count =
-              (freqs[preferredDay.toString()] as num?)?.toInt() ?? 0;
-          if (count >= 2) {
-            final diff = (todayWeekday - preferredDay).abs();
-            if (diff == 0) {
-              freshWeekday = 1.0;
-            } else if (diff == 1) {
-              freshWeekday = 0.7;
-            } else if (diff == 2) {
-              freshWeekday = 0.4;
-            }
-          }
-        } catch (_) {}
-      }
-
-      // Puntuación aproximada fresca:
-      // Extrae el base score eliminando el weekday boost almacenado,
-      // reemplaza el cicloScore almacenado por el fresco y aplica boost fresco.
-      // Cambio A: peso de cicloScore reducido de 0.15 a 0.08
-      final storedWeekdayBoost = 1.0 + ((c.weekdayScore ?? 0.0) * 0.15);
-      final freshWeekdayBoost = 1.0 + (freshWeekday * 0.15);
-      final baseWithoutCiclo =
-          (c.puntuacion / (storedWeekdayBoost > 0 ? storedWeekdayBoost : 1.0)) -
-          0.08 * (c.cicloScore ?? 0.0);
-
-      // Cambio C: Penalización por silencio prolongado (> 120 días)
-      double silenceFactor = 1.0;
-      final lastSaleSilence = lastSaleDates[c.id];
-      if (lastSaleSilence != null) {
-        final diasDesde = now.difference(lastSaleSilence).inDays;
-        const double maxSilenceDays = 120.0;
-        if (diasDesde > maxSilenceDays) {
-          silenceFactor =
-              (1.0 - ((diasDesde - maxSilenceDays) / maxSilenceDays))
-                  .clamp(0.0, 1.0);
-        }
-      }
-
-      scores[c.id] =
-          (baseWithoutCiclo + 0.08 * freshCiclo) * freshWeekdayBoost *
-          silenceFactor;
-    }
-
-    clientes.sort((a, b) => (scores[b.id] ?? 0).compareTo(scores[a.id] ?? 0));
+  /// Evalúa todo el catálogo desde ventas reales, sin depender del score guardado.
+  Future<({List<Cliente> clientes, List<bool> esRelleno,
+      List<String> motivos})> loadClientes({int? excludeDeliveryNumber}) async {
+    await init();
+    final sellerId = UserSessionService().currentSellerId;
+    final snapshot = await _dbService.getRecommendationSnapshot(sellerId);
+    final recommendations = ClientRecommendationService.select(
+      clientes: snapshot.clientes, sales: snapshot.sales,
+      deliveries: snapshot.deliveries, interactions: snapshot.interactions,
+      now: _clock(), sellerId: sellerId,
+      excludeDeliveryNumber: excludeDeliveryNumber,
+    );
+    return (
+      clientes: recommendations.map((r) => r.cliente).toList(),
+      // Compatibilidad con consumidores anteriores; ya no existe relleno ciego.
+      esRelleno: recommendations.map((r) =>
+        r.metrics.initialFollowUp || r.metrics.reactivation).toList(),
+      motivos: recommendations.map((r) => r.reason).toList(),
+    );
   }
 
   // Get a specific delivery by number

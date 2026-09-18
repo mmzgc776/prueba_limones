@@ -305,6 +305,44 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// Guarda una venta nueva y su interacción como una única operación.
+  /// Las importaciones y ediciones siguen usando sus métodos independientes.
+  Future<int> insertSaleWithInteraction({
+    required DateTime date,
+    required int clientId,
+    required double quantity,
+    required double price,
+    required double total,
+    required int sellerId,
+    int? deliveryNumber,
+  }) {
+    return transaction(() async {
+      final saleId = await insertSale(
+        date: date,
+        clientId: clientId,
+        quantity: quantity,
+        price: price,
+        total: total,
+        sellerId: sellerId,
+        deliveryNumber: deliveryNumber,
+      );
+      if (deliveryNumber != null) {
+        await insertInteraccion(
+          clientId: clientId,
+          result: 'Venta',
+          deliveryId: deliveryNumber,
+          sellerId: sellerId,
+        );
+      }
+      await (update(notas)..where(
+        (tbl) => tbl.clientId.equals(clientId) &
+            tbl.sellerId.equals(sellerId) & tbl.ventaId.isNull(),
+      )).write(NotasCompanion(ventaId: Value(saleId)));
+      return saleId;
+    });
+  }
+
+
   Future<int> insertDelivery({
     required int deliveryNumber,
     required DateTime date,

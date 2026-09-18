@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -5,6 +7,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../data/database.dart';
+import 'client_recommendation_service.dart';
 import 'google_sheets_service.dart';
 import 'user_session_service.dart';
 
@@ -12,7 +15,12 @@ import 'user_session_service.dart';
 /// Maneja todas las operaciones CRUD y sincronización con Google Sheets
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
-  static AppDatabase? _db;
+  AppDatabase? _db;
+
+  /// Conexión aislada para pruebas; no sustituye el singleton de producción.
+  @visibleForTesting
+  DatabaseService.forTesting(AppDatabase database)
+      : _db = database, _isInitialized = true;
 
   factory DatabaseService() => _instance;
   DatabaseService._internal();
@@ -43,6 +51,48 @@ class DatabaseService {
     }
   }
 
+  /// Snapshot consistente y acotado al vendedor capturado al iniciar la carga.
+  Future<({List<Cliente> clientes, List<Sale> sales,
+      List<Delivery> deliveries, List<Interaccione> interactions})>
+      getRecommendationSnapshot(int sellerId) async {
+    _ensureInitialized();
+    return _db!.transaction(() async {
+      final clientes = await (_db!.select(_db!.clientes)
+        ..where((t) => t.sellerId.equals(sellerId))).get();
+      final sales = await (_db!.select(_db!.sales)
+        ..where((t) => t.sellerId.equals(sellerId))).get();
+      final deliveries = await (_db!.select(_db!.deliveries)
+        ..where((t) => t.sellerId.equals(sellerId))).get();
+      final interactions = await (_db!.select(_db!.interacciones)
+        ..where((t) => t.sellerId.equals(sellerId))).get();
+      return (clientes: clientes, sales: sales,
+          deliveries: deliveries, interactions: interactions);
+    });
+  }
+
+  /// Una escritura por cliente, incluidas métricas cero tras borrar ventas.
+  Future<void> saveRecommendationMetrics(int clientId, int sellerId,
+      ClientPurchaseMetrics metrics) async {
+    _ensureInitialized();
+    await (_db!.update(_db!.clientes)..where((t) =>
+        t.id.equals(clientId) & t.sellerId.equals(sellerId))).write(
+      ClientesCompanion(
+        eventos: Value(metrics.sales.length),
+        kgTotal: Value(metrics.kgTotal), moda: Value(metrics.moda),
+        maximo: Value(metrics.maximo), kgEvento: Value(metrics.kgEvento),
+        kgSemana: Value(metrics.kgSemana), ventasVuelta: Value(metrics.ventasVuelta),
+        ultimas10: Value(metrics.ultimas10), puntuacion: Value(metrics.score),
+        intervaloPromedio: Value(metrics.interval),
+        diasDesdeUltimaVenta: Value(metrics.ageDays.isFinite ? metrics.ageDays.toInt() : 0),
+        cicloScore: Value(metrics.readiness),
+        diaSemanaPreferido: Value(metrics.preferredDay),
+        frecuenciasDiaSemana: Value(jsonEncode(metrics.weekdayCounts.map(
+          (key, value) => MapEntry(key.toString(), value)))),
+        weekdayScore: Value(metrics.weekdayScore),
+      ),
+    );
+  }
+
   // ===== OPERACIONES DE VENTAS =====
 
   /// Inserta una nueva venta
@@ -70,6 +120,28 @@ class DatabaseService {
       sellerId: sellerId ?? UserSessionService().currentSellerId,
     );
   }
+
+  /// Guarda la venta por búsqueda y su interacción de forma atómica.
+  Future<int> insertSaleWithInteraction({
+    required DateTime date,
+    required int clientId,
+    required double quantity,
+    required double price,
+    required double total,
+    int? deliveryNumber,
+  }) async {
+    _ensureInitialized();
+    return _db!.insertSaleWithInteraction(
+      date: date,
+      clientId: clientId,
+      quantity: quantity,
+      price: price,
+      total: total,
+      deliveryNumber: deliveryNumber,
+      sellerId: UserSessionService().currentSellerId,
+    );
+  }
+
 
   /// Obtiene todas las ventas del usuario actual
   Future<List<Sale>> getAllSales() async {
@@ -1149,14 +1221,17 @@ class DatabaseService {
     return result;
   }
 
-  /// Obtiene los 120 clientes con mayor puntuación del usuario actual
+  /// Obtiene los 200 clientes con mayor puntuación del usuario actual.
+  /// El pool es deliberadamente amplio para que DeliveryService.loadClientes
+  /// pueda "rellenar" la lista hasta el objetivo (50) después de aplicar los
+  /// filtros de depuración (eventos >= 3 e intervalo).
   Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
     _ensureInitialized();
     final sellerId = UserSessionService().currentSellerId;
     final query = _db!.select(_db!.clientes)
       ..where((tbl) => tbl.sellerId.equals(sellerId))
       ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
-      ..limit(120);
+      ..limit(200);
     return await query.get();
   }
 
