@@ -55,7 +55,7 @@ class SyncService {
       await _databaseService.syncSalesUnified(
         context: context,
         spreadsheetId: _spreadsheetId,
-        range: 'Ventas!A:H',
+        range: 'Ventas!A:I',
       );
           return SyncResult.success('Ventas sincronizados exitosamente');
 
@@ -63,7 +63,7 @@ class SyncService {
       await _databaseService.syncClientesUnified(
         context: context,
         spreadsheetId: _spreadsheetId,
-        range: 'Clientes!A:AC',
+        range: 'Clientes!A:AD',
       );
           return SyncResult.success('Clientes sincronizados exitosamente');
 

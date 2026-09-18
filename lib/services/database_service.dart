@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../data/database.dart';
 import 'client_recommendation_service.dart';
 import 'google_sheets_service.dart';
+import 'sheets_row_utils.dart';
 import 'user_session_service.dart';
 
 /// Servicio principal para operaciones de base de datos
@@ -797,6 +798,124 @@ class DatabaseService {
 
   // ===== SINCRONIZACIÓN CON GOOGLE SHEETS =====
 
+  // Índice (0-based) de la columna `seller_id` en cada hoja.
+  static const int _salesSellerColumn = 8;
+  static const int _deliveriesSellerColumn = 7;
+  static const int _clientesSellerColumn = 29;
+  static const int _gastosSellerColumn = 1;
+
+  // Encabezados por defecto: se usan para completar la fila 1 cuando la hoja
+  // está vacía o tiene celdas sin nombre, y así el PUSH no la sobrescribe.
+  static const List<String> _salesHeader = [
+    'id',
+    'date',
+    'clientId',
+    'quantity',
+    'price',
+    'total',
+    'notesId',
+    'deliveryNumber',
+    'seller_id',
+  ];
+  static const List<String> _deliveriesHeader = [
+    'deliveryNumber',
+    'date',
+    'durationSeconds',
+    'avgPrice',
+    'kilograms',
+    'boxes',
+    'remaining',
+    'seller_id',
+    'total',
+  ];
+  static const List<String> _clientesHeader = [
+    'ID',
+    'Nombre',
+    'Contacto',
+    'TipoNegocio',
+    'Ciudad',
+    'Domicilio',
+    'Ubicacion',
+    'Telefono',
+    'Consumo',
+    'UltimoContacto',
+    'HoraInicio',
+    'HoraCierre',
+    'NotasId',
+    'Dias',
+    'Eventos',
+    'KgTotal',
+    'Moda',
+    'Maximo',
+    'Ultimas10',
+    'KgEvento',
+    'KgSemana',
+    'VentasVuelta',
+    'Puntuacion',
+    'intervaloPromedio',
+    'diasDesdeUltimaVenta',
+    'cicloScore',
+    'diaSemanaPreferido',
+    'frecuenciasDiaSemana',
+    'weekdayScore',
+    'seller_id',
+  ];
+  static const List<String> _gastosHeader = [
+    'id',
+    'seller_id',
+    'fecha',
+    'concepto',
+    'monto',
+    'categoria',
+  ];
+
+  /// `true` si la fila de la hoja pertenece al vendedor actual. Las filas sin
+  /// `seller_id` (legacy) pertenecen al vendedor original ([kLegacySellerId]).
+  bool _rowBelongsToCurrentSeller(List<Object?> row, int sellerColumnIndex) =>
+      (sellerIdOfRow(row, sellerColumnIndex) ?? kLegacySellerId) ==
+      UserSessionService().currentSellerId;
+
+  /// PUSH multi-vendedor: escribe el encabezado y las filas del vendedor
+  /// actual **conservando** las filas de los demás vendedores, y limpia las
+  /// filas sobrantes si el bloque nuevo quedó más corto que la hoja previa.
+  Future<void> _pushSellerRows({
+    required GoogleSheetsService googleSheetsService,
+    required String spreadsheetId,
+    required String range,
+    required List<List<Object?>> sheetData,
+    required List<String> headerDefaults,
+    required int sellerColumnIndex,
+    required List<List<Object?>> localRows,
+  }) async {
+    final updatedData = <List<Object?>>[
+      normalizedHeaderRow(
+        sheetData.isNotEmpty ? sheetData.first : null,
+        defaults: headerDefaults,
+      ),
+      ...rowsOwnedByOtherSellers(
+        sheetData: sheetData,
+        sellerColumnIndex: sellerColumnIndex,
+        sellerId: UserSessionService().currentSellerId,
+      ),
+      ...localRows,
+    ];
+
+    await googleSheetsService.updateSheetData(
+      spreadsheetId,
+      range,
+      updatedData,
+    );
+
+    final trailing = trailingRowsRange(
+      range,
+      previousRows: sheetData.length,
+      newRows: updatedData.length,
+    );
+    if (trailing != null) {
+      await googleSheetsService.clearSheetData(spreadsheetId, trailing);
+    }
+  }
+
   /// Sincroniza repartos con Google Sheets
   Future<void> syncDeliveriesUnified({
     required BuildContext context,
@@ -879,14 +998,14 @@ class DatabaseService {
 
     if (localDeliveries.isEmpty && sheetData.length > 1) {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
-      final sellerId = UserSessionService().currentSellerId;
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
         if (row.isEmpty || row.length < 9 || row[0] == null) continue;
+        // Solo importar filas del usuario actual
+        if (!_rowBelongsToCurrentSeller(row, _deliveriesSellerColumn)) {
+          continue;
+        }
         try {
-          // Solo importar filas del usuario actual
-          final rowSellerId = int.tryParse(row[7].toString()) ?? 0;
-          if (rowSellerId != sellerId) continue;
           final delivery = DeliveriesCompanion(
             deliveryNumber: Value(int.parse(row[0].toString())),
             date: Value(DateTime.tryParse(row[1].toString()) ?? DateTime.now()),
@@ -895,7 +1014,9 @@ class DatabaseService {
             kilograms: Value(double.tryParse(row[4].toString()) ?? 0.0),
             boxes: Value(int.tryParse(row[5].toString()) ?? 0),
             remaining: Value(double.tryParse(row[6].toString()) ?? 0.0),
-            sellerId: Value(rowSellerId),
+            sellerId: Value(
+              sellerIdOfRow(row, _deliveriesSellerColumn) ?? kLegacySellerId,
+            ),
             total: Value(double.tryParse(row[8].toString()) ?? 0.0),
           );
           await _db!.into(_db!.deliveries).insertOnConflictUpdate(delivery);
@@ -905,13 +1026,9 @@ class DatabaseService {
       }
     } else if (localDeliveries.isNotEmpty) {
       // PUSH: La base de datos local tiene datos, se envían a la remota
-      final updatedData = <List<Object?>>[];
-      if (sheetData.isNotEmpty) {
-        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
-      }
-
+      final localRows = <List<Object?>>[];
       for (var delivery in localDeliveries) {
-        updatedData.add([
+        localRows.add([
           delivery.deliveryNumber,
           delivery.date.toString(),
           delivery.durationSeconds,
@@ -924,10 +1041,14 @@ class DatabaseService {
         ]);
       }
 
-      await googleSheetsService.updateSheetData(
-        spreadsheetId,
-        range,
-        updatedData,
+      await _pushSellerRows(
+        googleSheetsService: googleSheetsService,
+        spreadsheetId: spreadsheetId,
+        range: range,
+        sheetData: sheetData,
+        headerDefaults: _deliveriesHeader,
+        sellerColumnIndex: _deliveriesSellerColumn,
+        localRows: localRows,
       );
     }
   }
@@ -943,14 +1064,13 @@ class DatabaseService {
 
     if (localSales.isEmpty && sheetData.length > 1) {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
-      final sellerId = UserSessionService().currentSellerId;
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
-        if (row.isEmpty || row.length < 9 || row[0] == null) continue;
+        // Las filas legacy traen 8 columnas (sin `seller_id`).
+        if (row.isEmpty || row.length < 8 || row[0] == null) continue;
+        // Solo importar filas del usuario actual
+        if (!_rowBelongsToCurrentSeller(row, _salesSellerColumn)) continue;
         try {
-          // Solo importar filas del usuario actual
-          final rowSellerId = int.tryParse(row[8].toString()) ?? 0;
-          if (rowSellerId != sellerId) continue;
           final sale = SalesCompanion(
             id: Value(int.parse(row[0].toString())),
             date: Value(DateTime.tryParse(row[1].toString()) ?? DateTime.now()),
@@ -960,7 +1080,9 @@ class DatabaseService {
             total: Value(double.parse(row[5].toString())),
             notesId: Value(int.tryParse(row[6].toString())),
             deliveryNumber: Value(int.tryParse(row[7].toString())),
-            sellerId: Value(rowSellerId),
+            sellerId: Value(
+              sellerIdOfRow(row, _salesSellerColumn) ?? kLegacySellerId,
+            ),
           );
           await _db!.into(_db!.sales).insertOnConflictUpdate(sale);
         } catch (e) {
@@ -969,13 +1091,9 @@ class DatabaseService {
       }
     } else if (localSales.isNotEmpty) {
       // PUSH: La base de datos local tiene datos, se envían a la remota
-      final updatedData = <List<Object?>>[];
-      if (sheetData.isNotEmpty) {
-        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
-      }
-
+      final localRows = <List<Object?>>[];
       for (var sale in localSales) {
-        updatedData.add([
+        localRows.add([
           sale.id,
           sale.date.toString(),
           sale.clientId,
@@ -988,10 +1106,14 @@ class DatabaseService {
         ]);
       }
 
-      await googleSheetsService.updateSheetData(
-        spreadsheetId,
-        range,
-        updatedData,
+      await _pushSellerRows(
+        googleSheetsService: googleSheetsService,
+        spreadsheetId: spreadsheetId,
+        range: range,
+        sheetData: sheetData,
+        headerDefaults: _salesHeader,
+        sellerColumnIndex: _salesSellerColumn,
+        localRows: localRows,
       );
     }
   }
@@ -1009,8 +1131,11 @@ class DatabaseService {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
-        // Aceptar filas con al menos 23 columnas (formato antiguo) o 29 (formato nuevo)
+        // Aceptar filas de 23 columnas (antiguo), 29 (sin seller_id) o 30
+        // (actual). Los clientes se identifican por (seller_id, id), así que
+        // las filas de otro vendedor colisionarían con los ids locales.
         if (row.isEmpty || row.length < 23 || row[0] == null) continue;
+        if (!_rowBelongsToCurrentSeller(row, _clientesSellerColumn)) continue;
         try {
           final cliente = ClientesCompanion(
             id: Value(int.parse(row[0].toString())),
@@ -1057,6 +1182,9 @@ class DatabaseService {
             weekdayScore: row.length > 28
                 ? Value(double.tryParse(row[28].toString()) ?? 0.0)
                 : Value.absent(),
+            sellerId: Value(
+              sellerIdOfRow(row, _clientesSellerColumn) ?? kLegacySellerId,
+            ),
           );
           await _db!.into(_db!.clientes).insertOnConflictUpdate(cliente);
         } catch (e) {
@@ -1065,13 +1193,9 @@ class DatabaseService {
       }
     } else if (localClientes.isNotEmpty) {
       // PUSH: La base de datos local tiene datos, se envían a la remota
-      final updatedData = <List<Object?>>[];
-      if (sheetData.isNotEmpty) {
-        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
-      }
-
+      final localRows = <List<Object?>>[];
       for (var cliente in localClientes) {
-        updatedData.add([
+        localRows.add([
           cliente.id,
           cliente.nombre,
           cliente.contacto,
@@ -1102,13 +1226,20 @@ class DatabaseService {
           cliente.diaSemanaPreferido ?? 0,
           cliente.frecuenciasDiaSemana ?? '{}',
           cliente.weekdayScore ?? 0.0,
+          // Columna AD: dueño del cliente (evita colisiones de ids entre
+          // vendedores, porque cada app numera sus clientes desde cero).
+          cliente.sellerId,
         ]);
       }
 
-      await googleSheetsService.updateSheetData(
-        spreadsheetId,
-        range,
-        updatedData,
+      await _pushSellerRows(
+        googleSheetsService: googleSheetsService,
+        spreadsheetId: spreadsheetId,
+        range: range,
+        sheetData: sheetData,
+        headerDefaults: _clientesHeader,
+        sellerColumnIndex: _clientesSellerColumn,
+        localRows: localRows,
       );
     }
   }
@@ -1804,17 +1935,17 @@ class DatabaseService {
 
     if (localGastos.isEmpty && sheetData.length > 1) {
       // PULL: La base de datos local está vacía, pero la remota tiene datos
-      final sellerId = UserSessionService().currentSellerId;
       final dataRows = sheetData.skip(1);
       for (final row in dataRows) {
         if (row.isEmpty || row.length < 6 || row[0] == null) continue;
+        // Solo importar filas del usuario actual
+        if (!_rowBelongsToCurrentSeller(row, _gastosSellerColumn)) continue;
         try {
-          // Solo importar filas del usuario actual
-          final rowSellerId = int.tryParse(row[1].toString()) ?? 0;
-          if (rowSellerId != sellerId) continue;
           final gasto = GastosCompanion(
             id: Value(int.parse(row[0].toString())),
-            sellerId: Value(rowSellerId),
+            sellerId: Value(
+              sellerIdOfRow(row, _gastosSellerColumn) ?? kLegacySellerId,
+            ),
             fecha: Value(DateTime.tryParse(row[2].toString()) ?? DateTime.now()),
             concepto: Value(row[3].toString()),
             monto: Value(double.tryParse(row[4].toString()) ?? 0.0),
@@ -1827,15 +1958,9 @@ class DatabaseService {
       }
     } else if (localGastos.isNotEmpty) {
       // PUSH: La base de datos local tiene datos, se envían a la remota
-      final updatedData = <List<Object?>>[];
-      if (sheetData.isNotEmpty) {
-        updatedData.add(sheetData[0]); // Conservar cabeceras existentes
-      } else {
-        updatedData.add(['id', 'seller_id', 'fecha', 'concepto', 'monto', 'categoria']);
-      }
-
+      final localRows = <List<Object?>>[];
       for (var gasto in localGastos) {
-        updatedData.add([
+        localRows.add([
           gasto.id,
           gasto.sellerId,
           gasto.fecha.toString(),
@@ -1845,10 +1970,14 @@ class DatabaseService {
         ]);
       }
 
-      await googleSheetsService.updateSheetData(
-        spreadsheetId,
-        range,
-        updatedData,
+      await _pushSellerRows(
+        googleSheetsService: googleSheetsService,
+        spreadsheetId: spreadsheetId,
+        range: range,
+        sheetData: sheetData,
+        headerDefaults: _gastosHeader,
+        sellerColumnIndex: _gastosSellerColumn,
+        localRows: localRows,
       );
     }
   }

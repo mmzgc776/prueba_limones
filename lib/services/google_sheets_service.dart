@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:googleapis/sheets/v4.dart';
 import 'package:googleapis_auth/auth_io.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class GoogleSheetsService {
@@ -78,6 +77,27 @@ class GoogleSheetsService {
     } catch (e) {
       print('Error updating data to Google Sheets: $e');
       throw Exception('Failed to update data to Google Sheets: $e');
+    }
+  }
+
+  /// Limpia (vacía) los valores de un rango sin borrar filas ni columnas.
+  /// Se usa para eliminar filas sobrantes cuando un PUSH queda más corto
+  /// que el contenido previo de la hoja.
+  Future<void> clearSheetData(String spreadsheetId, String range) async {
+    if (!_isInitialized || _sheetsApi == null) {
+      throw Exception('Google Sheets API not initialized');
+    }
+
+    try {
+      await _sheetsApi!.spreadsheets.values.clear(
+        ClearValuesRequest(),
+        spreadsheetId,
+        range,
+      );
+      print('Range cleared in Google Sheets: $range');
+    } catch (e) {
+      print('Error clearing data in Google Sheets: $e');
+      throw Exception('Failed to clear data in Google Sheets: $e');
     }
   }
 
