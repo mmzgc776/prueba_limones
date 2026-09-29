@@ -34,6 +34,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
   int _loadGeneration = 0;
   late BuildContext rootContext;
   bool _isResumedDelivery = false;
+  bool _resumeHandled = false;
   late TabController _tabController;
   List<Map<String, dynamic>> _historyData = [];
   bool _isLoadingHistory = false;
@@ -84,6 +85,10 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
   Future<void> _loadData() async {
     final generation = ++_loadGeneration;
     try {
+      // Si la app se cerró con un reparto en curso, recuperarlo (B5).
+      await _controller.restoreSession();
+      if (!mounted || generation != _loadGeneration) return;
+
       // Obtener el número del delivery actual si hay uno activo
       final currentDeliveryNumber = _controller.started
           ? _controller.getCurrentDeliveryNumber()
@@ -101,8 +106,11 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
       });
       await _controller.loadDeliveryRecords();
 
-      // Si se está reanudando un reparto, verificar si necesita cajas
-      if (widget.resumeDeliveryNumber != null) {
+      // Si se está reanudando un reparto, verificar si necesita cajas.
+      // Sólo una vez por página: _loadData se repite tras cada interacción
+      // y reanudar de nuevo repetía el diálogo de cajas (B3).
+      if (widget.resumeDeliveryNumber != null && !_resumeHandled) {
+        _resumeHandled = true;
         final existingDelivery = await _deliveryService.getDeliveryByNumber(
           widget.resumeDeliveryNumber!,
         );
@@ -240,6 +248,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
   void dispose() {
     // Remover el observer del ciclo de vida
     WidgetsBinding.instance.removeObserver(_controller);
+    _controller.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -252,14 +261,9 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
         return AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            return WillPopScope(
-              onWillPop: () async {
-                if (_controller.started && !_controller.paused) {
-                  await _controller.pauseDelivery();
-                }
-                return true;
-              },
-              child: Stack(
+            // Salir de la pantalla no pausa: la sesión sigue corriendo y
+            // persistida hasta que el usuario la pause o la detenga (B6).
+            return Stack(
                 children: [
                   Scaffold(
                     appBar: AppBar(
@@ -366,7 +370,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
                         // Mostrar diálogo para preguntar número de cajas
                         final boxes = await _showBoxesDialog();
                         if (boxes != null) {
-                          _controller.startDelivery(
+                          await _controller.startDelivery(
                             _controller.deliveryRecords.length + 1,
                             boxes: boxes,
                           );
@@ -412,7 +416,6 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
                     ),
                   ),
                 ],
-              ),
             );
           },
         );

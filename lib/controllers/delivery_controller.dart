@@ -1,22 +1,20 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../data/delivery_session.dart';
 import '../data/delivery_state.dart';
 import '../data/database.dart';
 import '../pages/section_delivery/delivery_record.dart';
 import '../services/delivery_service.dart';
 import '../services/user_session_service.dart';
 
-/// Controlador principal para la gestión de repartos
-/// Maneja el estado del delivery, temporizador y estadísticas
+/// Controlador principal para la gestión de repartos.
+///
+/// El tiempo sale de la [DeliverySession] guardada en [DeliveryStateManager]
+/// (`accumulated + (now - runningSince)`); el timer sólo repinta. Cada
+/// transición se persiste en `PersistentDeliveryStates` antes de notificar.
 class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
-  // Estado del delivery
-  bool _started = false;
-  bool _paused = false;
-  int _elapsedSeconds = 0;
-  Timer? _timer;
-  int _initialBoxes = 0; // Número de cajas con las que inicia el reparto
-  DateTime? _backgroundTime; // Tiempo cuando app fue a segundo plano
+  Timer? _ticker;
 
   // Estado de clientes
   List<bool> _clientesContactados = [];
@@ -27,13 +25,16 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
   List<DeliveryRecord> _deliveryRecords = [];
 
   // Servicios
-  final DeliveryService _deliveryService = DeliveryService();
-  final DeliveryStateManager _stateManager = DeliveryStateManager();
+  final DeliveryService _deliveryService;
+  final DeliveryStateManager _stateManager;
+  final DateTime Function() _clock;
+
+  DeliverySession? get _session => _stateManager.session;
 
   // Getters
-  bool get started => _started;
-  bool get paused => _paused;
-  int get elapsedSeconds => _elapsedSeconds;
+  bool get started => _session != null;
+  bool get paused => _session?.isPaused ?? false;
+  int get elapsedSeconds => _session?.elapsed(_clock()).inSeconds ?? 0;
   List<bool> get clientesContactados => _clientesContactados;
   List<String> get clientesEstado => _clientesEstado;
   int? get selectedClienteIndex => _selectedClienteIndex;
@@ -47,236 +48,248 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
   }
 
   String get formattedTime {
-    final hours = (_elapsedSeconds ~/ 3600).toString().padLeft(2, '0');
-    final minutes = ((_elapsedSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
-    final seconds = (_elapsedSeconds % 60).toString().padLeft(2, '0');
+    final elapsed = elapsedSeconds;
+    final hours = (elapsed ~/ 3600).toString().padLeft(2, '0');
+    final minutes = ((elapsed % 3600) ~/ 60).toString().padLeft(2, '0');
+    final seconds = (elapsed % 60).toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds';
   }
 
-  // Constructor
   DeliveryController({
-    bool started = false,
-    bool paused = false,
-    int elapsedSeconds = 0,
-    List<bool> clientesContactados = const [],
-    int? selectedClienteIndex,
-  }) {
-    _loadInitialState(
-      started,
-      paused,
-      elapsedSeconds,
-      clientesContactados,
-      selectedClienteIndex,
-    );
+    DeliveryService? deliveryService,
+    DeliveryStateManager? stateManager,
+    DateTime Function()? clock,
+  }) : _deliveryService = deliveryService ?? DeliveryService(),
+       _stateManager = stateManager ?? DeliveryStateManager(),
+       _clock = clock ?? DateTime.now {
+    if (_stateManager.isDeliveryActive) {
+      _clientesContactados = List<bool>.from(_stateManager.clientesContactados);
+      _clientesEstado = List<String>.from(_stateManager.clientesEstado);
+      _selectedClienteIndex = _stateManager.selectedClienteIndex;
+    }
+    _syncTicker();
   }
 
-  /// Carga el estado inicial desde el DeliveryStateManager
-  void _loadInitialState(
-    bool started,
-    bool paused,
-    int elapsedSeconds,
-    List<bool> clientesContactados,
-    int? selectedClienteIndex,
-  ) {
-    _started = _stateManager.isDeliveryActive
-        ? _stateManager.isDeliveryActive
-        : started;
-    _paused = _stateManager.isDeliveryActive
-        ? _stateManager.isDeliveryPaused
-        : paused;
-    _elapsedSeconds = _stateManager.isDeliveryActive
-        ? _stateManager.elapsedSeconds
-        : elapsedSeconds;
-
-    _clientesContactados =
-        _stateManager.isDeliveryActive &&
-            _stateManager.clientesContactados.isNotEmpty
-        ? List<bool>.from(_stateManager.clientesContactados)
-        : List<bool>.from(clientesContactados);
-
-    _clientesEstado =
-        _stateManager.isDeliveryActive &&
-            _stateManager.clientesEstado.isNotEmpty
-        ? List<String>.from(_stateManager.clientesEstado)
-        : [];
-
-    _selectedClienteIndex = _stateManager.isDeliveryActive
-        ? _stateManager.selectedClienteIndex
-        : selectedClienteIndex;
-
-    if (_started && !_paused) {
-      _startTimer();
+  /// El timer sólo repinta; nunca suma tiempo.
+  void _syncTicker() {
+    if (started && !paused) {
+      _ticker ??= Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => notifyListeners(),
+      );
+    } else {
+      _stopTicker();
     }
   }
 
-  /// Inicia el temporizador del delivery
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _elapsedSeconds++;
-      _stateManager.updateElapsedSeconds(_elapsedSeconds);
-      notifyListeners();
-    });
+  void _stopTicker() {
+    _ticker?.cancel();
+    _ticker = null;
   }
 
-  /// Detiene el temporizador
-  void _stopTimer() {
-    _timer?.cancel();
-    _timer = null;
+  Future<void> _persistSession() async {
+    final session = _session;
+    try {
+      if (session == null) {
+        await _deliveryService.clearPersistentDeliveryState();
+      } else {
+        await _deliveryService.savePersistentDeliveryState(
+          session.toPersistentState(),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error guardando la sesión de reparto: $e');
+    }
   }
 
-  /// Inicia un nuevo delivery
-  void startDelivery(int deliveryNumber, {int boxes = 0}) {
-    _started = true;
-    _paused = false;
-    _elapsedSeconds = 0;
-    _initialBoxes = boxes;
+  /// Recupera la sesión guardada si la memoria está vacía (la app se cerró o
+  /// el SO la mató) o si pertenece a otro vendedor.
+  Future<void> restoreSession() async {
+    final sellerId = UserSessionService().currentSellerId;
+    if (_session != null && _stateManager.sessionSellerId == sellerId) return;
 
-    _stateManager.startDelivery(deliveryNumber, boxes: boxes);
+    final saved = await _deliveryService.loadPersistentDeliveryState();
+    final restored = saved == null
+        ? null
+        : DeliverySession.fromPersistentState(saved);
+    if (restored != null) {
+      _stateManager.startSession(restored, sellerId: sellerId);
+      debugPrint(
+        'Sesión de reparto #${restored.deliveryNumber} restaurada: '
+        '${restored.elapsed(_clock()).inSeconds} s',
+      );
+    } else if (_session != null) {
+      _stateManager.endDelivery();
+    }
+    _syncTicker();
+    notifyListeners();
+  }
+
+  void _pushClientStateToManager() {
     _stateManager.updateClientesContactados(_clientesContactados);
     _stateManager.updateClientesEstado(_clientesEstado);
     _stateManager.updateSelectedClienteIndex(_selectedClienteIndex);
+  }
 
-    _startTimer();
+  /// Inicia un nuevo delivery
+  Future<void> startDelivery(int deliveryNumber, {int boxes = 0}) async {
+    _stateManager.startSession(
+      DeliverySession.start(deliveryNumber, now: _clock(), boxes: boxes),
+      sellerId: UserSessionService().currentSellerId,
+    );
+    _pushClientStateToManager();
+    await _persistSession();
+    _syncTicker();
     notifyListeners();
   }
 
   /// Reanuda un delivery específico
   /// Si se proporciona [boxesOverride], se usa ese valor en lugar del de la BD
-  Future<void> resumeSpecificDelivery(int deliveryNumber, {int? boxesOverride}) async {
-    // Load accumulated time from database if delivery already exists
+  Future<void> resumeSpecificDelivery(
+    int deliveryNumber, {
+    int? boxesOverride,
+  }) async {
+    final current = _session;
+    if (current != null && current.deliveryNumber == deliveryNumber) {
+      // Ya es el reparto en curso: su tiempo está en la sesión, no en la BD.
+      var updated = current.resume(_clock());
+      if (boxesOverride != null) updated = updated.withBoxes(boxesOverride);
+      if (updated != current) {
+        _stateManager.session = updated;
+        await _persistSession();
+      }
+      _syncTicker();
+      notifyListeners();
+      return;
+    }
+
+    if (current != null) {
+      // Cerrar el tramo del reparto en curso antes de reemplazarlo, para no
+      // perder su tiempo (B11; falta preguntar al usuario).
+      await pauseDelivery();
+    }
+
+    var accumulated = Duration.zero;
+    var boxes = boxesOverride ?? 0;
     try {
       final existingDelivery = await _deliveryService.getDeliveryByNumber(
         deliveryNumber,
       );
       if (existingDelivery != null) {
-        _elapsedSeconds = existingDelivery.durationSeconds;
-        // Si se proporciona boxesOverride, usarlo; sino usar el de la BD
-        _initialBoxes = boxesOverride ?? existingDelivery.boxes;
-        debugPrint(
-          'Resuming delivery #$deliveryNumber with accumulated time: $_elapsedSeconds seconds, boxes: $_initialBoxes${boxesOverride != null ? ' (override)' : ''}',
-        );
-      } else {
-        _elapsedSeconds = 0;
-        _initialBoxes = boxesOverride ?? 0;
-        debugPrint('Starting new delivery #$deliveryNumber from 0 seconds');
+        accumulated = Duration(seconds: existingDelivery.durationSeconds);
+        boxes = boxesOverride ?? existingDelivery.boxes;
       }
     } catch (e) {
       debugPrint('Error loading delivery time: $e');
-      _elapsedSeconds = 0;
-      _initialBoxes = boxesOverride ?? 0;
     }
+    debugPrint(
+      'Resuming delivery #$deliveryNumber with accumulated time: '
+      '${accumulated.inSeconds} seconds, boxes: $boxes',
+    );
 
-    _started = true;
-    _paused = false;
-
-    _stateManager.startDelivery(deliveryNumber, boxes: _initialBoxes);
-    _stateManager.updateElapsedSeconds(_elapsedSeconds);
-    _stateManager.updateClientesContactados(_clientesContactados);
-    _stateManager.updateClientesEstado(_clientesEstado);
-    _stateManager.updateSelectedClienteIndex(_selectedClienteIndex);
-
-    _startTimer();
+    _stateManager.startSession(
+      DeliverySession.start(
+        deliveryNumber,
+        now: _clock(),
+        accumulated: accumulated,
+        boxes: boxes,
+      ),
+      sellerId: UserSessionService().currentSellerId,
+    );
+    _pushClientStateToManager();
+    await _persistSession();
+    _syncTicker();
     notifyListeners();
   }
 
   /// Pausa el delivery actual
   Future<void> pauseDelivery() async {
-    _paused = true;
-    _stateManager.pauseDelivery();
-    _stateManager.updateElapsedSeconds(_elapsedSeconds);
-    _stopTimer();
+    final current = _session;
+    if (current == null) return;
+    final pausedSession = current.pause(_clock());
+    _stateManager.session = pausedSession;
+    _syncTicker();
+    await _persistSession();
 
-    // Save current time to database when pausing
-    final deliveryNumber = _stateManager.getCurrentDeliveryNumber();
-    if (deliveryNumber != null) {
-      try {
-        await _saveCurrentDeliveryTime(deliveryNumber);
-        debugPrint(
-          'Saved delivery #$deliveryNumber time on pause: $_elapsedSeconds seconds',
-        );
-      } catch (e) {
-        debugPrint('Error saving delivery time on pause: $e');
-      }
+    try {
+      await _saveCurrentDeliveryTime(pausedSession);
+      debugPrint(
+        'Saved delivery #${pausedSession.deliveryNumber} time on pause: '
+        '${pausedSession.accumulated.inSeconds} seconds',
+      );
+    } catch (e) {
+      debugPrint('Error saving delivery time on pause: $e');
     }
 
     notifyListeners();
   }
 
-  /// Guarda el tiempo actual del delivery en la base de datos
-  Future<void> _saveCurrentDeliveryTime(int deliveryNumber) async {
-    // Check if delivery already exists in database
+  /// Guarda el tiempo de la sesión en la fila de `Deliveries`
+  Future<void> _saveCurrentDeliveryTime(DeliverySession session) async {
+    final deliveryNumber = session.deliveryNumber;
     final existingDelivery = await _deliveryService.getDeliveryByNumber(
       deliveryNumber,
     );
-
-    if (existingDelivery != null) {
-      // Update existing delivery with current time
-      final stats = await _calculateDeliveryStats(deliveryNumber);
-      final record = DeliveryRecord(
-        deliveryNumber: deliveryNumber,
-        date: existingDelivery.date,
-        duration: Duration(seconds: _elapsedSeconds),
-        avgPrice: stats.avgPricePerKilo,
-        kilograms: stats.totalKilograms,
-        boxes: _initialBoxes > 0 ? _initialBoxes : existingDelivery.boxes,
-        remaining: existingDelivery.remaining,
-        sellerId: UserSessionService().currentSellerId,
-        total: stats.totalAmount,
-      );
-      await _deliveryService.saveDeliveryToDatabase(record);
-    } else {
-      // Create new delivery entry with current time
-      final stats = await _calculateDeliveryStats(deliveryNumber);
-      final record = DeliveryRecord(
-        deliveryNumber: deliveryNumber,
-        date: DateTime.now(),
-        duration: Duration(seconds: _elapsedSeconds),
-        avgPrice: stats.avgPricePerKilo,
-        kilograms: stats.totalKilograms,
-        boxes: _initialBoxes,
-        remaining: 0.0,
-        sellerId: UserSessionService().currentSellerId,
-        total: stats.totalAmount,
-      );
-      await _deliveryService.saveDeliveryToDatabase(record);
-    }
+    final stats = await _calculateDeliveryStats(deliveryNumber);
+    final record = DeliveryRecord(
+      deliveryNumber: deliveryNumber,
+      date: existingDelivery?.date ?? _clock(),
+      duration: session.elapsed(_clock()),
+      avgPrice: stats.avgPricePerKilo,
+      kilograms: stats.totalKilograms,
+      boxes: existingDelivery != null && session.boxes <= 0
+          ? existingDelivery.boxes
+          : session.boxes,
+      remaining: existingDelivery?.remaining ?? 0.0,
+      sellerId: UserSessionService().currentSellerId,
+      total: stats.totalAmount,
+    );
+    await _deliveryService.saveDeliveryToDatabase(record);
   }
 
   /// Reanuda el delivery pausado
-  void resumeDelivery() {
-    _paused = false;
-    _stateManager.resumeDelivery();
-    _stateManager.updateElapsedSeconds(_elapsedSeconds);
-    _startTimer();
+  Future<void> resumeDelivery() async {
+    final current = _session;
+    if (current == null || !current.isPaused) return;
+    _stateManager.session = current.resume(_clock());
+    await _persistSession();
+    _syncTicker();
     notifyListeners();
   }
 
   /// Finaliza el delivery actual y guarda los resultados
   Future<void> endDelivery(List<Cliente> clientes) async {
+    final session = _session;
+    final deliveryNumber =
+        session?.deliveryNumber ?? (_deliveryRecords.length + 1);
+    final duration = session?.elapsed(_clock()) ?? Duration.zero;
+    final boxes = session?.boxes ?? 0;
     try {
-      final deliveryNumber =
-          _stateManager.getCurrentDeliveryNumber() ??
-          (_deliveryRecords.length + 1);
       final stats = await _calculateDeliveryStats(deliveryNumber);
 
       final record = DeliveryRecord(
         deliveryNumber: deliveryNumber,
-        date: DateTime.now(),
-        duration: Duration(seconds: _elapsedSeconds),
+        date: _clock(),
+        duration: duration,
         avgPrice: stats.avgPricePerKilo,
         kilograms: stats.totalKilograms,
-        boxes: _initialBoxes,
+        boxes: boxes,
         remaining: 0.0,
         sellerId: UserSessionService().currentSellerId,
         total: stats.totalAmount,
       );
 
       await _saveDeliveryRecord(record, clientes);
-      await _clearPersistentState(); // Limpiar estado persistente
       _resetDeliveryState(clientes);
+      await _persistSession(); // Sin sesión: limpia el estado persistente
     } catch (e) {
       debugPrint('Error al finalizar delivery: $e');
-      await _saveEmptyDeliveryRecord(clientes);
+      await _saveEmptyDeliveryRecord(
+        clientes,
+        deliveryNumber: deliveryNumber,
+        duration: duration,
+        boxes: boxes,
+      );
     }
   }
 
@@ -319,18 +332,19 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
   }
 
   /// Guarda un registro vacío en caso de error
-  Future<void> _saveEmptyDeliveryRecord(List<Cliente> clientes) async {
-    final deliveryNumber =
-        _stateManager.getCurrentDeliveryNumber() ??
-        (_deliveryRecords.length + 1);
-
+  Future<void> _saveEmptyDeliveryRecord(
+    List<Cliente> clientes, {
+    required int deliveryNumber,
+    required Duration duration,
+    required int boxes,
+  }) async {
     final record = DeliveryRecord(
       deliveryNumber: deliveryNumber,
-      date: DateTime.now(),
-      duration: Duration(seconds: _elapsedSeconds),
+      date: _clock(),
+      duration: duration,
       avgPrice: 0.0,
       kilograms: 0.0,
-      boxes: _initialBoxes,
+      boxes: boxes,
       remaining: 0.0,
       sellerId: UserSessionService().currentSellerId,
       total: 0.0,
@@ -341,16 +355,12 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
 
   /// Resetea el estado del delivery
   void _resetDeliveryState(List<Cliente> clientes) {
-    _started = false;
-    _paused = false;
-    _elapsedSeconds = 0;
-    _initialBoxes = 0;
     _clientesContactados = List.generate(clientes.length, (_) => false);
     _clientesEstado = List.generate(clientes.length, (_) => '');
     _selectedClienteIndex = null;
 
     _stateManager.endDelivery();
-    _stopTimer();
+    _stopTicker();
     notifyListeners();
   }
 
@@ -477,99 +487,23 @@ class DeliveryController with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  /// Maneja cambios en el ciclo de vida de la aplicación
+  /// Maneja cambios en el ciclo de vida de la aplicación. No suma tiempo: la
+  /// sesión ya sabe desde cuándo corre, aunque el SO mate el proceso.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused && _started && !_paused) {
-      // App va a segundo plano mientras delivery está activo
-      // Guardar el tiempo actual para calcular tiempo en background
-      _backgroundTime = DateTime.now();
-      debugPrint('App paused - background time recorded: $_backgroundTime');
-      _savePersistentState();
-    } else if (state == AppLifecycleState.resumed && _backgroundTime != null) {
-      // App vuelve a primer plano - calcular tiempo transcurrido en background
-      final foregroundTime = DateTime.now();
-      final backgroundDuration = foregroundTime.difference(_backgroundTime!);
-      _elapsedSeconds += backgroundDuration.inSeconds;
-      _backgroundTime = null;
-
-      debugPrint(
-        'App resumed - added ${backgroundDuration.inSeconds} seconds from background',
-      );
-      debugPrint('Total elapsed: $_elapsedSeconds seconds');
-
-      _savePersistentState();
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _stopTicker();
+      if (started) _persistSession();
+    } else if (state == AppLifecycleState.resumed) {
+      _syncTicker();
       notifyListeners();
-    }
-  }
-
-  /// Guarda el estado persistente del delivery
-  Future<void> _savePersistentState() async {
-    if (!_started) return;
-
-    final state = DeliveryPersistentState(
-      startTime: DateTime.now().subtract(Duration(seconds: _elapsedSeconds)),
-      isPaused: _paused,
-      elapsedSeconds: _elapsedSeconds,
-      isActive: _started,
-      deliveryNumber: _stateManager.getCurrentDeliveryNumber(),
-      initialBoxes: _initialBoxes,
-    );
-
-    try {
-      await _deliveryService.savePersistentDeliveryState(state);
-      debugPrint('Estado persistente guardado: $_elapsedSeconds segundos, $_initialBoxes cajas');
-    } catch (e) {
-      debugPrint('Error guardando estado persistente: $e');
-    }
-  }
-
-  /// Carga el estado persistente del delivery
-  Future<void> _loadPersistentState() async {
-    try {
-      final savedState = await _deliveryService.loadPersistentDeliveryState();
-      if (savedState != null && savedState.isActive) {
-        if (savedState.isPaused) {
-          // Si estaba pausado, mantener el tiempo guardado
-          _elapsedSeconds = savedState.elapsedSeconds;
-          debugPrint('Estado cargado: pausado con $_elapsedSeconds segundos');
-        } else {
-          // Si estaba activo, calcular tiempo transcurrido desde el inicio
-          final currentTime = DateTime.now();
-          final timeDiff = currentTime.difference(savedState.startTime!);
-          _elapsedSeconds = timeDiff.inSeconds;
-          debugPrint(
-            'Estado cargado: activo con $_elapsedSeconds segundos calculados',
-          );
-
-          // Reiniciar timer si no está pausado
-          _startTimer();
-        }
-
-        _started = savedState.isActive;
-        _paused = savedState.isPaused;
-        _initialBoxes = savedState.initialBoxes;
-
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error cargando estado persistente: $e');
-    }
-  }
-
-  /// Limpia el estado persistente del delivery
-  Future<void> _clearPersistentState() async {
-    try {
-      await _deliveryService.clearPersistentDeliveryState();
-      debugPrint('Estado persistente limpiado');
-    } catch (e) {
-      debugPrint('Error limpiando estado persistente: $e');
     }
   }
 
   @override
   void dispose() {
-    _stopTimer();
+    _stopTicker();
     super.dispose();
   }
 }

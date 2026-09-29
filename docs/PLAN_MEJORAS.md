@@ -10,10 +10,10 @@
 
 | Área | Pendiente | Parcial | Resuelto |
 |---|---|---|---|
-| §1 Reparto activo (B1-B12) | 12 | 0 | 0 |
+| §1 Reparto activo (B1-B12) | 4 | 2 (B6, B11) | 6 |
 | §2 Datos, validación y estabilidad (D, V, E, N1-N7) | 27 | 1 (V6) | 0 |
-| §4 Refactor (fases 0-5) | 5 | 0 | 1 (fase 5: docs) |
-| §5 Mejoras de experiencia (#1-#13) | 13 | 0 | 0 |
+| §4 Refactor (fases 0-5) | 4 | 1 (fase 1) | 1 (fase 5: docs) |
+| §5 Mejoras de experiencia (#1-#13) | 12 | 1 (#1) | 0 |
 
 Resuelto antes de esta revisión y por eso fuera de las tablas: la interacción al vender desde el FAB `$` (ticket archivado en `archive/tickets/`) y la heurística de selección (`SELECCION_CLIENTES.md`).
 
@@ -32,6 +32,8 @@ Resuelto antes de esta revisión y por eso fuera de las tablas: la interacción 
 
 ## 1. Bugs del reparto activo (estado y tiempo). Prioridad máxima
 
+> *Actualización 2026-09-29:* el tiempo ya sale de `DeliverySession` (ver "Corrección recomendada"). La descripción de abajo es el diagnóstico original.
+
 Hoy el estado vive en **tres lugares** que se desincronizan:
 
 1. `DeliveryController` (uno por cada página abierta).
@@ -42,20 +44,22 @@ El reloj es un contador `_elapsedSeconds++` en un `Timer.periodic`. Casi todos l
 
 | # | Bug | Dónde | Escenario que lo reproduce | Severidad | Estado |
 |---|---|---|---|---|---|
-| B1 | **Timers duplicados: el cronómetro acelera** | `delivery_controller.dart:113` (`_startTimer` no cancela el anterior) + `section_delivery_page.dart:114-124` | Reanudar un reparto desde *Detalle de reparto*, registrar una interacción "Rechazó" o "Pendiente". `_loadData()` vuelve a llamar a `resumeSpecificDelivery()`, que arranca **otro** `Timer.periodic`. Tras N interacciones el reloj corre a N+1 segundos por segundo. | **Crítica** | ⬜ |
-| B2 | **El tiempo retrocede al registrar interacciones en un reparto reanudado** | `delivery_controller.dart:145-165` | En ese mismo `resumeSpecificDelivery`, `_elapsedSeconds` se recarga desde `deliveries.durationSeconds`, que sólo se guarda al **pausar**. Cada interacción regresa el reloj al último valor pausado. (*Corrección 2026-09-29:* no se pierde `clientesContactados`; el controller vuelve a empujar sus listas en `delivery_controller.dart:174-176`.) | **Crítica** | ⬜ |
-| B3 | **Diálogo de cajas repetido** | `section_delivery_page.dart:108-121` | Reparto reanudado con 0 cajas: el diálogo "¿Con cuántas cajas…?" vuelve a salir tras cada interacción, porque el override no se persiste hasta la pausa. | Alta | ⬜ |
-| B4 | **Tiempo en segundo plano contado doble** | `delivery_controller.dart:482-503` | En `paused` se anota `_backgroundTime`, pero el `Timer.periodic` sigue corriendo mientras el proceso vive (lo normal en Android durante minutos). En `resumed` se suma además `now - _backgroundTime`. Si el usuario cambia a WhatsApp 10 min, el reparto registra ~20 min. | **Crítica** | ⬜ |
-| B5 | **El reparto se pierde si el SO mata la app** | `_loadPersistentState()` (`delivery_controller.dart:528`) **nunca se llama** | Se guarda estado en `PersistentDeliveryStates` pero jamás se restaura. Si Android mata la app o el usuario la cierra, el singleton vuelve a vacío: la app "olvida" que había un reparto y el siguiente *Iniciar* crea otro número. | **Crítica** | ⬜ |
-| B6 | **Salir de la pantalla pausa el reparto** | `section_delivery_page.dart:254-259` (`onWillPop` → `pauseDelivery`) | Volver a Home para registrar un gasto o consultar una nota detiene el cronómetro sin avisar. El "tiempo activo" subreporta. Además, `fabs.dart:50,72` y `clientes_list.dart:69,106` **reanudan** en silencio al tocar un cliente o el `$`. El usuario no controla el estado. | Alta | ⬜ |
-| B7 | **El controller nunca se hace `dispose()`** | `section_delivery_page.dart:240-245` | Se quita el observer pero no se llama `_controller.dispose()`. Cualquier timer vivo (B1) sigue ejecutándose y escribiendo en el singleton después de cerrar la página. | Media | ⬜ |
+| B1 | **Timers duplicados: el cronómetro acelera** | `delivery_controller.dart:113` (`_startTimer` no cancela el anterior) + `section_delivery_page.dart:114-124` | Reanudar un reparto desde *Detalle de reparto*, registrar una interacción "Rechazó" o "Pendiente". `_loadData()` vuelve a llamar a `resumeSpecificDelivery()`, que arranca **otro** `Timer.periodic`. Tras N interacciones el reloj corre a N+1 segundos por segundo. | **Crítica** | ✅ 2026-09-29 |
+| B2 | **El tiempo retrocede al registrar interacciones en un reparto reanudado** | `delivery_controller.dart:145-165` | En ese mismo `resumeSpecificDelivery`, `_elapsedSeconds` se recarga desde `deliveries.durationSeconds`, que sólo se guarda al **pausar**. Cada interacción regresa el reloj al último valor pausado. (*Corrección 2026-09-29:* no se pierde `clientesContactados`; el controller vuelve a empujar sus listas en `delivery_controller.dart:174-176`.) | **Crítica** | ✅ 2026-09-29 |
+| B3 | **Diálogo de cajas repetido** | `section_delivery_page.dart:108-121` | Reparto reanudado con 0 cajas: el diálogo "¿Con cuántas cajas…?" vuelve a salir tras cada interacción, porque el override no se persiste hasta la pausa. | Alta | ✅ 2026-09-29 (se reanuda una vez por página) |
+| B4 | **Tiempo en segundo plano contado doble** | `delivery_controller.dart:482-503` | En `paused` se anota `_backgroundTime`, pero el `Timer.periodic` sigue corriendo mientras el proceso vive (lo normal en Android durante minutos). En `resumed` se suma además `now - _backgroundTime`. Si el usuario cambia a WhatsApp 10 min, el reparto registra ~20 min. | **Crítica** | ✅ 2026-09-29 |
+| B5 | **El reparto se pierde si el SO mata la app** | `_loadPersistentState()` (`delivery_controller.dart:528`) **nunca se llama** | Se guarda estado en `PersistentDeliveryStates` pero jamás se restaura. Si Android mata la app o el usuario la cierra, el singleton vuelve a vacío: la app "olvida" que había un reparto y el siguiente *Iniciar* crea otro número. | **Crítica** | ✅ 2026-09-29 |
+| B6 | **Salir de la pantalla pausa el reparto** | `section_delivery_page.dart:254-259` (`onWillPop` → `pauseDelivery`) | Volver a Home para registrar un gasto o consultar una nota detiene el cronómetro sin avisar. El "tiempo activo" subreporta. Además, `fabs.dart:50,72` y `clientes_list.dart:69,106` **reanudan** en silencio al tocar un cliente o el `$`. El usuario no controla el estado. | Alta | 🟡 2026-09-29: salir ya no pausa; falta decidir qué hacer con las reanudaciones silenciosas |
+| B7 | **El controller nunca se hace `dispose()`** | `section_delivery_page.dart:240-245` | Se quita el observer pero no se llama `_controller.dispose()`. Cualquier timer vivo (B1) sigue ejecutándose y escribiendo en el singleton después de cerrar la página. | Media | ✅ 2026-09-29 |
 | B8 | **Número de reparto = `count + 1`** | `section_delivery_page.dart:368-369`, `delivery_controller.dart:45` | a) `getAllDeliveries()` filtra por vendedor, pero `deliveryNumber` es **PK global** (`database.dart:33`). El vendedor 2, con 3 repartos, inicia el #4, que ya existe del vendedor 1, y `insertDelivery` lanza UNIQUE. b) Si hay huecos (repartos borrados o sincronizados con saltos), `count+1` reutiliza un número existente y **fusiona** ventas de dos repartos. | **Crítica** (multi-vendedor) | ⬜ |
 | B9 | **Si falla el cierre, el reparto queda zombie** | `delivery_controller.dart:255-281` | Si `_saveDeliveryRecord` lanza (p. ej. por B8), el `catch` llama a `_saveEmptyDeliveryRecord`, que vuelve a lanzar la misma excepción. Nunca se ejecuta `_resetDeliveryState`, la UI sigue en "reparto activo" y no hay mensaje al usuario. | Alta | ⬜ |
 | B10 | **Cerrar un reparto reanudado sobrescribe datos históricos** | `delivery_controller.dart:264-269` | `endDelivery` guarda `date: DateTime.now()` y `remaining: 0.0`. Reanudar el reparto del lunes para añadir 5 min lo mueve al jueves y borra las cajas restantes. | Alta | ⬜ |
-| B11 | **Reanudar un reparto viejo pisa el reparto activo** | `delivery_detail_view.dart:76-84` → `resumeSpecificDelivery` | Con el #7 activo, abrir el detalle del #5 y pulsar ▶ hace que `_stateManager.startDelivery(5)` reemplace el #7 sin preguntar. El tiempo del #7 desde la última pausa se pierde. | Alta | ⬜ |
+| B11 | **Reanudar un reparto viejo pisa el reparto activo** | `delivery_detail_view.dart:76-84` → `resumeSpecificDelivery` | Con el #7 activo, abrir el detalle del #5 y pulsar ▶ hace que `_stateManager.startDelivery(5)` reemplace el #7 sin preguntar. El tiempo del #7 desde la última pausa se pierde. | Alta | 🟡 2026-09-29: el #7 se pausa y guarda su tiempo antes de cambiar; falta la confirmación |
 | B12 | **La pantalla de "Progreso" no se refresca** | `delivery_progress_view.dart:29-79` | Sólo carga en `initState`. Con `TabBarView`, las ventas nuevas no aparecen hasta reconstruir la vista. También hace N+1 consultas (`getClienteById` en bucle). | Media | ⬜ |
 
 ### Corrección recomendada (una sola, que cubre B1-B7 y B11)
+
+> *Implementado 2026-09-29 (parcial):* `lib/data/delivery_session.dart` + `DeliveryController` sobre la sesión, persistida en cada transición y restaurada en `main()` y en la página (tests en `test/delivery_session_test.dart`). Sin migración: se reutilizan las columnas de `PersistentDeliveryStates`. **Pendiente:** controller único de ámbito de app (sigue uno por página sobre el singleton), la confirmación de B11 y el número de reparto (B8).
 
 Reemplazar el contador por un **modelo de sesión basado en marcas de tiempo**, persistido en cada transición:
 
@@ -167,7 +171,7 @@ Zonas de pulgar (mano derecha, teléfono de 6"): **verde** el tercio inferior ce
 | Fase | Qué | Ventaja | Riesgo | Estado |
 |---|---|---|---|---|
 | 0 | Arreglar `widget_test`, añadir tests de `DeliverySession` con reloj inyectable y un test de migraciones | Red de seguridad antes de mover nada | Bajo | ⬜ |
-| 1 | `DeliverySession` + `DeliverySessionRepository` + un único `DeliveryController` global (con `ChangeNotifierProvider` o `ValueNotifier` en `main`). Eliminar `DeliveryStateManager`. | Resuelve el 80 % de los bugs críticos | Medio: toca la pantalla más usada | ⬜ |
+| 1 | `DeliverySession` + `DeliverySessionRepository` + un único `DeliveryController` global (con `ChangeNotifierProvider` o `ValueNotifier` en `main`). Eliminar `DeliveryStateManager`. | Resuelve el 80 % de los bugs críticos | Medio: toca la pantalla más usada | 🟡 2026-09-29: `DeliverySession` hecha; falta controller global y quitar el singleton |
 | 2 | Partir `DatabaseService` en `SalesRepository`, `DeliveriesRepository`, `ClientsRepository`, `NotesRepository`, `ExpensesRepository` y un `SheetsSync` por entidad, con el filtro `sellerId` **obligatorio en el constructor** del repositorio | Elimina los `deleteAll*` globales por diseño y facilita tests | Medio: mucho código mecánico | ⬜ |
 | 3 | Unificar `ClienteForm(mode: create/edit)` y `VentaForm(initial: Sale?)`, y sacar el cálculo de precio y total a un `SaleDraft` puro | -1000 líneas y fin de la divergencia | Bajo-medio | ⬜ |
 | 4 | Borrar código muerto, mover lo de debug detrás de un "modo desarrollador" (7 toques en la versión, como Android) y pasar a `colorScheme` | Menos superficie y dark mode real | Bajo | ⬜ |
@@ -181,7 +185,7 @@ Zonas de pulgar (mano derecha, teléfono de 6"): **verde** el tercio inferior ce
 
 > Impacto = (frecuencia de uso × dolor actual × riesgo de perder datos). El esfuerzo va aparte (S/M/L). ➕ ventaja · ➖ desventaja. El estado va al final de cada título.
 
-### 1. Reparto confiable: cronómetro por marcas de tiempo y sesión persistida (M) · ⬜
+### 1. Reparto confiable: cronómetro por marcas de tiempo y sesión persistida (M) · 🟡 (cronómetro y persistencia hechos 2026-09-29; faltan B8, B10, B11)
 El reparto sobrevive a cerrar la app, a cambiar a WhatsApp y a Android matando el proceso. El tiempo es exacto, reanudar nunca pisa otro reparto y cerrar nunca cambia la fecha original (§1).
 - ➕ Arregla la función central de la app y hace fiable el dato de "duración" para análisis.
 - ➕ Con un reloj inyectable se vuelve testeable.

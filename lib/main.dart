@@ -10,6 +10,7 @@ import 'pages/logs_page.dart';
 import 'pages/edit_sale_page.dart';
 import 'pages/user_selection_page.dart';
 import 'pages/gastos_page.dart';
+import 'controllers/delivery_controller.dart';
 import 'data/delivery_state.dart';
 import 'widgets/notes_overview_widget.dart';
 import 'services/sniim_scraper_service.dart';
@@ -40,6 +41,12 @@ void main() async {
   await _loadThemePreference();
   // Cargar la sesión del usuario/repartidor
   await UserSessionService().loadSession();
+  // Recuperar un reparto en curso si el SO mató la app (B5)
+  if (UserSessionService().hasSession) {
+    final deliveryController = DeliveryController();
+    await deliveryController.restoreSession();
+    deliveryController.dispose();
+  }
   appLog('Application started');
   runApp(const MyApp());
 }
@@ -322,6 +329,9 @@ class _MyHomePageState extends State<MyHomePage> {
               onSelected: (value) async {
                 if (value == 'change_user') {
                   await UserSessionService().clearSession();
+                  // Sólo se vacía la memoria; la sesión sigue guardada por
+                  // vendedor y se recupera al volver a entrar.
+                  DeliveryStateManager().endDelivery();
                   if (context.mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(

@@ -28,11 +28,12 @@ App móvil para vendedores ambulantes de limones ("Limones el Patito"). Cada ven
 lib/
   main.dart                  MaterialApp, rutas, Home (MyHomePage): precio sugerido, notas, accesos
   controllers/
-    delivery_controller.dart Cronómetro y ciclo de vida del reparto (uno por página)
+    delivery_controller.dart Transiciones del reparto sobre DeliverySession (uno por página)
   data/
     database.dart            Tablas Drift, migraciones, transacciones (p. ej. insertSaleWithInteraction)
     database.g.dart          Generado por build_runner. NO editar
-    delivery_state.dart      Singleton DeliveryStateManager (estado del reparto en memoria)
+    delivery_session.dart    DeliverySession: tiempo del reparto por marcas de tiempo (puro, testeado)
+    delivery_state.dart      Singleton DeliveryStateManager (sesión en memoria + marcas de clientes)
   services/
     database_service.dart    CRUD + sync push/pull por entidad + snapshot de recomendaciones (~2100 líneas)
     sync_service.dart        Orquestador: SyncType, rangos de hojas, recálculo de métricas
@@ -71,7 +72,7 @@ lib/
 | `Notas` | `id` | Texto y color; `clientId` obligatorio y `ventaId` opcional | default 1 |
 | `Usuarios` | `id` | Vendedores: nombre, ciudad y activo | — |
 | `Gastos` | `id` | Fecha, concepto, monto y categoría | obligatorio |
-| `PersistentDeliveryStates` | `id` = `current_{sellerId}` | Estado del reparto en curso. Se escribe pero **nunca se lee** (B5) | implícito en el id |
+| `PersistentDeliveryStates` | `id` = `current_{sellerId}` | `DeliverySession` del reparto en curso: `startTime` = inicio del tramo corriendo (null si pausado), `elapsedSeconds` = tramos cerrados, `boxes`. Se escribe en cada transición y se lee al arrancar y al abrir el reparto | implícito en el id |
 
 - **Migraciones:** bloques `if (from == N)` para N = 11…18 en `database.dart`. Están mal encadenados: saltar versiones pierde migraciones (D1).
 - **Tras modificar `database.dart`:** incrementar `schemaVersion`, agregar la migración y correr `dart run build_runner build`.
@@ -118,15 +119,15 @@ lib/
 
 ## Reparto activo
 
-El estado del reparto vive en **tres lugares** que se desincronizan. Es la causa de B1-B11 (`PLAN_MEJORAS.md` §1):
+El tiempo sale de una `DeliverySession` inmutable (`lib/data/delivery_session.dart`): `elapsed(now) = accumulated + (now - runningSince)`, con `runningSince = null` si está pausada. Nada suma segundos (`PLAN_MEJORAS.md` §1).
 
-1. `DeliveryController`: uno por página. El cronómetro es un `Timer.periodic` que suma `_elapsedSeconds++`.
-2. `DeliveryStateManager`: un singleton en memoria con el número de reparto, las cajas, los clientes contactados y el precio sugerido.
-3. `PersistentDeliveryStates`: se escribe y nunca se lee.
+1. `DeliveryController`: todavía uno por página. Su `Timer.periodic` **sólo repinta**. Lee la sesión del singleton, recibe un reloj inyectable y se hace `dispose()` al cerrar la página.
+2. `DeliveryStateManager`: singleton en memoria con la sesión (de ella se derivan activo, pausado, número y cajas), los clientes contactados y el precio sugerido.
+3. `PersistentDeliveryStates`: se escribe en cada iniciar/pausar/reanudar/terminar y al pasar a segundo plano. `restoreSession()` la lee en `main()` y al abrir la página de reparto, si la memoria está vacía o es de otro vendedor. Al cambiar de usuario sólo se vacía la memoria.
 
 - **Ciclo:** iniciar (número = conteo de repartos del vendedor + 1, con diálogo de cajas) → pausar/reanudar → terminar. Al terminar se guarda `Deliveries` con `date = now` y `remaining = 0`.
-- **Reanudar:** se puede reanudar un reparto pasado desde su detalle.
-- **Salir de la pantalla pausa el reparto.**
+- **Reanudar:** se puede reanudar un reparto pasado desde su detalle; el tiempo acumulado sale de `Deliveries.durationSeconds`. Si es el reparto en curso no se recarga nada. Si hay otro en curso, se pausa y se guarda su tiempo antes de cambiar, sin preguntar (B11).
+- **Salir de la pantalla no pausa** el reparto. Tocar un cliente, ✏️, `+` o `$` sí lo reanuda si estaba pausado (B6).
 - **Venta durante el reparto:**
   - **Desde el FAB `$`:** se abre `VentasPage(deliveryNumber)`. Al guardar se llama a `insertSaleWithInteraction`, que inserta la venta y la interacción `Venta` en una sola transacción.
   - **Desde la lista:** se toca un cliente, luego Llamada/Visita/Mensaje, luego el resultado. Si el resultado es "Venta", la interacción se inserta antes de abrir el formulario (N2 y N3).

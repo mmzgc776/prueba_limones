@@ -46,7 +46,7 @@ flutter test test/client_recommendation_test.dart   # single file
   - `sync_service.dart`: `SyncType` has 9 values (`deliveries, sales, clients, notas, interacciones, expenses, usuarios, database, rateClients`). It also holds the sheet ranges and the score refresh.
   - `client_recommendation_service.dart`: pure, tested heuristic with an injectable clock. **This is the model to follow for new logic.**
   - `delivery_service.dart`, `google_sheets_service.dart`, `user_session_service.dart` (current seller), `sheets_row_utils.dart`, `sniim_scraper_service.dart` (market prices).
-- `lib/controllers/delivery_controller.dart` + `lib/data/delivery_state.dart` (`DeliveryStateManager` singleton): active-delivery timer and state.
+- `lib/controllers/delivery_controller.dart` + `lib/data/delivery_session.dart` (`DeliverySession`, pure) + `lib/data/delivery_state.dart` (`DeliveryStateManager` singleton): active-delivery state.
 - `lib/pages/`: home is `MyHomePage` in `main.dart`, or `UserSelectionPage` when no session exists. Named routes: `/section1` (dead placeholder), `/ventas`, `/section_delivery`, `/nuevo_cliente`, `/editar_clientes`, `/synchronization`, `/logs`, `/gastos`; `/edit_sale` is resolved in `onGenerateRoute`. Delivery widgets live in `lib/pages/section_delivery/widgets/`.
 - `lib/widgets/venta_form.dart`: `VentaForm` + `EditVentaForm`.
 - `lib/theme/app_theme.dart`: light/dark Material 3 themes. `main.dart` holds `themeNotifier`, persisted in the `isDarkMode` pref.
@@ -59,7 +59,7 @@ flutter test test/client_recommendation_test.dart   # single file
   - Existing `deleteAll*` methods don't filter (D2, D3, D5).
   - The `Notas` and `Interacciones` sheets have no `seller_id` column (N1).
 - **Migrations:** they use `if (from == N)` and are broken when versions are skipped (D1). New migrations should use `if (from <= N)`; fixing the old chain is tracked as D1.
-- **Delivery state** lives in three places: a controller per page, the singleton and `PersistentDeliveryStates`. That last table is written but never read. The timer adds seconds on a `Timer.periodic` (B1-B11). Don't add more state there; the planned fix is a timestamp-based `DeliverySession` (plan §1).
+- **Delivery time** comes only from `DeliverySession.elapsed(now)` (`accumulated + (now - runningSince)`). The singleton holds it, and every transition persists it to `PersistentDeliveryStates`. The controller's timer only repaints, so never add seconds by hand. Still pending: one app-wide controller instead of one per page, B8, B10 and the B11 confirmation (plan §1).
 - **Delivery number** is a global PK but is computed per seller as `count + 1` (B8).
 - **Sale + interaction:** use `AppDatabase.insertSaleWithInteraction` (atomic, tested) instead of separate inserts.
 - **Client list** ignores the persisted `puntuacion`. It recomputes `ClientPurchaseMetrics` on every load, so change the heuristic in `client_recommendation_service.dart` and update `docs/SELECCION_CLIENTES.md`.

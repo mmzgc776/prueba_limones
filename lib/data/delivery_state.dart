@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'delivery_session.dart';
 
 /// Modelo para el estado persistente del delivery
 class DeliveryPersistentState {
@@ -28,7 +28,8 @@ class DeliveryPersistentState {
       elapsedSeconds: map['elapsedSeconds'] ?? 0,
       isActive: map['isActive'] ?? false,
       deliveryNumber: map['deliveryNumber'],
-      initialBoxes: map['initialBoxes'] ?? 0,
+      // DatabaseService usa la clave de la columna (`boxes`).
+      initialBoxes: map['boxes'] ?? map['initialBoxes'] ?? 0,
     );
   }
 
@@ -40,11 +41,13 @@ class DeliveryPersistentState {
       'elapsedSeconds': elapsedSeconds,
       'isActive': isActive,
       'deliveryNumber': deliveryNumber,
-      'initialBoxes': initialBoxes,
+      'boxes': initialBoxes,
     };
   }
 }
 
+/// Estado del reparto en memoria compartido entre páginas. El tiempo vive sólo
+/// en [session]; los flags se derivan de ella para no desincronizarse.
 class DeliveryStateManager {
   static final DeliveryStateManager _instance =
       DeliveryStateManager._internal();
@@ -55,48 +58,40 @@ class DeliveryStateManager {
 
   DeliveryStateManager._internal();
 
-  int? currentDeliveryNumber;
-  bool isDeliveryActive = false;
-  bool isDeliveryPaused = false;
+  DeliverySession? session;
+
+  /// Vendedor dueño de [session]; al cambiar de usuario se vuelve a cargar.
+  int? sessionSellerId;
+
   double? currentPrice;
-  int elapsedSeconds = 0;
   List<bool> clientesContactados = [];
   List<String> clientesEstado = [];
   int? selectedClienteIndex;
-  int? initialBoxes;
 
-  void startDelivery(int deliveryNumber, {int? boxes}) {
-    currentDeliveryNumber = deliveryNumber;
-    isDeliveryActive = true;
-    isDeliveryPaused = false;
-    elapsedSeconds = 0;
+  bool get isDeliveryActive => session != null;
+  bool get isDeliveryPaused => session?.isPaused ?? false;
+  int? get currentDeliveryNumber => session?.deliveryNumber;
+  int? get initialBoxes => session?.boxes;
+
+  /// Cambia a otro reparto: las marcas de clientes no se heredan.
+  void startSession(DeliverySession newSession, {required int sellerId}) {
+    session = newSession;
+    sessionSellerId = sellerId;
     clientesContactados = [];
     clientesEstado = [];
     selectedClienteIndex = null;
-    initialBoxes = boxes;
-  }
-
-  void pauseDelivery() {
-    isDeliveryPaused = true;
-  }
-
-  void resumeDelivery() {
-    isDeliveryPaused = false;
   }
 
   void endDelivery() {
-    currentDeliveryNumber = null;
-    isDeliveryActive = false;
-    isDeliveryPaused = false;
-    elapsedSeconds = 0;
+    session = null;
+    sessionSellerId = null;
     clientesContactados = [];
     clientesEstado = [];
     selectedClienteIndex = null;
-    initialBoxes = null;
   }
 
   int? getCurrentDeliveryNumber() {
-    return isDeliveryActive ? currentDeliveryNumber : null;
+    return session?.deliveryNumber;
   }
 
   void setCurrentPrice(double price) {
@@ -105,10 +100,6 @@ class DeliveryStateManager {
 
   double? getCurrentPrice() {
     return currentPrice;
-  }
-
-  void updateElapsedSeconds(int seconds) {
-    elapsedSeconds = seconds;
   }
 
   void updateClientesContactados(List<bool> contactados) {

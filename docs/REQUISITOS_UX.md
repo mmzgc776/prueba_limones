@@ -37,7 +37,7 @@
 
 | ID | Requisito | Estado | Evidencia / pendiente |
 |---|---|---|---|
-| U17 | Cronómetro discreto, con pausa y reanudación, que sobrevive a salir de la app | 🟡 | Existe, pero el tiempo no es confiable y se pierde si el sistema mata la app (B1-B7, mejora #1) |
+| U17 | Cronómetro discreto, con pausa y reanudación, que sobrevive a salir de la app | 🟡 | Tiempo por marcas de tiempo y persistido desde 2026-09-29: sobrevive a segundo plano y a que el SO mate la app. Falta: sigue en la AppBar, expuesto al toque accidental (§3 del plan) |
 | U21 | Pestañas Clientes / Progreso | ✅ | `active_delivery_view.dart:72-80` |
 | U08 | La lista distingue estados por color (pendiente, visitado, rechazó) y los atendidos siguen visibles | 🟡 | Los colores existen (`clientes_list.dart:94-100`), pero los atendidos salen de la lista al recargar (mejora #9) |
 | U22 | Progreso de la sesión: "visitados X/N", kg, total | 🟡 | Muestra ventas, interacciones, total, kg y cajas; falta X/N y no se refresca (B12) |
