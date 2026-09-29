@@ -1,3 +1,6 @@
+> **ARCHIVADO (2026-09-29) — no usar como referencia.** Superado por `ClientRecommendationService` (commit `1c62312`). Estado de cada defecto en `SELECCION_CLIENTES.md` § Historial.
+> Documentación vigente: [`docs/README.md`](../../README.md).
+
 # Propuesta de Mejoras para la Heurística de Generación de Listas
 
 **Fecha:** 2026-08-05  

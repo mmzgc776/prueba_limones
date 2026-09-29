@@ -1,3 +1,6 @@
+> **ARCHIVADO (2026-09-29) — no usar como referencia.** Pseudocódigo del algoritmo anterior a `1c62312` (pool top-60, exclusión rígida 0.8, Estrategia B, pesos 30/35/10/15, refuerzo ×1.15) con alcance "global" entre vendedores. Nada de eso existe en el código; ver `SELECCION_CLIENTES.md`.
+> Documentación vigente: [`docs/README.md`](../README.md).
+
 # Implementación Referencial Extendida — Algoritmos Críticos Multi-Tenant
 
 Esta sección complementa la especificación técnica extendida con **pseudocódigo directamente ejecutable** (con semántica clara independientemente del lenguaje) para los algoritmos más complejos del sistema multi-vendedor, junto con casos de borde documentados. Está pensada como referencia implementacional: alguien que la lea debe poder escribir el código funcional sin ambigüedades.

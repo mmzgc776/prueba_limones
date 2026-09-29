@@ -1,3 +1,6 @@
+> **ARCHIVADO (2026-09-29) — no usar como referencia.** Superado por `ClientRecommendationService` (commit `1c62312`). Estado de cada cambio propuesto en `SELECCION_CLIENTES.md` § Historial.
+> Documentación vigente: [`docs/README.md`](../../README.md).
+
 # Plan de Mejoras v2 — Heurística de Selección de Clientes
 
 **Fecha:** 2026-08-06  

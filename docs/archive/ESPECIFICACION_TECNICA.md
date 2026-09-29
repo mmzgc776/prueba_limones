@@ -1,3 +1,6 @@
+> **ARCHIVADO (2026-09-29) — no usar como referencia.** Describe un diseño multi-tenant que nunca se construyó (login PIN/JWT, una BD por vendedor, métricas globales, vistas de administrador) y el algoritmo de lista anterior a `1c62312` (top-60 por `puntuacion`, umbral 80 %, Estrategia B). El estado actual está en `ARQUITECTURA.md` y `SELECCION_CLIENTES.md`; lo aspiracional que sigue vigente, en `VISION.md`.
+> Documentación vigente: [`docs/README.md`](../README.md).
+
 # Especificación Técnica — Sistema de Gestión para Vendedores Itinerantes Multi-Tenant
 
 ## Documento de Diseño Independiente del Lenguaje

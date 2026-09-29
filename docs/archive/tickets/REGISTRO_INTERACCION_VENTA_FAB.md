@@ -2,11 +2,25 @@
 name: Registro de interacción al vender desde el botón "$" del FAB
 severity: defecto funcional (pérdida de datos)
 priority: alta
-status: pendiente
+status: resuelto
 created: 2026-08-06
+closed: 2026-09-29
 category: delivery / ventas / interacciones-cliente
 estimated-effort: media-baja
 ---
+
+> **CERRADO (verificado 2026-09-29).** Resuelto con un diseño distinto al propuesto abajo: la interacción no se
+> inserta al pulsar "$", sino al **guardar** la venta, en la misma transacción
+> (`AppDatabase.insertSaleWithInteraction`, invocado desde `VentaForm` cuando hay `deliveryNumber`). Así cancelar
+> el formulario no deja interacciones huérfanas. La interacción va al cliente elegido en el formulario, no al
+> resaltado en la lista (decisión deliberada). Cubierto por `test/sale_interaction_test.dart`.
+>
+> - Opción A (pasar el cliente seleccionado) se descartó: `onRegistrarVenta` y `_registrarInteraccionVenta`
+>   quedaron como código muerto (ver `PLAN_MEJORAS.md` §4, código muerto).
+> - Tras volver, el comprador desaparece de la lista (tiene interacción) en vez de mostrarse en verde.
+> - Problemas **que siguen abiertos** en el flujo *desde la lista* (no el FAB) se movieron a `PLAN_MEJORAS.md`
+>   §2 (N2, N3).
+> - La tabla `Contactos` que menciona este ticket hoy se llama `Interacciones`.
 
 # Defecto: Al registrar venta desde el botón "$" del FAB no se guarda la interacción con el cliente
 

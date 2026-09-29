@@ -1,3 +1,6 @@
+> **ARCHIVADO (2026-09-29) — no usar como referencia.** Spec UX original, escrita sobre premisas descartadas (datos globales entre vendedores, login con PIN/JWT, lista de 15 clientes sin scroll). Sus requisitos vigentes se convirtieron en checklist con estado en `REQUISITOS_UX.md`.
+> Documentación vigente: [`docs/README.md`](../README.md).
+
 # Especificación Extendida de Experiencia de Usuario — Vendedores Itinerantes Multi-Tenant
 
 Esta especificación describe **cómo interactúan múltiples vendedores con el sistema** durante sus jornadas diarias, los patrones de interfaz que usan, las transiciones de pantalla y la semántica de cada interacción táctil en un contexto multi-tenant. Está diseñada para ser implementable en cualquier framework móvil (React Native, Flutter, Swift, Kotlin, etc.).
