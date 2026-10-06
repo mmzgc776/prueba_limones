@@ -7,7 +7,7 @@ class ClientesList extends StatelessWidget {
   final bool paused;
   final List<Cliente> clientes;
   final List<bool> esRelleno;
-  final List<String> motivos;
+  final List<List<String>> motivos;
   final List<bool> clientesContactados;
   final List<String> clientesEstado; // Estado: 'Rechazó', 'Pendiente', or ''
   final int? selectedClienteIndex;
@@ -62,7 +62,9 @@ class ClientesList extends StatelessWidget {
                     final contactado = clientesContactados[index];
                     return ListTile(
                       key: ValueKey(cliente.id),
-                      subtitle: index < motivos.length ? Text(motivos[index]) : null,
+                      subtitle: index < motivos.length
+                          ? _Etiquetas(etiquetas: motivos[index])
+                          : null,
                       onTap: () {
                         if (paused) onResumeDelivery();
                         onShowInteraccionSheet(index);
@@ -120,6 +122,46 @@ class ClientesList extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Fila de etiquetas compactas: motivo, día predilecto y kg habituales.
+class _Etiquetas extends StatelessWidget {
+  final List<String> etiquetas;
+
+  const _Etiquetas({required this.etiquetas});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        children: [
+          for (final (i, etiqueta) in etiquetas.indexed)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: i == 0
+                    ? colorScheme.primaryContainer
+                    : colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                etiqueta,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: i == 0
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

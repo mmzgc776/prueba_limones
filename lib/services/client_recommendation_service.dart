@@ -186,6 +186,35 @@ class ClientPurchaseMetrics {
   double get kgEvento =>
       purchaseDays.isEmpty ? 0 : kgTotal / purchaseDays.length;
 
+  /// Kg habituales por día de compra: la moda si algún valor se repite;
+  /// si todos son distintos la moda sería el mínimo, así que usa la mediana.
+  double get typicalKg {
+    if (purchaseDays.isEmpty) return 0;
+    final dailyKg = <DateTime, double>{};
+    for (final sale in sales) {
+      final day = calendarDay(sale.date);
+      dailyKg[day] = (dailyKg[day] ?? 0) + sale.quantity;
+    }
+    final repeats = dailyKg.values.where((kg) => kg == moda).length;
+    return repeats > 1 ? moda : _median(dailyKg.values.toList());
+  }
+
+  /// Día predilecto (0 = lunes). Usa los últimos 90 días como `weekdayScore`;
+  /// sin compras recientes (p. ej. reactivaciones) recurre a todo el historial.
+  int? get displayPreferredDay {
+    if (purchaseDays.isEmpty) return null;
+    if (weekdayCounts.isNotEmpty) return preferredDay;
+    final counts = <int, int>{};
+    for (final day in purchaseDays) {
+      counts[day.weekday - 1] = (counts[day.weekday - 1] ?? 0) + 1;
+    }
+    var preferred = 0;
+    for (var day = 0; day < 7; day++) {
+      if ((counts[day] ?? 0) > (counts[preferred] ?? 0)) preferred = day;
+    }
+    return preferred;
+  }
+
   /// Escalas fijas: recalcular un cliente no cambia la escala del resto.
   /// Es una prioridad heurística, NO una probabilidad de venta.
   double get score {
@@ -206,13 +235,35 @@ class ClientRecommendation {
   final DateTime? lastContact;
   const ClientRecommendation(this.cliente, this.metrics, this.lastContact);
 
+  static const weekdayNames = [
+    'Lunes',
+    'Martes',
+    'Miércoles',
+    'Jueves',
+    'Viernes',
+    'Sábado',
+    'Domingo',
+  ];
+
   String get reason => metrics.reactivation
       ? 'Reactivación'
       : metrics.initialFollowUp
-      ? 'Seguimiento inicial'
+      ? 'Seguimiento'
       : metrics.confidence >= 0.5 && metrics.readiness >= 0.65
-      ? 'Recompra próxima'
-      : 'Actividad reciente';
+      ? 'Recompra'
+      : 'Actividad';
+
+  /// Etiquetas compactas para la lista: motivo, día predilecto y kg habituales.
+  List<String> get tags {
+    final day = metrics.displayPreferredDay;
+    final kg = metrics.typicalKg;
+    return [
+      reason,
+      if (day != null) weekdayNames[day],
+      if (kg > 0)
+        '${kg == kg.roundToDouble() ? kg.toInt() : kg.toStringAsFixed(1)}kg',
+    ];
+  }
 }
 
 class ClientRecommendationService {
@@ -310,6 +361,9 @@ class ClientRecommendationService {
       });
     add(recoveries, reactivationSlots);
     add(active, targetSize - selected.length);
+    // Los cupos garantizan presencia, no son un techo: si los activos no
+    // llenan la lista, los huecos se completan con más reactivaciones.
+    add([...recoveries]..sort(compare), targetSize - selected.length);
     // Los cupos dan acceso, no prioridad artificial en el orden visible.
     selected.sort(compare);
     return selected;

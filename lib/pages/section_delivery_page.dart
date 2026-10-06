@@ -30,7 +30,7 @@ class _SectionDeliveryPageState extends State<SectionDeliveryPage>
   late DatabaseService _databaseService;
   List<Cliente> _clientes = [];
   List<bool> _clientesEsRelleno = [];
-  List<String> _clientesMotivos = [];
+  List<List<String>> _clientesMotivos = [];
   int _loadGeneration = 0;
   late BuildContext rootContext;
   bool _isResumedDelivery = false;

@@ -23,7 +23,7 @@ class DeliveryService {
 
   /// Evalúa todo el catálogo desde ventas reales, sin depender del score guardado.
   Future<({List<Cliente> clientes, List<bool> esRelleno,
-      List<String> motivos})> loadClientes({int? excludeDeliveryNumber}) async {
+      List<List<String>> motivos})> loadClientes({int? excludeDeliveryNumber}) async {
     await init();
     final sellerId = UserSessionService().currentSellerId;
     final snapshot = await _dbService.getRecommendationSnapshot(sellerId);
@@ -38,7 +38,7 @@ class DeliveryService {
       // Compatibilidad con consumidores anteriores; ya no existe relleno ciego.
       esRelleno: recommendations.map((r) =>
         r.metrics.initialFollowUp || r.metrics.reactivation).toList(),
-      motivos: recommendations.map((r) => r.reason).toList(),
+      motivos: recommendations.map((r) => r.tags).toList(),
     );
   }
 

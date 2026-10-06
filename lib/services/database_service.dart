@@ -1352,20 +1352,6 @@ class DatabaseService {
     return result;
   }
 
-  /// Obtiene los 200 clientes con mayor puntuación del usuario actual.
-  /// El pool es deliberadamente amplio para que DeliveryService.loadClientes
-  /// pueda "rellenar" la lista hasta el objetivo (50) después de aplicar los
-  /// filtros de depuración (eventos >= 3 e intervalo).
-  Future<List<Cliente>> getTop30ClientesByPuntuacion() async {
-    _ensureInitialized();
-    final sellerId = UserSessionService().currentSellerId;
-    final query = _db!.select(_db!.clientes)
-      ..where((tbl) => tbl.sellerId.equals(sellerId))
-      ..orderBy([(tbl) => OrderingTerm.desc(tbl.puntuacion)])
-      ..limit(200);
-    return await query.get();
-  }
-
   // ===== OPERACIONES DE NOTAS =====
 
   /// Inserta una nueva nota

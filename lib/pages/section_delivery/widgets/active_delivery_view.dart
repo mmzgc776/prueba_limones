@@ -11,7 +11,7 @@ class ActiveDeliveryView extends StatefulWidget {
   final String formattedTime;
   final List<Cliente> clientes;
   final List<bool> esRelleno;
-  final List<String> motivos;
+  final List<List<String>> motivos;
   final List<bool> clientesContactados;
   final List<String> clientesEstado;
   final int? selectedClienteIndex;
